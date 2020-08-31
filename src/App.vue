@@ -22,14 +22,18 @@
           <el-table-column prop="title" label="乐曲名" />
           <el-table-column label="难度" width="180" >
             <template slot-scope="scope">
-              {{ scope.row.level_label }} {{ scope.row.level }}
+              <a :class="'difficulty' + scope.row.level_index">{{ scope.row.level_label }} {{ scope.row.level }}</a>
             </template>
           </el-table-column>
           <el-table-column prop="ds" sortable label="定数" width="120" />
-          <el-table-column prop="achievements" sortable label="达成率" width="120" />
+          <el-table-column sort-by="achievements" sortable label="达成率" width="120" >
+            <template slot-scope="scope">
+              {{ scope.row.achievements }}%
+            </template>
+          </el-table-column>
           <el-table-column label="DX Rating" width="120" >
             <template slot-scope="scope">
-              <a v-if="scope.row.rank <= 25" style="color: #00ff00">{{ scope.row.ra }}</a>
+              <a v-if="scope.row.rank <= 25" style="color: #3CB371">{{ scope.row.ra }}</a>
               <a v-else>{{ scope.row.ra }}</a>
             </template>
           </el-table-column>
@@ -41,14 +45,14 @@
           <el-table-column prop="title" label="乐曲名" />
           <el-table-column label="难度" width="180" >
             <template slot-scope="scope">
-              {{ scope.row.level_label }} {{ scope.row.level }}
+              <a :class="'difficulty' + scope.row.level_index">{{ scope.row.level_label }} {{ scope.row.level }}</a>
             </template>
           </el-table-column>
           <el-table-column prop="ds" sortable label="定数" width="120" />
           <el-table-column prop="achievements" sortable label="达成率" width="120" />
           <el-table-column label="DX Rating" width="120" >
             <template slot-scope="scope">
-              <a v-if="scope.row.rank <= 15" style="color: #00ff00">{{ scope.row.ra }}</a>
+              <a v-if="scope.row.rank <= 15" style="color: #3CB371">{{ scope.row.ra }}</a>
               <a v-else>{{ scope.row.ra }}</a>
             </template>
           </el-table-column>
@@ -136,10 +140,10 @@ export default {
         } else if (rate < 100.5) {
             l = 14
         }
-        this.records[i].ra = Math.floor(this.records[i].ds * (rate / 100) * l);
+        this.records[i].ra = Math.floor(this.records[i].ds * (Math.min(100.5, rate) / 100) * l);
         if (isNaN(this.records[i].ra)) this.records[i].ra = 0;
       }
-      console.log(this.records);
+      // console.log(this.records);
       this.textarea = "";
       this.dialogVisible = false;
     },
@@ -196,7 +200,7 @@ export default {
         record_data.rate = currentNode.getAttribute("src").match('_icon_(.*).png')[1]
         records.push(record_data);
       }
-      console.log(records);
+      // console.log(records);
       return records;
     }
   }
@@ -212,5 +216,25 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin: 30px auto;
+}
+
+.difficulty4 {
+  color: #BA67F8
+}
+
+.difficulty3 {
+  color: #9E45E2
+}
+
+.difficulty2 {
+  color: #F64861
+}
+
+.difficulty1 {
+  color: #FB9C2D
+}
+
+.difficulty0 {
+  color: #22BB5B
 }
 </style>
