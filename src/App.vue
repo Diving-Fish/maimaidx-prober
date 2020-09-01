@@ -18,51 +18,56 @@
       <el-button style="margin-left: 30px" @click="screenshot">导出为截图</el-button>
     </div>
     <div id="tableBody">
-    <p>底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</p>
-    <el-tabs v-model="activeName">
-      <el-tab-pane label="标准乐谱" name="SD">
-        <el-table :data="sdData" style="width: 100%">
-          <el-table-column prop="rank" label="排名" width="80" />
-          <el-table-column prop="title" label="乐曲名" />
-          <el-table-column label="难度" width="180" >
-            <template slot-scope="scope">
-              <a :class="'difficulty' + scope.row.level_index">{{ scope.row.level_label }} {{ scope.row.level }}</a>
-            </template>
-          </el-table-column>
-          <el-table-column prop="ds" sortable label="定数" width="120" />
-          <el-table-column sort-by="achievements" sortable label="达成率" width="120" >
-            <template slot-scope="scope">
-              {{ scope.row.achievements }}%
-            </template>
-          </el-table-column>
-          <el-table-column label="DX Rating" width="120" >
-            <template slot-scope="scope">
-              <a v-if="scope.row.rank <= 25" style="color: #3CB371">{{ scope.row.ra }}</a>
-              <a v-else>{{ scope.row.ra }}</a>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
-      <el-tab-pane label="DX 乐谱" name="DX">
-        <el-table :data="dxData" style="width: 100%">
-          <el-table-column prop="rank" label="排名" width="80" />
-          <el-table-column prop="title" label="乐曲名" />
-          <el-table-column label="难度" width="180" >
-            <template slot-scope="scope">
-              <a :class="'difficulty' + scope.row.level_index">{{ scope.row.level_label }} {{ scope.row.level }}</a>
-            </template>
-          </el-table-column>
-          <el-table-column prop="ds" sortable label="定数" width="120" />
-          <el-table-column prop="achievements" sortable label="达成率" width="120" />
-          <el-table-column label="DX Rating" width="120" >
-            <template slot-scope="scope">
-              <a v-if="scope.row.rank <= 15" style="color: #3CB371">{{ scope.row.ra }}</a>
-              <a v-else>{{ scope.row.ra }}</a>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
-    </el-tabs>
+      <p>底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</p>
+      <el-tabs v-model="activeName">
+        <el-tab-pane label="标准乐谱" name="SD">
+          <el-table :data="sdData" style="width: 100%">
+            <el-table-column prop="rank" label="排名" width="80" />
+            <el-table-column prop="title" label="乐曲名" />
+            <el-table-column label="难度" width="180" >
+              <template slot-scope="scope">
+                <a :class="'difficulty' + scope.row.level_index">{{ scope.row.level_label }} {{ scope.row.level }}</a>
+              </template>
+            </el-table-column>
+            <el-table-column prop="ds" sortable label="定数" width="120" />
+            <el-table-column sort-by="achievements" sortable label="达成率" width="120" >
+              <template slot-scope="scope">
+                {{ scope.row.achievements }}%
+              </template>
+            </el-table-column>
+            <el-table-column label="DX Rating" width="120" >
+              <template slot-scope="scope">
+                <a v-if="scope.row.rank <= 25" style="color: #3CB371">{{ scope.row.ra }}</a>
+                <a v-else>{{ scope.row.ra }}</a>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+        <el-tab-pane label="DX 乐谱" name="DX">
+          <el-table :data="dxData" style="width: 100%">
+            <el-table-column prop="rank" label="排名" width="80" />
+            <el-table-column prop="title" label="乐曲名" />
+            <el-table-column label="难度" width="180" >
+              <template slot-scope="scope">
+                <a :class="'difficulty' + scope.row.level_index">{{ scope.row.level_label }} {{ scope.row.level }}</a>
+              </template>
+            </el-table-column>
+            <el-table-column prop="ds" sortable label="定数" width="120" />
+            <el-table-column prop="achievements" sortable label="达成率" width="120" />
+            <el-table-column label="DX Rating" width="120" >
+              <template slot-scope="scope">
+                <a v-if="scope.row.rank <= 15" style="color: #3CB371">{{ scope.row.ra }}</a>
+                <a v-else>{{ scope.row.ra }}</a>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+    </div>
+    <div style="border-top: 2px #E4E7ED solid; text-align: left">
+      <h3>更新记录</h3>
+      <p>2020/09/02 增加了导出为截图的功能，增加了Session High⤴ 和 バーチャルダム ネーション 的 Master 难度乐曲定数</p>
+      <p>2020/08/31 发布初版</p>
     </div>
   </div>
 </template>
