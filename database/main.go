@@ -22,6 +22,8 @@ func main() {
 	app.AllowMethods(iris.MethodOptions)
 	app.Post("/login", routers.Login)
 	app.Post("/register", routers.CreateUser)
+	app.Post("/feedback", routers.SendFeedBack)
+	app.Get("/music_data", routers.GetMusicData)
 	app.PartyFunc("/player", func(p router.Party) {
 		p.Use(routers.PlayerMiddleWare)
 		p.Get("/records", routers.GetPlayerData)

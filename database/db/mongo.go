@@ -7,6 +7,8 @@ import (
 )
 
 var PlayerData *mgo.Collection
+var MusicData *mgo.Collection
+var FeedBack *mgo.Collection
 
 func init() {
 	session, err := mgo.Dial(tools.DbURL)
@@ -14,4 +16,6 @@ func init() {
 		log.Fatal(err)
 	}
 	PlayerData = session.DB("maimaidxprober").C("playerData")
+	MusicData = session.DB("maimaidxprober").C("musicData")
+	FeedBack = session.DB("maimaidxprober").C("feedBack")
 }
