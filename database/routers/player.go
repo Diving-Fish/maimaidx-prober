@@ -118,7 +118,7 @@ func updateOne(records *[]interface{}, record bson.M) {
 	for index, v := range *records {
 		m := v.(bson.M)
 		if m["level_index"] == record["level_index"] && m["title"] == record["title"] && m["type"] == record["type"] {
-			(*records)[index].(bson.M)["achievements"] = record["achievements"]
+			(*records)[index] = record
 			return
 		}
 	}

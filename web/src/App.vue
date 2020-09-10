@@ -1,14 +1,14 @@
 <template>
   <div id="app">
     <h1>舞萌 DX 查分器</h1>
-    <p>使用指南：<a href="https://github.com/Diving-Fish/maimaidx-prober">https://github.com/Diving-Fish/maimaidx-prober</a></p>
+    <p>
+      使用指南：
+      <a
+        href="https://github.com/Diving-Fish/maimaidx-prober"
+      >https://github.com/Diving-Fish/maimaidx-prober</a>
+    </p>
     <el-dialog title="导入数据" :visible.sync="dialogVisible">
-      <el-input
-        type="textarea"
-        :rows="15"
-        placeholder="请将乐曲数据的源代码复制到这里"
-        v-model="textarea">
-      </el-input>
+      <el-input type="textarea" :rows="15" placeholder="请将乐曲数据的源代码复制到这里" v-model="textarea"></el-input>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" @click="flushData()">确定</el-button>
       </span>
@@ -22,12 +22,51 @@
           <el-input v-model="loginForm.password" placeholder="请输入密码" type="password" />
         </el-form-item>
         <el-button type="primary" @click="login">登录</el-button>
+        <el-button @click="invokeRegister">立即注册</el-button>
       </el-form>
     </el-dialog>
+    <el-dialog title="注册" width="30%" :visible.sync="registerVisible">
+      <span style="margin-bottom: 30px; display: block">注册后会自动同步当前已导入的乐曲数据</span>
+      <el-form label-width="80px">
+        <el-form-item label="用户名">
+          <el-input v-model="registerForm.username" placeholder="请输入用户名" />
+        </el-form-item>
+        <el-form-item label="密码">
+          <el-input v-model="registerForm.password" placeholder="请输入密码" type="password" />
+        </el-form-item>
+        <el-form-item label="确认密码">
+          <el-input v-model="registerForm.passwordConfirm" placeholder="请输入密码" type="password" />
+        </el-form-item>
+        <el-button type="primary" @click="register">注册</el-button>
+      </el-form>
+    </el-dialog>
+    <el-dialog title="反馈" width="40%" :visible.sync="feedbackVisible">
+      <el-input
+        type="textarea"
+        :rows="5"
+        placeholder="补充乐曲定数或者对查分器有什么意见和建议都可以写在这里"
+        v-model="feedbackText"
+      ></el-input>
+      <span slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="sendFeedback()">确定</el-button>
+      </span>
+    </el-dialog>
+    <el-dialog
+      :title="`修改${currentUpdate.title}（${currentUpdate.level_label}）的完成率为`"
+      width="40%"
+      :visible.sync="modifyAchivementVisible"
+    >
+      <el-input v-model="currentAchievements" />
+      <span slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="finishEditRow()">确定</el-button>
+      </span>
+    </el-dialog>
     <div style="display: flex; margin: 0 auto; width: fit-content">
-      <el-button @click="loginVisible = true" type="primary">登录并同步数据</el-button>
+      <el-button v-if="username == '未登录'" @click="loginVisible = true" type="primary">登录并同步数据</el-button>
+      <el-button v-else @click="sync()" type="primary">同步数据</el-button>
       <el-button style="margin-left: 30px" @click="dialogVisible = true">导入数据</el-button>
       <el-button style="margin-left: 30px" @click="screenshot">导出为截图</el-button>
+      <el-button style="margin-left: 30px" @click="feedbackVisible = true">提交反馈</el-button>
     </div>
     <div id="tableBody">
       <p>底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</p>
@@ -36,21 +75,26 @@
           <el-table :data="sdData" style="width: 100%">
             <el-table-column prop="rank" label="排名" width="80" />
             <el-table-column prop="title" label="乐曲名" />
-            <el-table-column label="难度" width="180" >
+            <el-table-column label="难度" width="180">
               <template slot-scope="scope">
-                <a :class="'difficulty' + scope.row.level_index">{{ scope.row.level_label }} {{ scope.row.level }}</a>
+                <a
+                  :class="'difficulty' + scope.row.level_index"
+                >{{ scope.row.level_label }} {{ scope.row.level }}</a>
               </template>
             </el-table-column>
             <el-table-column prop="ds" sortable label="定数" width="120" />
-            <el-table-column sort-by="achievements" sortable label="达成率" width="120" >
-              <template slot-scope="scope">
-                {{ scope.row.achievements }}%
-              </template>
+            <el-table-column sort-by="achievements" sortable label="达成率" width="120">
+              <template slot-scope="scope">{{ scope.row.achievements }}%</template>
             </el-table-column>
-            <el-table-column label="DX Rating" width="120" >
+            <el-table-column label="DX Rating" width="120">
               <template slot-scope="scope">
                 <a v-if="scope.row.rank <= 25" style="color: #3CB371">{{ scope.row.ra }}</a>
                 <a v-else>{{ scope.row.ra }}</a>
+              </template>
+            </el-table-column>
+            <el-table-column label="编辑" width="60">
+              <template slot-scope="scope">
+                <el-button @click="editRow(scope.row)" icon="el-icon-edit" circle></el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -59,17 +103,24 @@
           <el-table :data="dxData" style="width: 100%">
             <el-table-column prop="rank" label="排名" width="80" />
             <el-table-column prop="title" label="乐曲名" />
-            <el-table-column label="难度" width="180" >
+            <el-table-column label="难度" width="180">
               <template slot-scope="scope">
-                <a :class="'difficulty' + scope.row.level_index">{{ scope.row.level_label }} {{ scope.row.level }}</a>
+                <a
+                  :class="'difficulty' + scope.row.level_index"
+                >{{ scope.row.level_label }} {{ scope.row.level }}</a>
               </template>
             </el-table-column>
             <el-table-column prop="ds" sortable label="定数" width="120" />
             <el-table-column prop="achievements" sortable label="达成率" width="120" />
-            <el-table-column label="DX Rating" width="120" >
+            <el-table-column label="DX Rating" width="120">
               <template slot-scope="scope">
                 <a v-if="scope.row.rank <= 15" style="color: #3CB371">{{ scope.row.ra }}</a>
                 <a v-else>{{ scope.row.ra }}</a>
+              </template>
+            </el-table-column>
+            <el-table-column label="编辑" width="60">
+              <template slot-scope="scope">
+                <el-button @click="editRow(scope.row)" icon="el-icon-edit" circle></el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -78,6 +129,7 @@
     </div>
     <div style="border-top: 2px #E4E7ED solid; text-align: left">
       <h3>更新记录</h3>
+      <p>2020/09/10 教师节快乐！增加了登录、注册和数据同步的功能，增加了修改单曲完成率的功能，不需要再反复导入数据了</p>
       <p>2020/09/02 增加了导出为截图的功能，增加了Session High⤴ 和 バーチャルダム ネーション 的 Master 难度乐曲定数</p>
       <p>2020/08/31 发布初版</p>
     </div>
@@ -85,181 +137,364 @@
 </template>
 
 <script>
-import axios from 'axios'
-const xpath = require('xpath'), dom = require('xmldom').DOMParser, html2canvas = require('html2canvas')
+import axios from "axios";
+const xpath = require("xpath"),
+  dom = require("xmldom").DOMParser,
+  html2canvas = require("html2canvas");
 export default {
-  name: 'App',
-  data: function() {
+  name: "App",
+  data: function () {
     return {
       loginForm: {
         username: "",
-        password: ""
+        password: "",
       },
-      activeName: 'SD',
-      dialogVisible: false,
+      registerForm: {
+        username: "",
+        password: "",
+        passwordConfirm: ""
+      },
+      currentUpdate: {},
+      currentAchievements: 0,
+      username: "未登录",
+      activeName: "SD",
       textarea: "",
       records: [],
+      music_data: [],
+      level_label: ["Basic", "Advanced", "Expert", "Master", "Re:MASTER"],
+      feedbackText: "",
+      feedbackVisible: false,
       loginVisible: false,
-      music_data: [{"diff": "流行&动漫", "type": "DX", "title": "LOSER", "level": ["1", "6", "8", "11+"], "ds": [1.0, 6.5, 8.2, 11.7]}, {"diff": "流行&动漫", "type": "DX", "title": "U.S.A.", "level": ["2", "6", "8+", "11", "12"], "ds": [2.0, 6.2, 8.8, 11.0, 12.4]}, {"diff": "流行&动漫", "type": "DX", "title": "新宝島", "level": ["3", "6", "8+", "11"], "ds": [3.0, 6.8, 8.8, 11.2]}, {"diff": "流行&动漫", "type": "DX", "title": "HOT LIMIT", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.0, 9.2, 11.8]}, {"diff": "流行&动漫", "type": "SD", "title": "ネ！コ！", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.0, 9.0, 11.8]}, {"diff": "流行&动漫", "type": "SD", "title": "SHINY DAYS", "level": ["3", "5", "7+", "11"], "ds": [3.0, 5.8, 7.8, 11.0]}, {"diff": "流行&动漫", "type": "SD", "title": "only my railgun", "level": ["4", "6", "9", "10+", "11+"], "ds": [4.0, 6.2, 9.0, 10.7, 11.7]}, {"diff": "流行&动漫", "type": "DX", "title": "シュガーソングとビターステップ", "level": ["4", "7", "9", "11"], "ds": [4.0, 7.5, 9.0, 11.2]}, {"diff": "流行&动漫", "type": "DX", "title": "かくしん的☆めたまるふぉ～ぜっ！", "level": ["4", "6", "8+", "11+"], "ds": [4.0, 6.7, 8.8, 11.7]}, {"diff": "流行&动漫", "type": "SD", "title": "にめんせい☆ウラオモテライフ！", "level": ["4", "6", "9", "10+", "11"], "ds": [4.0, 6.7, 9.0, 10.8, 11.3]}, {"diff": "流行&动漫", "type": "SD", "title": "うまるん体操", "level": ["4", "6", "8", "10", "11"], "ds": [4.0, 6.8, 8.5, 10.5, 11.2]}, {"diff": "流行&动漫", "type": "SD", "title": "ジンギスカン", "level": ["4", "6", "8+", "12"], "ds": [4.0, 6.8, 8.9, 12.2]}, {"diff": "流行&动漫", "type": "SD", "title": "にじよめちゃん体操第一億", "level": ["4", "6", "8", "12"], "ds": [4.0, 6.2, 8.2, 12.2]}, {"diff": "流行&动漫", "type": "SD", "title": "Rodeo Machine", "level": ["3", "6", "9+", "12"], "ds": [3.0, 6.5, 9.7, 12.3]}, {"diff": "流行&动漫", "type": "SD", "title": "REVIVER オルタンシア・サーガ -蒼の騎士団- 原创乐曲Ver.", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.2, 9.5, 12.0]}, {"diff": "流行&动漫", "type": "SD", "title": "ミラクル・ショッピング", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.2, 9.2, 11.5]}, {"diff": "流行&动漫", "type": "SD", "title": "日本の米は世界一", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.7, 9.0, 11.7]}, {"diff": "流行&动漫", "type": "SD", "title": "ポップミュージックは僕のもの", "level": ["4", "6", "8", "12"], "ds": [4.0, 6.2, 8.5, 12.0]}, {"diff": "流行&动漫", "type": "SD", "title": "きらっせ☆ウッド村ファーム", "level": ["5", "7", "8+", "11"], "ds": [5.0, 7.3, 8.7, 11.0]}, {"diff": "流行&动漫", "type": "SD", "title": "夏祭り", "level": ["4", "6", "7", "10"], "ds": [4.0, 6.2, 7.0, 10.4]}, {"diff": "流行&动漫", "type": "SD", "title": "fake!fake!", "level": ["4", "7", "8+", "11+"], "ds": [4.0, 7.0, 8.7, 11.7]}, {"diff": "流行&动漫", "type": "SD", "title": "HIMITSUスパーク", "level": ["4", "6", "8+", "11+"], "ds": [4.0, 6.8, 8.7, 11.7]}, {"diff": "流行&动漫", "type": "SD", "title": "POP STAR", "level": ["4", "6", "7+", "10"], "ds": [4.0, 6.2, 7.9, 10.4]}, {"diff": "流行&动漫", "type": "SD", "title": "Love or Lies", "level": ["4", "6", "8", "10"], "ds": [4.0, 6.0, 8.0, 10.1]}, {"diff": "流行&动漫", "type": "SD", "title": "jelly", "level": ["4", "7", "7+", "10+"], "ds": [4.0, 7.2, 7.7, 10.7]}, {"diff": "流行&动漫", "type": "SD", "title": "美しく燃える森", "level": ["4", "6", "7+", "9+"], "ds": [4.0, 6.4, 7.9, 9.7]}, {"diff": "流行&动漫", "type": "SD", "title": "Love You", "level": ["5", "6", "8", "10"], "ds": [5.0, 6.0, 8.3, 10.6]}, {"diff": "流行&动漫", "type": "SD", "title": "come again", "level": ["5", "6", "8+", "10"], "ds": [5.0, 6.4, 8.8, 10.1]}, {"diff": "流行&动漫", "type": "SD", "title": "Future", "level": ["6", "6", "7+", "9", "11"], "ds": [6.0, 6.2, 7.9, 9.5, 11.3]}, {"diff": "流行&动漫", "type": "SD", "title": "ウッーウッーウマウマ(ﾟ∀ﾟ)", "level": ["5", "7", "8", "11+"], "ds": [5.0, 7.5, 8.0, 11.7]}, {"diff": "流行&动漫", "type": "SD", "title": "NIGHT OF FIRE", "level": ["6", "7", "8+", "10"], "ds": [6.0, 7.4, 8.7, 10.1]}, {"diff": "流行&动漫", "type": "SD", "title": "YATTA!", "level": ["3", "6", "8", "10"], "ds": [3.0, 6.1, 8.1, 10.0]}, {"diff": "流行&动漫", "type": "SD", "title": "バラライカ", "level": ["4", "6", "8", "10"], "ds": [4.0, 6.9, 8.3, 10.0]}, {"diff": "流行&动漫", "type": "SD", "title": "若い力 -SEGA HARD GIRLS MIX-", "level": ["4", "6", "8", "11", "11+"], "ds": [4.0, 6.3, 8.6, 11.1, 11.7]}, {"diff": "流行&动漫", "type": "SD", "title": "セハガガガンバッちゃう！！", "level": ["5", "7", "9+", "11+"], "ds": [5.0, 7.3, 9.7, 11.9]}, {"diff": "流行&动漫", "type": "SD", "title": "ラブリー☆えんじぇる!!", "level": ["4", "6", "8+", "10+"], "ds": [4.0, 6.5, 8.7, 10.8]}, {"diff": "流行&动漫", "type": "SD", "title": "ラブって♡ジュエリー♪えんじぇる☆ブレイク！！", "level": ["4", "7+", "10", "12"], "ds": [4.0, 7.7, 10.0, 12.0]}, {"diff": "流行&动漫", "type": "SD", "title": "真・ハンサム体操でズンドコホイ", "level": ["5", "6", "8+", "12"], "ds": [5.0, 6.2, 8.9, 12.0]}, {"diff": "流行&动漫", "type": "SD", "title": "GET!! 夢&DREAM", "level": ["4", "7", "8", "11"], "ds": [4.0, 7.0, 8.5, 11.0]}, {"diff": "流行&动漫", "type": "SD", "title": "君の知らない物語", "level": ["3", "6", "8", "10"], "ds": [3.0, 6.6, 8.3, 10.4]}, {"diff": "流行&动漫", "type": "SD", "title": "コネクト", "level": ["5", "7", "7+", "10+"], "ds": [5.0, 7.3, 7.8, 10.8]}, {"diff": "流行&动漫", "type": "SD", "title": "true my heart -Lovable mix-", "level": ["4", "6", "8+", "11"], "ds": [4.0, 6.2, 8.8, 11.0]}, {"diff": "流行&动漫", "type": "SD", "title": "Arrival of Tears", "level": ["4", "6", "9", "12"], "ds": [4.0, 6.2, 9.2, 12.3]}, {"diff": "流行&动漫", "type": "SD", "title": "シュガーソングとビターステップ", "level": ["5", "7", "8", "11+"], "ds": [5.0, 7.0, 8.3, 11.7]}, {"diff": "流行&动漫", "type": "SD", "title": "かくしん的☆めたまるふぉ～ぜっ！", "level": ["4", "6", "8", "11", "12"], "ds": [4.0, 6.8, 8.3, 11.0, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "デンパラダイム", "level": ["4", "7+", "11", "12+"], "ds": [4.0, 7.9, 11.2, 12.8]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "骸骨楽団とリリア", "level": ["4", "7+", "10", "12+"], "ds": [4.0, 7.8, 10.5, 12.8]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "星屑ユートピア", "level": ["4", "7", "10", "12"], "ds": [4.0, 7.5, 10.5, 12.1]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "アマツキツネ", "level": ["4", "7", "8+", "11+"], "ds": [4.0, 7.5, 8.9, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "アカリがやってきたぞっ", "level": ["4", "6", "9+", "11+"], "ds": [4.0, 6.7, 9.8, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "メルト", "level": ["3", "6", "8", "11"], "ds": [3.0, 6.0, 8.2, 11.0]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "メルティランドナイトメア", "level": ["2", "6", "8", "11+"], "ds": [2.0, 6.5, 8.5, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "アウトサイダー", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.5, 9.0, 12.2]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "アディショナルメモリー", "level": ["4", "6", "9+", "12"], "ds": [4.0, 6.8, 9.7, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "ジャガーノート", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.5, 9.5, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "Strobe♡Girl", "level": ["3", "7", "9+", "12"], "ds": [3.0, 7.2, 9.8, 12.2]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ナイトメア☆パーティーナイト", "level": ["4", "7", "9", "10+", "11+"], "ds": [4.0, 7.5, 9.5, 10.7, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "はやくそれになりたい！", "level": ["5", "7", "9", "10+", "12"], "ds": [5.0, 7.2, 9.2, 10.8, 12.1]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "命ばっかり", "level": ["3", "6", "8", "11+"], "ds": [3.0, 6.8, 8.5, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "フィクサー", "level": ["4", "6", "8+", "12"], "ds": [4.0, 6.8, 8.8, 12.4]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "Ievan Polkka", "level": ["3", "6", "10+", "12"], "ds": [3.0, 6.8, 10.7, 12.5]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "おねがいダーリン", "level": ["4", "6", "9+", "11+"], "ds": [4.0, 6.7, 9.7, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "Seyana. ～何でも言うことを聞いてくれるアカネチャン～", "level": ["4", "6", "9", "12"], "ds": [4.0, 6.8, 9.0, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "敗北の少年", "level": ["5", "7+", "10", "12"], "ds": [5.0, 7.8, 10.0, 12.1]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "インビジブル", "level": ["5", "7", "9+", "10+", "12+"], "ds": [5.0, 7.2, 9.8, 10.9, 12.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "人生リセットボタン", "level": ["5", "7+", "10", "12+"], "ds": [5.0, 7.8, 10.6, 12.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "リンカーネイション", "level": ["5", "7", "9+", "12"], "ds": [5.0, 7.4, 9.7, 12.4]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "六兆年と一夜物語", "level": ["5", "7+", "9", "12+"], "ds": [5.0, 7.8, 9.2, 12.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "彗星ハネムーン", "level": ["4", "6", "8+", "11"], "ds": [4.0, 6.5, 8.9, 11.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ダンスロボットダンス", "level": ["5", "7", "9+", "12"], "ds": [5.0, 7.2, 9.8, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "エイリアンエイリアン", "level": ["4", "7", "8+", "11"], "ds": [4.0, 7.2, 8.7, 11.1]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "パーフェクト生命", "level": ["5", "7", "8+", "12"], "ds": [5.0, 7.3, 8.7, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "フリィダム ロリィタ", "level": ["4", "6", "8+", "11+"], "ds": [4.0, 6.5, 8.7, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "幸せになれる隠しコマンドがあるらしい", "level": ["5", "8", "10+", "12+"], "ds": [5.0, 8.5, 10.8, 12.9]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "しねばいいのに", "level": ["4", "6", "8+", "11+"], "ds": [4.0, 6.2, 8.9, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "キレキャリオン", "level": ["4", "6", "8+", "11+"], "ds": [4.0, 6.2, 8.8, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ドクハク", "level": ["5", "6", "9", "12"], "ds": [5.0, 6.7, 9.0, 12.2]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "アルカリレットウセイ", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.5, 9.2, 11.4]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "フラジール", "level": ["4", "7", "8", "11+"], "ds": [4.0, 7.0, 8.2, 11.9]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "名探偵連続殺人事件", "level": ["5", "6", "9+", "11"], "ds": [5.0, 6.8, 9.7, 11.4]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ARROW", "level": ["4", "6", "10", "12"], "ds": [4.0, 6.8, 10.2, 12.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ヘルシーエンド", "level": ["4", "7", "9+", "11+"], "ds": [4.0, 7.0, 9.7, 11.9]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ロストワンの号哭", "level": ["4", "6", "9", "12", "12+"], "ds": [4.0, 6.0, 9.2, 12.2, 12.9]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "チュルリラ・チュルリラ・ダッダッダ！", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.2, 9.5, 12.1]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "キミノヨゾラ哨戒班", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.0, 9.2, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ウミユリ海底譚", "level": ["4", "6", "8", "12"], "ds": [4.0, 6.7, 8.1, 12.4]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "白ゆき", "level": ["5", "7", "9+", "12"], "ds": [5.0, 7.4, 9.8, 12.2]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "初音ミクの激唱", "level": ["6", "8", "10+", "13"], "ds": [6.0, 8.0, 10.8, 13.5]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "初音ミクの消失", "level": ["5", "8", "10", "12+"], "ds": [5.0, 8.0, 10.0, 12.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "終点", "level": ["5", "7+", "10+", "12+"], "ds": [5.0, 7.7, 10.8, 12.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "天ノ弱", "level": ["5", "7", "9", "11+"], "ds": [5.0, 7.6, 9.3, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "厨病激発ボーイ", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.4, 9.4, 12.5]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "脳漿炸裂ガール", "level": ["4", "6", "10+", "12+"], "ds": [4.0, 6.0, 10.9, 12.9]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ヒビカセ", "level": ["4", "7", "9+", "12"], "ds": [4.0, 7.0, 9.8, 12.1]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "だんだん早くなる", "level": ["4", "7", "8+", "10+", "11"], "ds": [4.0, 7.5, 8.8, 10.9, 11.2]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "恋愛裁判", "level": ["4", "6", "8", "10"], "ds": [4.0, 6.3, 8.6, 10.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "からくりピエロ", "level": ["3", "5", "8+", "10", "11+"], "ds": [3.0, 5.8, 8.7, 10.6, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ヒバナ", "level": ["4", "7", "9+", "10+", "11+"], "ds": [4.0, 7.4, 9.7, 10.8, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "妄想感傷代償連盟", "level": ["3", "6", "8", "10", "12"], "ds": [3.0, 6.2, 8.2, 10.5, 12.2]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ゴーストルール", "level": ["5", "7+", "9", "12"], "ds": [5.0, 7.7, 9.4, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ストリーミングハート", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.2, 9.1, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "毒占欲", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.0, 9.3, 12.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "二息歩行", "level": ["4", "6", "8+", "11+"], "ds": [4.0, 6.8, 8.7, 11.9]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "モザイクロール", "level": ["4", "6", "9", "10+"], "ds": [4.0, 6.9, 9.0, 10.9]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "弱虫モンブラン", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.2, 9.5, 11.2]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "39", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.2, 9.0, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "Mr. Wonderland", "level": ["5", "6", "8+", "12"], "ds": [5.0, 6.5, 8.7, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ワンダーラスト", "level": ["5", "7+", "10+", "12+"], "ds": [5.0, 7.8, 10.8, 12.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "吉原ラメント", "level": ["5", "7+", "10", "12"], "ds": [5.0, 7.7, 10.0, 12.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "生きてるおばけは生きている", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.5, 9.5, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "踊れオーケストラ", "level": ["5", "6", "8", "10+"], "ds": [5.0, 6.4, 8.4, 10.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ロキ", "level": ["4", "7", "9", "10+", "12"], "ds": [4.0, 7.2, 9.4, 10.8, 12.4]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "バレリーコ", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.5, 9.0, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "いーあるふぁんくらぶ", "level": ["3", "6", "8", "10+"], "ds": [3.0, 6.0, 8.0, 10.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "赤心性：カマトト荒療治", "level": ["5", "7", "8", "12"], "ds": [5.0, 7.0, 8.4, 12.5]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "イノコリ先生", "level": ["4", "6", "8", "11"], "ds": [4.0, 6.7, 8.5, 11.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ECHO", "level": ["4", "6", "9+", "12"], "ds": [4.0, 6.8, 9.7, 12.5]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "このピアノでお前を8759632145回ぶん殴る", "level": ["5", "7", "9+", "12"], "ds": [5.0, 7.5, 9.7, 12.2]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "やめろ！聴くな！", "level": ["4", "7", "8+", "11+"], "ds": [4.0, 7.1, 8.7, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "東京リアルワールド", "level": ["4", "6", "7+", "9+"], "ds": [4.0, 6.7, 7.7, 9.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "頓珍漢の宴", "level": ["5", "7+", "9+", "12+"], "ds": [5.0, 7.9, 9.7, 12.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ありふれたせかいせいふく", "level": ["4", "6", "8", "12"], "ds": [4.0, 6.8, 8.4, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "腐れ外道とチョコレゐト", "level": ["6", "8", "10", "12"], "ds": [6.0, 8.2, 10.6, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "M.S.S.Planet", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.4, 9.0, 11.5]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "不毛！", "level": ["4", "7", "8+", "11"], "ds": [4.0, 7.3, 8.7, 11.1]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ネトゲ廃人シュプレヒコール", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.0, 9.0, 12.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "StargazeR", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.8, 9.2, 11.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "みくみくにしてあげる♪【してやんよ】", "level": ["4", "6", "7+", "10+"], "ds": [4.0, 6.0, 7.7, 10.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "深海少女", "level": ["4", "6", "8", "11+"], "ds": [4.0, 6.5, 8.5, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ぽっぴっぽー", "level": ["3", "6", "8", "11"], "ds": [3.0, 6.7, 8.4, 11.4]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "Nyan Cat EX", "level": ["4", "7", "9+", "12"], "ds": [4.0, 7.1, 9.8, 12.5]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "どうしてこうなった", "level": ["5", "7", "9+", "12"], "ds": [5.0, 7.0, 9.8, 12.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "magician's operation", "level": ["4", "7", "10", "12"], "ds": [4.0, 7.1, 10.0, 12.6]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "トルコ行進曲 - オワタ＼(^o^)／", "level": ["3", "6", "8", "12"], "ds": [3.0, 6.8, 8.2, 12.5]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "リリリリ★バーニングナイト", "level": ["4", "7", "8", "9+"], "ds": [4.0, 7.5, 8.1, 9.9]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "イアイア★ナイトオブデザイア", "level": ["4", "6", "8", "9+"], "ds": [4.0, 6.5, 8.4, 9.9]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ルカルカ★ナイトフィーバー", "level": ["4", "6", "7+", "10"], "ds": [4.0, 6.8, 7.7, 10.4]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "メグメグ☆ファイアーエンドレスナイト", "level": ["5", "6", "7", "9+"], "ds": [5.0, 6.7, 7.5, 9.9]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "教えて!! 魔法のLyric", "level": ["6", "7", "8", "9+"], "ds": [6.0, 7.2, 8.1, 9.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "おちゃめ機能", "level": ["4", "7", "7", "11"], "ds": [4.0, 7.3, 7.6, 11.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "BAD∞END∞NIGHT", "level": ["4", "7+", "9", "11+"], "ds": [4.0, 7.8, 9.0, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "shake it!", "level": ["4", "6", "7", "10+"], "ds": [4.0, 6.8, 7.5, 10.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "Heart Beats", "level": ["5", "6", "8", "10"], "ds": [5.0, 6.7, 8.2, 10.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ロミオとシンデレラ", "level": ["5", "7+", "9", "10+", "12"], "ds": [5.0, 7.8, 9.6, 10.7, 12.1]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ダンシング☆サムライ", "level": ["4", "7", "9", "10+"], "ds": [4.0, 7.4, 9.0, 10.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ハロ／ハワユ", "level": ["4", "5", "8", "10+"], "ds": [4.0, 5.8, 8.1, 10.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "Tell Your World", "level": ["4", "6", "8+", "10+", "11"], "ds": [4.0, 6.7, 8.9, 10.7, 11.2]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "アンノウン・マザーグース", "level": ["4", "6", "9+", "11+"], "ds": [4.0, 6.7, 9.7, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "アンハッピーリフレイン", "level": ["5", "7", "10", "12"], "ds": [5.0, 7.5, 10.0, 12.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "裏表ラバーズ", "level": ["5", "7", "10", "12"], "ds": [5.0, 7.4, 10.5, 12.6]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ローリンガール", "level": ["4", "6", "8", "11+"], "ds": [4.0, 6.6, 8.3, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ワールズエンド・ダンスホール", "level": ["5", "7", "7", "10+", "12"], "ds": [5.0, 7.6, 7.3, 10.7, 12.1]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "砂の惑星 feat. HATSUNE MIKU", "level": ["4", "6", "9", "12"], "ds": [4.0, 6.8, 9.0, 12.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ドーナツホール", "level": ["5", "6", "10", "12+"], "ds": [5.0, 6.8, 10.4, 12.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "マトリョシカ", "level": ["5", "7+", "8", "9+", "11+"], "ds": [5.0, 7.8, 8.1, 9.9, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "パンダヒーロー", "level": ["5", "6", "8", "9+"], "ds": [5.0, 6.9, 8.2, 9.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "WORLD'S END UMBRELLA", "level": ["4", "7", "8+", "11"], "ds": [4.0, 7.5, 8.8, 11.5]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "結ンデ開イテ羅刹ト骸", "level": ["4", "7", "9", "11", "12"], "ds": [4.0, 7.0, 9.5, 11.0, 12.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ゴーゴー幽霊船", "level": ["4", "7", "9+", "10"], "ds": [4.0, 7.4, 9.7, 10.6]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "セツナトリップ", "level": ["4", "6", "9", "12"], "ds": [4.0, 6.8, 9.5, 12.1]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "放課後ストライド", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.6, 9.1, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "カゲロウデイズ", "level": ["4", "6", "9+", "11", "13"], "ds": [4.0, 6.2, 9.8, 11.2, 13.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "夜咄ディセイブ", "level": ["4", "7+", "10", "12"], "ds": [4.0, 7.8, 10.6, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "アウターサイエンス", "level": ["5", "7", "10+", "12"], "ds": [5.0, 7.2, 10.8, 12.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "メランコリック", "level": ["6", "6", "7+", "10"], "ds": [6.0, 6.0, 7.8, 10.1]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ZIGG-ZAGG", "level": ["6", "6", "7+", "9", "11"], "ds": [6.0, 6.0, 7.7, 9.2, 11.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "I ♥", "level": ["4", "6", "7+", "10+"], "ds": [4.0, 6.9, 7.7, 10.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ラブチーノ", "level": ["4", "6", "8", "10+"], "ds": [4.0, 6.5, 8.5, 10.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "スイートマジック", "level": ["4", "6", "9", "10"], "ds": [4.0, 6.3, 9.1, 10.5]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "林檎華憐歌", "level": ["4", "6", "9+", "11"], "ds": [4.0, 6.6, 9.7, 11.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ないせんのうた", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.0, 9.2, 11.2]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "木彫り鯰と右肩ゾンビ", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.3, 9.3, 12.4]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "デッドレッドガールズ", "level": ["4", "7+", "9", "12+"], "ds": [4.0, 7.8, 9.2, 12.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "One Step Ahead", "level": ["4", "6", "9", "10+"], "ds": [4.0, 6.8, 9.6, 10.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "Link", "level": ["5", "7", "7", "10+"], "ds": [5.0, 7.4, 7.4, 10.9]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "すーぱーぬこになりたい", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.5, 9.2, 12.2]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "立ち入り禁止", "level": ["4", "6", "9+", "10+", "12+"], "ds": [4.0, 6.8, 9.8, 10.8, 12.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ロールプレイングゲーム", "level": ["4", "6", "8+", "11"], "ds": [4.0, 6.8, 8.9, 11.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "バッド・ダンス・ホール", "level": ["4", "6", "9+", "12"], "ds": [4.0, 6.7, 9.8, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "共感覚おばけ", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.4, 9.5, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "ナンセンス文学", "level": ["4", "7", "9+", "12"], "ds": [4.0, 7.0, 9.9, 12.5]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "お気に召すまま", "level": ["4", "7", "8+", "10", "12"], "ds": [4.0, 7.0, 8.8, 10.5, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "シャルル", "level": ["3", "6", "8+", "10+"], "ds": [3.0, 6.0, 8.9, 10.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "六兆年と一夜物語", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.0, 9.0, 12.5]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "脳漿炸裂ガール", "level": ["4", "6", "11", "12+"], "ds": [4.0, 6.3, 11.0, 12.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "39", "level": ["5", "7+", "9+", "12", "12"], "ds": [5.0, 7.8, 9.8, 12.0, 12.3]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "いーあるふぁんくらぶ", "level": ["4", "6", "7", "10", "11+"], "ds": [4.0, 6.7, 7.4, 10.3, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "SD", "title": "シャルル", "level": ["4", "6", "8", "11+"], "ds": [4.0, 6.2, 8.5, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "幾望の月", "level": ["5", "7+", "10", "12"], "ds": [5.0, 7.7, 10.4, 12.5]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "サヨナラチェーンソー", "level": ["3", "6", "9", "12"], "ds": [3.0, 6.8, 9.5, 12.4]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "CocktaiL", "level": ["3", "6", "8+", "12"], "ds": [3.0, 6.5, 8.7, 12.4]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "quiet room", "level": ["3", "6", "8", "12"], "ds": [3.0, 6.2, 8.5, 12.2]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "太陽系デスコ", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.7, 9.5, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "だからパンを焼いたんだ", "level": ["3", "6", "8+", "11+"], "ds": [3.0, 6.5, 8.8, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "METEOR", "level": ["3", "7", "9", "11+"], "ds": [3.0, 7.0, 9.2, 11.8]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "グリーンライツ・セレナーデ", "level": ["4", "7", "9+", "12"], "ds": [4.0, 7.5, 9.8, 12.0]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "39みゅーじっく！", "level": ["3", "6", "9", "11"], "ds": [3.0, 6.2, 9.0, 11.4]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "だれかの心臓になれたなら", "level": ["4", "6", "8+", "11+"], "ds": [4.0, 6.5, 8.8, 11.7]}, {"diff": "niconico＆VOCALOID", "type": "DX", "title": "イカサマライフゲイム", "level": ["4", "7+", "10", "12"], "ds": [4.0, 7.8, 10.2, 12.4]}, {"diff": "东方Project", "type": "DX", "title": "ナイト・オブ・ナイツ (Cranky Remix)", "level": ["4", "7", "10", "12+"], "ds": [4.0, 7.0, 10.0, 12.7]}, {"diff": "东方Project", "type": "DX", "title": "Little \"Sister\" Bitch", "level": ["5", "7+", "10+", "12+"], "ds": [5.0, 7.8, 10.7, 12.9]}, {"diff": "东方Project", "type": "DX", "title": "Yakumo >>JOINT STRUGGLE (2019 Update)", "level": ["4", "7+", "10+", "13"], "ds": [4.0, 7.8, 10.7, 13.1]}, {"diff": "东方Project", "type": "DX", "title": "げきオコスティックファイナリアリティぷんぷんマスタースパーク", "level": ["4", "7", "9+", "12"], "ds": [4.0, 7.5, 9.8, 12.5]}, {"diff": "东方Project", "type": "SD", "title": "Bad Apple!! feat nomico", "level": ["4", "6", "8+", "10+", "12"], "ds": [4.0, 6.0, 8.8, 10.9, 12.3]}, {"diff": "东方Project", "type": "SD", "title": "CYBER Sparks", "level": ["5", "7", "10", "10+", "12+"], "ds": [5.0, 7.0, 10.0, 10.9, 12.8]}, {"diff": "东方Project", "type": "SD", "title": "Money Money", "level": ["4", "6", "9", "12"], "ds": [4.0, 6.5, 9.2, 12.0]}, {"diff": "东方Project", "type": "SD", "title": "LOVE EAST", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.5, 9.2, 11.5]}, {"diff": "东方Project", "type": "DX", "title": "WARNING×WARNING×WARNING", "level": ["3", "7", "9", "11"], "ds": [3.0, 7.5, 9.5, 11.2]}, {"diff": "东方Project", "type": "SD", "title": "泡沫、哀のまほろば", "level": ["4", "6", "8+", "11"], "ds": [4.0, 6.7, 8.8, 11.0]}, {"diff": "东方Project", "type": "SD", "title": "華鳥風月", "level": ["3", "5", "8", "11"], "ds": [3.0, 5.8, 8.0, 11.3]}, {"diff": "东方Project", "type": "SD", "title": "色は匂へど散りぬるを", "level": ["3", "6", "8", "11"], "ds": [3.0, 6.8, 8.2, 11.3]}, {"diff": "东方Project", "type": "DX", "title": "月に叢雲華に風", "level": ["2", "6", "9", "12"], "ds": [2.0, 6.8, 9.2, 12.0]}, {"diff": "东方Project", "type": "SD", "title": "Doll Judgment", "level": ["4", "7+", "10", "12"], "ds": [4.0, 7.8, 10.4, 12.5]}, {"diff": "东方Project", "type": "SD", "title": "永遠のメロディ", "level": ["4", "6", "8+", "10+"], "ds": [4.0, 6.5, 8.9, 10.9]}, {"diff": "东方Project", "type": "SD", "title": "もうみんなしねばいいのに", "level": ["5", "7", "10+", "12+"], "ds": [5.0, 7.3, 10.7, 12.8]}, {"diff": "东方Project", "type": "SD", "title": "宿題が終わらないっ！", "level": ["4", "6", "8+", "11+"], "ds": [4.0, 6.8, 8.9, 11.7]}, {"diff": "东方Project", "type": "SD", "title": "東方スイーツ！～鬼畜姉妹と受難メイド～", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.9, 9.1, 11.4]}, {"diff": "东方Project", "type": "SD", "title": "taboo tears you up", "level": ["5", "7", "9", "11+"], "ds": [5.0, 7.4, 9.6, 11.7]}, {"diff": "东方Project", "type": "SD", "title": "Starlight Vision", "level": ["4", "7", "9+", "11"], "ds": [4.0, 7.0, 9.8, 11.4]}, {"diff": "东方Project", "type": "SD", "title": "幽闇に目醒めしは", "level": ["3", "6", "9", "12"], "ds": [3.0, 6.0, 9.5, 12.3]}, {"diff": "东方Project", "type": "SD", "title": "物凄い勢いでけーねが物凄いうた", "level": ["4", "6", "8", "11"], "ds": [4.0, 6.5, 8.2, 11.6]}, {"diff": "东方Project", "type": "SD", "title": "進捗どうですか？", "level": ["5", "7+", "9", "12"], "ds": [5.0, 7.8, 9.5, 12.3]}, {"diff": "东方Project", "type": "SD", "title": "アマノジャクリバース feat. ｙｔｒ", "level": ["4", "7", "9+", "12"], "ds": [4.0, 7.2, 9.8, 12.6]}, {"diff": "东方Project", "type": "SD", "title": "天狗の落とし文 feat. ｙｔｒ", "level": ["4", "6", "10", "11+"], "ds": [4.0, 6.8, 10.0, 11.9]}, {"diff": "东方Project", "type": "SD", "title": "オーディエンスを沸かす程度の能力 feat.タイツォン", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.2, 9.0, 12.0]}, {"diff": "东方Project", "type": "SD", "title": "Club Ibuki in Break All", "level": ["5", "7", "9+", "11+"], "ds": [5.0, 7.5, 9.7, 11.9]}, {"diff": "东方Project", "type": "DX", "title": "チルノのパーフェクトさんすう教室　⑨周年バージョン", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.0, 9.0, 12.2]}, {"diff": "东方Project", "type": "SD", "title": "チルノのパーフェクトさんすう教室", "level": ["4", "6", "8+", "11+"], "ds": [4.0, 6.4, 8.8, 11.7]}, {"diff": "东方Project", "type": "SD", "title": "魔理沙は大変なものを盗んでいきました", "level": ["4", "6", "7+", "11+"], "ds": [4.0, 6.4, 7.8, 11.7]}, {"diff": "东方Project", "type": "DX", "title": "患部で止まってすぐ溶ける～狂気の優曇華院", "level": ["3", "7+", "10+", "12+"], "ds": [3.0, 7.7, 10.7, 12.8]}, {"diff": "东方Project", "type": "SD", "title": "究極焼肉レストラン！お燐の地獄亭！", "level": ["4", "6", "9", "10+"], "ds": [4.0, 6.5, 9.0, 10.9]}, {"diff": "东方Project", "type": "SD", "title": "お嫁にしなさいっ！", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.8, 9.4, 11.0]}, {"diff": "东方Project", "type": "SD", "title": "キャプテン・ムラサのケツアンカー", "level": ["4", "6", "9+", "12"], "ds": [4.0, 6.6, 9.8, 12.0]}, {"diff": "东方Project", "type": "SD", "title": "ひれ伏せ愚民どもっ！", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.0, 9.0, 11.7]}, {"diff": "东方Project", "type": "SD", "title": "【東方ニコカラ】秘神マターラ feat.魂音泉【IOSYS】", "level": ["4", "7", "10", "12+"], "ds": [4.0, 7.5, 10.0, 12.7]}, {"diff": "东方Project", "type": "SD", "title": "不思議の国のクリスマス", "level": ["4", "5", "8", "11+"], "ds": [4.0, 5.8, 8.5, 11.8]}, {"diff": "东方Project", "type": "SD", "title": "INFINITE WORLD", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.4, 9.2, 11.7]}, {"diff": "东方Project", "type": "SD", "title": "Grip & Break down !!", "level": ["4", "6", "7", "11+"], "ds": [4.0, 6.2, 7.5, 11.9]}, {"diff": "东方Project", "type": "SD", "title": "Cosmic Magic Shooter", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.0, 9.3, 12.5]}, {"diff": "东方Project", "type": "SD", "title": "しゅわスパ大作戦☆", "level": ["5", "6", "8", "11"], "ds": [5.0, 6.7, 8.4, 11.1]}, {"diff": "东方Project", "type": "SD", "title": "全人類ノ非想天則", "level": ["4", "7", "8+", "10+"], "ds": [4.0, 7.1, 8.9, 10.9]}, {"diff": "东方Project", "type": "SD", "title": "Endless, Sleepless Night", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.5, 9.3, 11.8]}, {"diff": "东方Project", "type": "SD", "title": "White Traveling Girl", "level": ["4", "6", "9", "12"], "ds": [4.0, 6.8, 9.0, 12.3]}, {"diff": "东方Project", "type": "SD", "title": "No Routine", "level": ["5", "6", "9", "12"], "ds": [5.0, 6.5, 9.5, 12.1]}, {"diff": "东方Project", "type": "DX", "title": "Scream out! -maimai SONIC WASHER Edit-", "level": ["4", "7", "10+", "12+"], "ds": [4.0, 7.0, 10.8, 12.8]}, {"diff": "东方Project", "type": "SD", "title": "隠然", "level": ["5", "7+", "9+", "11", "12"], "ds": [5.0, 7.8, 9.8, 11.1, 12.4]}, {"diff": "东方Project", "type": "SD", "title": "みんなの", "level": ["4", "6", "8+", "11"], "ds": [4.0, 6.8, 8.7, 11.4]}, {"diff": "东方Project", "type": "DX", "title": "幻想のサテライト", "level": ["4", "7+", "10", "12+"], "ds": [4.0, 7.8, 10.0, 12.9]}, {"diff": "东方Project", "type": "SD", "title": "待チ人ハ来ズ。", "level": ["4", "6", "8", "11"], "ds": [4.0, 6.8, 8.3, 11.4]}, {"diff": "东方Project", "type": "SD", "title": "響縁", "level": ["4", "6", "8", "11"], "ds": [4.0, 6.0, 8.0, 11.6]}, {"diff": "东方Project", "type": "SD", "title": "囲い無き世は一期の月影", "level": ["5", "7", "9", "11"], "ds": [5.0, 7.2, 9.1, 11.2]}, {"diff": "东方Project", "type": "SD", "title": "儚きもの人間", "level": ["5", "7+", "9", "12+"], "ds": [5.0, 7.7, 9.4, 12.8]}, {"diff": "东方Project", "type": "SD", "title": "sweet little sister", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.3, 9.1, 11.7]}, {"diff": "东方Project", "type": "SD", "title": "ケロ⑨destiny", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.5, 9.4, 11.0]}, {"diff": "东方Project", "type": "SD", "title": "Phantasm Brigade", "level": ["5", "7", "9+", "12"], "ds": [5.0, 7.4, 9.8, 12.2]}, {"diff": "东方Project", "type": "SD", "title": "蒼空に舞え、墨染の桜", "level": ["4", "6", "9", "12"], "ds": [4.0, 6.4, 9.5, 12.1]}, {"diff": "东方Project", "type": "SD", "title": "フラグメンツ -T.V. maimai edit-", "level": ["4", "5", "8", "10+"], "ds": [4.0, 5.8, 8.2, 10.7]}, {"diff": "东方Project", "type": "SD", "title": "橙の幻想郷音頭", "level": ["4", "6", "8", "11+"], "ds": [4.0, 6.2, 8.6, 11.7]}, {"diff": "东方Project", "type": "SD", "title": "Starlight Dance Floor", "level": ["4", "6", "8+", "11"], "ds": [4.0, 6.8, 8.8, 11.1]}, {"diff": "东方Project", "type": "SD", "title": "神々の祈り", "level": ["3", "6", "7+", "11"], "ds": [3.0, 6.3, 7.8, 11.4]}, {"diff": "东方Project", "type": "SD", "title": "願いを呼ぶ季節", "level": ["4", "6", "8+", "11"], "ds": [4.0, 6.5, 8.8, 11.0]}, {"diff": "东方Project", "type": "SD", "title": "明星ロケット", "level": ["4", "6", "8", "10+", "11"], "ds": [4.0, 6.8, 8.6, 10.7, 11.3]}, {"diff": "东方Project", "type": "SD", "title": "緋色のDance", "level": ["4", "6", "9", "11+", "12"], "ds": [4.0, 6.8, 9.0, 11.9, 12.6]}, {"diff": "东方Project", "type": "SD", "title": "YU-MU", "level": ["4", "6", "9", "10+"], "ds": [4.0, 6.7, 9.3, 10.9]}, {"diff": "东方Project", "type": "SD", "title": "エテルニタス・ルドロジー", "level": ["4", "6", "9+", "12"], "ds": [4.0, 6.8, 9.7, 12.3]}, {"diff": "东方Project", "type": "SD", "title": "エピクロスの虹はもう見えない", "level": ["4", "6", "8", "10", "11+"], "ds": [4.0, 6.6, 8.4, 10.6, 11.9]}, {"diff": "东方Project", "type": "SD", "title": "四次元跳躍機関", "level": ["4", "6", "9", "12"], "ds": [4.0, 6.2, 9.2, 12.0]}, {"diff": "东方Project", "type": "SD", "title": "少女幻葬戦慄曲 ～ Necro Fantasia", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.4, 9.3, 12.3]}, {"diff": "东方Project", "type": "SD", "title": "妖精村の月誕祭 ～Lunate Elf", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.5, 9.0, 11.7]}, {"diff": "东方Project", "type": "SD", "title": "Jimang Shot", "level": ["4", "6", "8+", "11+"], "ds": [4.0, 6.8, 8.9, 11.7]}, {"diff": "东方Project", "type": "SD", "title": "ってゐ！ ～えいえんてゐVer～", "level": ["4", "6", "8", "10+", "11"], "ds": [4.0, 6.5, 8.0, 10.7, 11.5]}, {"diff": "东方Project", "type": "SD", "title": "東方妖々夢 ～the maximum moving about～", "level": ["5", "7", "8", "11+"], "ds": [5.0, 7.5, 8.3, 11.7]}, {"diff": "东方Project", "type": "SD", "title": "Yet Another ”drizzly rain”", "level": ["4", "6", "8+", "11"], "ds": [4.0, 6.8, 8.8, 11.1]}, {"diff": "东方Project", "type": "SD", "title": "シアワセうさぎ", "level": ["4", "6", "7", "10"], "ds": [4.0, 6.5, 7.5, 10.0]}, {"diff": "东方Project", "type": "SD", "title": "最速最高シャッターガール", "level": ["3", "7", "9", "11"], "ds": [3.0, 7.4, 9.4, 11.1]}, {"diff": "东方Project", "type": "SD", "title": "最終鬼畜妹・一部声", "level": ["5", "7", "10", "12+"], "ds": [5.0, 7.5, 10.3, 12.8]}, {"diff": "东方Project", "type": "SD", "title": "ウサテイ", "level": ["5", "6", "9", "12+"], "ds": [5.0, 6.7, 9.3, 12.7]}, {"diff": "东方Project", "type": "SD", "title": "クレイジークレイジーダンサーズ", "level": ["4", "7", "9", "10+", "12+"], "ds": [4.0, 7.5, 9.2, 10.8, 12.7]}, {"diff": "东方Project", "type": "SD", "title": "Help me, ERINNNNNN!!", "level": ["5", "6", "9+", "10"], "ds": [5.0, 6.2, 9.8, 10.4]}, {"diff": "东方Project", "type": "SD", "title": "ナイト・オブ・ナイツ", "level": ["4", "7", "10", "11+", "13"], "ds": [4.0, 7.2, 10.2, 11.7, 13.3]}, {"diff": "东方Project", "type": "SD", "title": "疾走あんさんぶる", "level": ["5", "7+", "9+", "12"], "ds": [5.0, 7.8, 9.8, 12.5]}, {"diff": "东方Project", "type": "SD", "title": "サドマミホリック", "level": ["5", "7+", "9+", "10+", "12+"], "ds": [5.0, 7.8, 9.8, 10.9, 12.7]}, {"diff": "东方Project", "type": "SD", "title": "最終鬼畜妹フランドール・S", "level": ["4", "7", "9+", "10+", "12+"], "ds": [4.0, 7.0, 9.8, 10.9, 12.7]}, {"diff": "东方Project", "type": "SD", "title": "進め！イッスン軍団 -Rebellion of the Dwarfs-", "level": ["5", "7+", "9+", "12+"], "ds": [5.0, 7.7, 9.8, 12.7]}, {"diff": "东方Project", "type": "SD", "title": "Imperishable Night 2006 (2016 Refine)", "level": ["5", "7+", "10", "12+"], "ds": [5.0, 7.8, 10.5, 12.7]}, {"diff": "东方Project", "type": "DX", "title": "Calamity Fortune", "level": ["5", "8", "11", "12+"], "ds": [5.0, 8.5, 11.0, 12.8]}, {"diff": "东方Project", "type": "SD", "title": "WARNING×WARNING×WARNING", "level": ["4", "7", "9", "11"], "ds": [4.0, 7.0, 9.2, 11.3]}, {"diff": "东方Project", "type": "SD", "title": "月に叢雲華に風", "level": ["4", "6", "8+", "11+"], "ds": [4.0, 6.5, 8.7, 11.7]}, {"diff": "东方Project", "type": "SD", "title": "チルノのパーフェクトさんすう教室　⑨周年バージョン", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.0, 9.2, 12.5]}, {"diff": "东方Project", "type": "SD", "title": "患部で止まってすぐ溶ける～狂気の優曇華院", "level": ["4", "7", "9", "12+", "13"], "ds": [4.0, 7.2, 9.0, 12.7, 13.0]}, {"diff": "东方Project", "type": "SD", "title": "Scream out! -maimai SONIC WASHER Edit-", "level": ["5", "7+", "10+", "12+"], "ds": [5.0, 7.8, 10.8, 12.8]}, {"diff": "东方Project", "type": "SD", "title": "幻想のサテライト", "level": ["4", "7", "9+", "12+"], "ds": [4.0, 7.3, 9.7, 12.9]}, {"diff": "东方Project", "type": "SD", "title": "Calamity Fortune", "level": ["6", "8", "11", "13"], "ds": [6.0, 8.5, 11.0, 13.2]}, {"diff": "综艺节目", "type": "DX", "title": "Destr0yer", "level": ["4", "7+", "10+", "12+"], "ds": [4.0, 7.8, 10.8, 12.7]}, {"diff": "综艺节目", "type": "SD", "title": "End Time", "level": ["6", "8", "11", "13+"], "ds": [6.0, 8.5, 11.4, 13.7]}, {"diff": "综艺节目", "type": "SD", "title": "Altale", "level": ["4", "7+", "10+", "12+"], "ds": [4.0, 7.7, 10.8, 12.7]}, {"diff": "综艺节目", "type": "SD", "title": "L4TS:2018 (feat. あひる & KTA)", "level": ["4", "7", "10", "12"], "ds": [4.0, 7.0, 10.4, 12.5]}, {"diff": "综艺节目", "type": "SD", "title": "B.M.S.", "level": ["5", "8", "11", "13"], "ds": [5.0, 8.0, 11.0, 13.0]}, {"diff": "综艺节目", "type": "SD", "title": "ENERGY SYNERGY MATRIX", "level": ["5", "8", "10+", "12+"], "ds": [5.0, 8.0, 10.8, 12.8]}, {"diff": "综艺节目", "type": "SD", "title": "FREEDOM DiVE (tpz Overcute Remix)", "level": ["6", "8+", "10+", "13"], "ds": [6.0, 8.7, 10.8, 13.4]}, {"diff": "综艺节目", "type": "SD", "title": "Brain Power", "level": ["5", "7+", "10", "12"], "ds": [5.0, 7.9, 10.2, 12.6]}, {"diff": "综艺节目", "type": "SD", "title": "Credits", "level": ["6", "8", "11+", "13"], "ds": [6.0, 8.2, 11.8, 13.6]}, {"diff": "综艺节目", "type": "SD", "title": "MilK", "level": ["4", "6", "10+", "12+"], "ds": [4.0, 6.5, 10.8, 12.8]}, {"diff": "综艺节目", "type": "SD", "title": "ULTRA B+K", "level": ["5", "7+", "10", "12+"], "ds": [5.0, 7.8, 10.5, 12.9]}, {"diff": "综艺节目", "type": "SD", "title": "GO BACK 2 YOUR RAVE", "level": ["5", "7+", "10", "12+"], "ds": [5.0, 7.7, 10.5, 12.9]}, {"diff": "综艺节目", "type": "SD", "title": "B.B.K.K.B.K.K.", "level": ["5", "8", "10", "12+"], "ds": [5.0, 8.0, 10.6, 12.9]}, {"diff": "综艺节目", "type": "SD", "title": "魔法少女になるしかねぇ", "level": ["5", "8", "10+", "12+"], "ds": [5.0, 8.0, 10.8, 12.9]}, {"diff": "综艺节目", "type": "SD", "title": "人里に下ったアタイがいつの間にか社畜になっていた件", "level": ["5", "8", "11", "12+"], "ds": [5.0, 8.2, 11.0, 12.9]}, {"diff": "综艺节目", "type": "SD", "title": "Maxi", "level": ["5", "8", "10+", "12+"], "ds": [5.0, 8.5, 10.8, 12.8]}, {"diff": "综艺节目", "type": "SD", "title": "KISS CANDY FLAVOR", "level": ["4", "7", "9+", "12"], "ds": [4.0, 7.5, 9.7, 12.1]}, {"diff": "综艺节目", "type": "DX", "title": "conflict", "level": ["4", "8", "11", "12+"], "ds": [4.0, 8.2, 11.0, 12.8]}, {"diff": "综艺节目", "type": "SD", "title": "EVERGREEN", "level": ["4", "7", "10", "12"], "ds": [4.0, 7.0, 10.5, 12.0]}, {"diff": "综艺节目", "type": "SD", "title": "Party 4U ”holy nite mix”", "level": ["5", "7", "10", "12"], "ds": [5.0, 7.0, 10.0, 12.5]}, {"diff": "综艺节目", "type": "SD", "title": "GOODMEN", "level": ["5", "7", "9+", "11+"], "ds": [5.0, 7.3, 9.8, 11.8]}, {"diff": "综艺节目", "type": "SD", "title": "Sakura Fubuki", "level": ["4", "7", "10+", "12+"], "ds": [4.0, 7.5, 10.7, 12.7]}, {"diff": "综艺节目", "type": "SD", "title": "METATRON", "level": ["6", "8", "10", "12+"], "ds": [6.0, 8.0, 10.2, 12.8]}, {"diff": "综艺节目", "type": "SD", "title": "オモイヨシノ", "level": ["4", "7", "9", "11"], "ds": [4.0, 7.0, 9.3, 11.5]}, {"diff": "综艺节目", "type": "SD", "title": "L9", "level": ["6", "7", "9", "12"], "ds": [6.0, 7.5, 9.4, 12.5]}, {"diff": "综艺节目", "type": "SD", "title": "Good Bye, Mr. Jack", "level": ["5", "8", "11", "12+"], "ds": [5.0, 8.2, 11.5, 12.9]}, {"diff": "综艺节目", "type": "SD", "title": "麒麟", "level": ["6", "8+", "11", "13"], "ds": [6.0, 8.7, 11.2, 13.2]}, {"diff": "综艺节目", "type": "SD", "title": "Jack-the-Ripper◆", "level": ["5", "8", "10", "12+"], "ds": [5.0, 8.2, 10.4, 12.9]}, {"diff": "综艺节目", "type": "SD", "title": "DRAGONLADY", "level": ["5", "7", "11", "12+"], "ds": [5.0, 7.6, 11.4, 12.8]}, {"diff": "综艺节目", "type": "SD", "title": "Pursuing My True Self", "level": ["4", "7", "9+", "11"], "ds": [4.0, 7.0, 9.7, 11.4]}, {"diff": "综艺节目", "type": "SD", "title": "Signs Of Love (“Never More” ver.)", "level": ["4", "7", "9+", "11+"], "ds": [4.0, 7.0, 9.9, 11.7]}, {"diff": "综艺节目", "type": "SD", "title": "specialist (“Never More” ver.)", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.4, 9.2, 11.4]}, {"diff": "综艺节目", "type": "SD", "title": "Time To Make History (AKIRA YAMAOKA Remix)", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.4, 9.6, 12.5]}, {"diff": "综艺节目", "type": "SD", "title": "レッツゴー!陰陽師", "level": ["3", "6", "8", "11+"], "ds": [3.0, 6.7, 8.0, 11.7]}, {"diff": "综艺节目", "type": "SD", "title": "オパ! オパ! RACER -GMT mashup-", "level": ["4", "6", "9", "12"], "ds": [4.0, 6.3, 9.3, 12.0]}, {"diff": "综艺节目", "type": "SD", "title": "電車で電車でOPA!OPA!OPA! -GMT mashup-", "level": ["4", "6", "10", "12+"], "ds": [4.0, 6.5, 10.0, 12.7]}, {"diff": "综艺节目", "type": "SD", "title": "リッジでリッジでGO!GO!GO! -GMT mashup-", "level": ["4", "6", "10", "11+"], "ds": [4.0, 6.8, 10.0, 11.7]}, {"diff": "综艺节目", "type": "SD", "title": "電車で電車でGO!GO!GO!GC! -GMT remix-", "level": ["4", "6", "7+", "11"], "ds": [4.0, 6.8, 7.8, 11.1]}, {"diff": "综艺节目", "type": "SD", "title": "RIDGE RACER STEPS -GMT remix-", "level": ["5", "7", "10", "12"], "ds": [5.0, 7.2, 10.0, 12.0]}, {"diff": "综艺节目", "type": "SD", "title": "ファンタジーゾーン OPA-OPA! -GMT remix-", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.6, 9.2, 11.5]}, {"diff": "综艺节目", "type": "SD", "title": "DADDY MULK -Groove remix-", "level": ["4", "6", "10", "12"], "ds": [4.0, 6.7, 10.3, 12.5]}, {"diff": "综艺节目", "type": "SD", "title": "FUJIN Rumble", "level": ["5", "7+", "10", "13"], "ds": [5.0, 7.8, 10.2, 13.3]}, {"diff": "综艺节目", "type": "SD", "title": "Got more raves？", "level": ["5", "8", "10+", "12+"], "ds": [5.0, 8.0, 10.9, 12.7]}, {"diff": "综艺节目", "type": "SD", "title": "夜明けまであと３秒", "level": ["6", "8", "11", "12+"], "ds": [6.0, 8.5, 11.0, 12.9]}, {"diff": "综艺节目", "type": "SD", "title": "Ignis Danse", "level": ["5", "7", "10+", "13"], "ds": [5.0, 7.5, 10.8, 13.3]}, {"diff": "综艺节目", "type": "SD", "title": "きたさいたま2000", "level": ["5", "7+", "11", "13"], "ds": [5.0, 7.8, 11.4, 13.1]}, {"diff": "综艺节目", "type": "SD", "title": "Scars of FAUNA", "level": ["5", "7", "9", "12+"], "ds": [5.0, 7.0, 9.6, 12.7]}, {"diff": "综艺节目", "type": "SD", "title": "FLOWER", "level": ["5", "7", "10", "12+"], "ds": [5.0, 7.5, 10.3, 12.8]}, {"diff": "综艺节目", "type": "SD", "title": "Scarlet Lance", "level": ["6", "8", "11", "13"], "ds": [6.0, 8.5, 11.2, 13.0]}, {"diff": "综艺节目", "type": "SD", "title": "極圏", "level": ["6", "8+", "11", "13"], "ds": [6.0, 8.7, 11.5, 13.0]}, {"diff": "综艺节目", "type": "SD", "title": "conflict", "level": ["5", "7", "10+", "13"], "ds": [5.0, 7.2, 10.9, 13.2]}, {"diff": "综艺节目", "type": "DX", "title": "Halcyon", "level": ["4", "8", "10+", "12+"], "ds": [4.0, 8.5, 10.8, 12.9]}, {"diff": "综艺节目", "type": "DX", "title": "サンバランド", "level": ["2", "7", "10", "12"], "ds": [2.0, 7.0, 10.6, 12.5]}, {"diff": "综艺节目", "type": "DX", "title": "プナイプナイせんそう", "level": ["5", "8", "11", "13"], "ds": [5.0, 8.5, 11.5, 13.0]}, {"diff": "原创乐曲", "type": "DX", "title": "Blows Up Everything", "level": ["6", "9", "11", "13", "13+"], "ds": [6.0, 9.0, 11.5, 13.4, 13.7]}, {"diff": "原创乐曲", "type": "DX", "title": "TwisteD! XD", "level": ["5", "8+", "10+", "13"], "ds": [5.0, 8.7, 10.8, 13.2]}, {"diff": "原创乐曲", "type": "DX", "title": "魔ジョ狩リ", "level": ["6", "8", "10+", "12+"], "ds": [6.0, 8.5, 10.7, 12.9]}, {"diff": "原创乐曲", "type": "DX", "title": "Technicians High", "level": ["5", "8", "11", "12+"], "ds": [5.0, 8.2, 11.2, 12.9]}, {"diff": "原创乐曲", "type": "DX", "title": "Scarlet Wings", "level": ["4", "7+", "10", "12"], "ds": [4.0, 7.8, 10.2, 12.4]}, {"diff": "原创乐曲", "type": "DX", "title": "STEREOSCAPE", "level": ["3", "6", "9", "11+"], "ds": [3.0, 6.8, 9.2, 11.8]}, {"diff": "原创乐曲", "type": "DX", "title": "Crazy Circle", "level": ["3", "6", "9", "12"], "ds": [3.0, 6.8, 9.0, 12.0]}, {"diff": "原创乐曲", "type": "DX", "title": "MAXRAGE", "level": ["5", "7+", "10+", "12+"], "ds": [5.0, 7.8, 10.8, 12.8]}, {"diff": "原创乐曲", "type": "DX", "title": "P-qoq", "level": ["3", "7", "10", "12+"], "ds": [3.0, 7.0, 10.2, 12.7]}, {"diff": "原创乐曲", "type": "DX", "title": "超常マイマイン", "level": ["3", "7", "9+", "12"], "ds": [3.0, 7.5, 9.8, 12.0]}, {"diff": "原创乐曲", "type": "DX", "title": "でらっくmaimai♪てんてこまい!", "level": ["5", "7+", "9+", "12"], "ds": [5.0, 7.7, 9.8, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "SILENT BLUE", "level": ["5", "8", "11", "13+"], "ds": [5.0, 8.0, 11.4, 13.8]}, {"diff": "原创乐曲", "type": "SD", "title": "雷切-RAIKIRI-", "level": ["6", "8", "11", "13", "13+"], "ds": [6.0, 8.5, 11.5, 13.5, 13.9]}, {"diff": "原创乐曲", "type": "SD", "title": "花と、雪と、ドラムンベース。", "level": ["6", "8", "11", "13", "12+"], "ds": [6.0, 8.0, 11.3, 13.5, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Ragnarok", "level": ["6", "8", "10+", "13"], "ds": [6.0, 8.5, 10.9, 13.1]}, {"diff": "原创乐曲", "type": "SD", "title": "larva", "level": ["6", "8", "11", "13+"], "ds": [6.0, 8.5, 11.6, 13.7]}, {"diff": "原创乐曲", "type": "SD", "title": "keep hopping", "level": ["5", "7+", "10+", "12+"], "ds": [5.0, 7.8, 10.8, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "FestivaLight", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.2, 9.0, 12.1]}, {"diff": "原创乐曲", "type": "SD", "title": "Excalibur ～Revived resolution～", "level": ["6", "9", "11", "13+"], "ds": [6.0, 9.5, 11.5, 13.8]}, {"diff": "原创乐曲", "type": "SD", "title": "Caliburne ～Story of the Legendary sword～", "level": ["6", "8", "11", "13"], "ds": [6.0, 8.6, 11.0, 13.2]}, {"diff": "原创乐曲", "type": "SD", "title": "Justified", "level": ["4", "8", "11", "12+"], "ds": [4.0, 8.2, 11.5, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Mare Maris", "level": ["5", "8", "10+", "12+"], "ds": [5.0, 8.5, 10.8, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Candy Tall Woman", "level": ["5", "7", "10", "12"], "ds": [5.0, 7.0, 10.2, 12.4]}, {"diff": "原创乐曲", "type": "SD", "title": "Kinda Way", "level": ["4", "7+", "10", "12"], "ds": [4.0, 7.8, 10.0, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Signature", "level": ["4", "7+", "10+", "12"], "ds": [4.0, 7.8, 10.8, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "Magical Flavor", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.5, 9.0, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "デスパレイト", "level": ["5", "7+", "10", "12+"], "ds": [5.0, 7.8, 10.5, 12.8]}, {"diff": "原创乐曲", "type": "SD", "title": "Moon of Noon", "level": ["6", "8", "11", "13"], "ds": [6.0, 8.2, 11.2, 13.4]}, {"diff": "原创乐曲", "type": "SD", "title": "Ultranova", "level": ["5", "7+", "11", "13"], "ds": [5.0, 7.8, 11.2, 13.0]}, {"diff": "原创乐曲", "type": "SD", "title": "曖昧mind", "level": ["5", "7+", "10", "12"], "ds": [5.0, 7.8, 10.2, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Limit Break", "level": ["5", "7", "9+", "12"], "ds": [5.0, 7.5, 9.8, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "オトヒメモリー☆ウタゲーション", "level": ["4", "7", "9+", "11+"], "ds": [4.0, 7.0, 9.8, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "夢花火", "level": ["5", "7+", "9+", "12+"], "ds": [5.0, 7.7, 9.7, 12.7]}, {"diff": "原创乐曲", "type": "SD", "title": "いっしそう電☆舞舞神拳！", "level": ["5", "7+", "9+", "12"], "ds": [5.0, 7.8, 9.7, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "FFT", "level": ["6", "8+", "11", "13", "13+"], "ds": [6.0, 8.7, 11.6, 13.5, 13.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Panopticon", "level": ["5", "8+", "11", "13", "13"], "ds": [5.0, 8.7, 11.5, 13.4, 13.4]}, {"diff": "原创乐曲", "type": "SD", "title": "四月の雨", "level": ["4", "7+", "10+", "12+"], "ds": [4.0, 7.8, 10.9, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "ねぇ、壊れタ人形ハ何処へ棄テらレるノ？", "level": ["6", "8", "11", "13"], "ds": [6.0, 8.5, 11.5, 13.5]}, {"diff": "原创乐曲", "type": "SD", "title": "Imitation:Loud Lounge", "level": ["5", "7", "10", "12"], "ds": [5.0, 7.0, 10.4, 12.4]}, {"diff": "原创乐曲", "type": "SD", "title": "HERA", "level": ["6", "8", "10+", "13"], "ds": [6.0, 8.5, 10.8, 13.2]}, {"diff": "原创乐曲", "type": "SD", "title": "Selector", "level": ["5", "7", "10", "12"], "ds": [5.0, 7.0, 10.2, 12.6]}, {"diff": "原创乐曲", "type": "SD", "title": "Alea jacta est!", "level": ["6", "8+", "11", "13", "13+"], "ds": [6.0, 8.8, 11.5, 13.5, 13.9]}, {"diff": "原创乐曲", "type": "SD", "title": "AMAZING MIGHTYYYY!!!!", "level": ["6", "9", "12", "13", "13"], "ds": [6.0, 9.0, 12.0, 13.6, 13.5]}, {"diff": "原创乐曲", "type": "SD", "title": "CITRUS MONSTER", "level": ["6", "8", "10+", "13"], "ds": [6.0, 8.5, 10.8, 13.4]}, {"diff": "原创乐曲", "type": "SD", "title": "Hyper Active", "level": ["6", "8", "11", "12+"], "ds": [6.0, 8.3, 11.0, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Jumble Rumble", "level": ["5", "8", "10+", "12+"], "ds": [5.0, 8.0, 10.8, 12.8]}, {"diff": "原创乐曲", "type": "SD", "title": "Nitrous Fury", "level": ["6", "7+", "10", "12+"], "ds": [6.0, 7.7, 10.3, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Revive The Rave", "level": ["6", "8", "10", "12"], "ds": [6.0, 8.0, 10.6, 12.4]}, {"diff": "原创乐曲", "type": "SD", "title": "GEMINI -M-", "level": ["6", "7", "10", "12+"], "ds": [6.0, 7.0, 10.2, 12.7]}, {"diff": "原创乐曲", "type": "SD", "title": "スリップフリップ", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.5, 9.1, 12.4]}, {"diff": "原创乐曲", "type": "SD", "title": "天火明命", "level": ["5", "8+", "11", "12+"], "ds": [5.0, 8.9, 11.3, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "7thSense", "level": ["6", "8", "10", "13"], "ds": [6.0, 8.0, 10.0, 13.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Lividi", "level": ["5", "8+", "11", "12+"], "ds": [5.0, 8.8, 11.0, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Axeria", "level": ["6", "7+", "10+", "13"], "ds": [6.0, 7.8, 10.8, 13.4]}, {"diff": "原创乐曲", "type": "SD", "title": "the EmpErroR", "level": ["5", "9+", "12", "13", "13+"], "ds": [5.0, 9.7, 12.0, 13.6, 13.9]}, {"diff": "原创乐曲", "type": "SD", "title": "閃鋼のブリューナク", "level": ["6", "8", "10", "12+"], "ds": [6.0, 8.0, 10.0, 12.7]}, {"diff": "原创乐曲", "type": "SD", "title": "ガラテアの螺旋", "level": ["6", "8", "11", "13", "13+"], "ds": [6.0, 8.0, 11.0, 13.5, 13.7]}, {"diff": "原创乐曲", "type": "SD", "title": "QZKago Requiem", "level": ["6", "9+", "11+", "13+", "13+"], "ds": [6.0, 9.9, 11.7, 13.7, 13.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Our Wrenally", "level": ["6", "9", "11", "13+"], "ds": [6.0, 9.0, 11.5, 13.8]}, {"diff": "原创乐曲", "type": "SD", "title": "Contrapasso -paradiso-", "level": ["6", "8+", "11", "13"], "ds": [6.0, 8.7, 11.5, 13.4]}, {"diff": "原创乐曲", "type": "DX", "title": "Oshama Scramble!", "level": ["5", "8+", "11", "13"], "ds": [5.0, 8.7, 11.0, 13.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Garakuta Doll Play", "level": ["6", "8", "11", "13", "13+"], "ds": [6.0, 8.2, 11.0, 13.1, 13.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Blew Moon", "level": ["4", "8", "10", "11+", "11+"], "ds": [4.0, 8.4, 10.3, 11.9, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "We Gonna Party", "level": ["6", "7+", "11", "12"], "ds": [6.0, 7.8, 11.4, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "MYTHOS", "level": ["4", "7+", "10", "13"], "ds": [4.0, 7.8, 10.4, 13.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Life Feels Good", "level": ["5", "8", "10+", "12"], "ds": [5.0, 8.0, 10.8, 12.4]}, {"diff": "原创乐曲", "type": "SD", "title": "Glorious Crown", "level": ["6", "9+", "11", "13+"], "ds": [6.0, 9.7, 11.3, 13.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Aiolos", "level": ["6", "8", "10", "13"], "ds": [6.0, 8.0, 10.6, 13.0]}, {"diff": "原创乐曲", "type": "SD", "title": "LANCE", "level": ["5", "7+", "9+", "12"], "ds": [5.0, 7.9, 9.7, 12.6]}, {"diff": "原创乐曲", "type": "SD", "title": "Dragoon", "level": ["5", "7+", "9", "12"], "ds": [5.0, 7.8, 9.4, 12.3]}, {"diff": "原创乐曲", "type": "SD", "title": "Death Scythe", "level": ["5", "7+", "10", "12"], "ds": [5.0, 7.8, 10.3, 12.4]}, {"diff": "原创乐曲", "type": "SD", "title": "LUCIA", "level": ["4", "6", "10", "11"], "ds": [4.0, 6.7, 10.5, 11.1]}, {"diff": "原创乐曲", "type": "SD", "title": "oboro", "level": ["5", "7", "10", "12+"], "ds": [5.0, 7.6, 10.0, 12.7]}, {"diff": "原创乐曲", "type": "SD", "title": "CYCLES", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.2, 9.2, 12.6]}, {"diff": "原创乐曲", "type": "SD", "title": "Lionheart", "level": ["6", "7", "9+", "12"], "ds": [6.0, 7.4, 9.8, 12.3]}, {"diff": "原创乐曲", "type": "SD", "title": "Heartbeats", "level": ["4", "8", "10", "11"], "ds": [4.0, 8.0, 10.0, 11.3]}, {"diff": "原创乐曲", "type": "SD", "title": "Acceleration", "level": ["6", "7+", "10", "11+"], "ds": [6.0, 7.9, 10.5, 11.9]}, {"diff": "原创乐曲", "type": "SD", "title": "End of Twilight", "level": ["4", "7", "10", "11"], "ds": [4.0, 7.0, 10.2, 11.3]}, {"diff": "原创乐曲", "type": "SD", "title": "JUMPIN' JUMPIN'", "level": ["4", "7+", "9", "11"], "ds": [4.0, 7.7, 9.6, 11.5]}, {"diff": "原创乐曲", "type": "SD", "title": "L'épilogue", "level": ["5", "7", "9+", "12"], "ds": [5.0, 7.4, 9.9, 12.4]}, {"diff": "原创乐曲", "type": "SD", "title": "FEEL ALIVE", "level": ["5", "8", "10", "12"], "ds": [5.0, 8.0, 10.6, 12.6]}, {"diff": "原创乐曲", "type": "SD", "title": "FEEL the BEATS", "level": ["5", "7+", "9+", "12"], "ds": [5.0, 7.8, 9.8, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "BREAK YOU!!", "level": ["5", "6", "9", "12"], "ds": [5.0, 6.4, 9.5, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "KING is BACK!!", "level": ["5", "8", "10", "12+"], "ds": [5.0, 8.0, 10.4, 12.8]}, {"diff": "原创乐曲", "type": "SD", "title": "Streak", "level": ["6", "7", "10+", "12"], "ds": [6.0, 7.3, 10.8, 12.3]}, {"diff": "原创乐曲", "type": "SD", "title": "Spin me harder", "level": ["6", "7", "10+", "12"], "ds": [6.0, 7.6, 10.7, 12.5]}, {"diff": "原创乐曲", "type": "SD", "title": "Turn around", "level": ["6", "7", "11+", "12"], "ds": [6.0, 7.3, 11.8, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "SPILL OVER COLORS", "level": ["4", "7+", "10", "12"], "ds": [4.0, 7.7, 10.0, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "Schwarzschild", "level": ["6", "8+", "11", "13", "13+"], "ds": [6.0, 8.9, 11.5, 13.5, 13.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Black Out", "level": ["6", "7", "11", "11"], "ds": [6.0, 7.4, 11.6, 11.6]}, {"diff": "原创乐曲", "type": "SD", "title": "Fragrance", "level": ["5", "8", "11+", "13", "13"], "ds": [5.0, 8.5, 11.7, 13.1, 13.5]}, {"diff": "原创乐曲", "type": "SD", "title": "Nerverakes", "level": ["6", "7", "10", "12+"], "ds": [6.0, 7.6, 10.3, 12.8]}, {"diff": "原创乐曲", "type": "SD", "title": "Sprintrances", "level": ["5", "7+", "9", "11+"], "ds": [5.0, 7.8, 9.6, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "air's gravity", "level": ["5", "7+", "9+", "12"], "ds": [5.0, 7.8, 9.8, 12.1]}, {"diff": "原创乐曲", "type": "SD", "title": "Night Fly", "level": ["4", "7", "9+", "11"], "ds": [4.0, 7.4, 9.9, 11.5]}, {"diff": "原创乐曲", "type": "SD", "title": "Feel My Fire", "level": ["4", "8", "9+", "11+"], "ds": [4.0, 8.3, 9.7, 11.8]}, {"diff": "原创乐曲", "type": "SD", "title": "Starlight Disco", "level": ["4", "7", "10", "10", "11"], "ds": [4.0, 7.0, 10.4, 10.6, 11.6]}, {"diff": "原创乐曲", "type": "SD", "title": "ENJOY POLIS", "level": ["5", "7", "9", "11+"], "ds": [5.0, 7.4, 9.0, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "記憶、記録", "level": ["4", "8", "9", "12"], "ds": [4.0, 8.4, 9.5, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "connecting with you", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.4, 9.3, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "アージェントシンメトリー", "level": ["4", "6", "9", "12"], "ds": [4.0, 6.4, 9.4, 12.1]}, {"diff": "原创乐曲", "type": "SD", "title": "Dreampainter", "level": ["4", "7", "9+", "11+"], "ds": [4.0, 7.0, 9.7, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Monochrome Rainbow", "level": ["4", "7+", "9", "11"], "ds": [4.0, 7.8, 9.4, 11.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Beat of getting entangled", "level": ["5", "8", "10", "12"], "ds": [5.0, 8.4, 10.6, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "MIRROR of MAGIC", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.0, 9.0, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Cosmic Train", "level": ["4", "5", "9", "10+"], "ds": [4.0, 5.6, 9.4, 10.9]}, {"diff": "原创乐曲", "type": "SD", "title": "高気圧ねこロック", "level": ["5", "8", "9+", "12"], "ds": [5.0, 8.0, 9.8, 12.3]}, {"diff": "原创乐曲", "type": "SD", "title": "Prophesy One", "level": ["6", "8", "10", "13"], "ds": [6.0, 8.5, 10.5, 13.6]}, {"diff": "原创乐曲", "type": "SD", "title": "BETTER CHOICE", "level": ["5", "7", "9", "11+"], "ds": [5.0, 7.5, 9.2, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Get Happy", "level": ["5", "7", "10+", "12"], "ds": [5.0, 7.0, 10.8, 12.3]}, {"diff": "原创乐曲", "type": "SD", "title": "System “Z”", "level": ["5", "8", "11+", "13"], "ds": [5.0, 8.3, 11.7, 13.2]}, {"diff": "原创乐曲", "type": "SD", "title": "VERTeX", "level": ["5", "8", "10", "13"], "ds": [5.0, 8.0, 10.2, 13.4]}, {"diff": "原创乐曲", "type": "SD", "title": "ジングルベル", "level": ["5", "7", "9", "13", "13"], "ds": [5.0, 7.1, 9.5, 13.1, 13.1]}, {"diff": "原创乐曲", "type": "SD", "title": "ユビキリ", "level": ["4", "7", "10", "12"], "ds": [4.0, 7.2, 10.0, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "火炎地獄", "level": ["5", "8", "10", "12+"], "ds": [5.0, 8.2, 10.5, 12.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Danza zandA", "level": ["4", "7", "9", "12", "12"], "ds": [4.0, 7.0, 9.2, 12.0, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "planet dancer", "level": ["5", "7", "9+", "11+"], "ds": [5.0, 7.0, 9.7, 11.9]}, {"diff": "原创乐曲", "type": "SD", "title": "ナミダと流星", "level": ["5", "7", "9", "10"], "ds": [5.0, 7.0, 9.2, 10.6]}, {"diff": "原创乐曲", "type": "SD", "title": "ピーマンたべたら", "level": ["5", "6", "9+", "12"], "ds": [5.0, 6.8, 9.7, 12.5]}, {"diff": "原创乐曲", "type": "SD", "title": "maimaiちゃんのテーマ", "level": ["4", "6", "8", "10+"], "ds": [4.0, 6.3, 8.0, 10.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Pixel Voyage", "level": ["3", "6", "8", "11"], "ds": [3.0, 6.0, 8.1, 11.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Sweets×Sweets", "level": ["5", "6", "8", "9+"], "ds": [5.0, 6.6, 8.0, 9.7]}, {"diff": "原创乐曲", "type": "SD", "title": "虹と太陽", "level": ["5", "7", "9", "10+"], "ds": [5.0, 7.6, 9.5, 10.8]}, {"diff": "原创乐曲", "type": "SD", "title": "Color My World", "level": ["4", "6", "8", "10"], "ds": [4.0, 6.3, 8.5, 10.1]}, {"diff": "原创乐曲", "type": "SD", "title": "True Love Song", "level": ["4", "6", "8+", "9+"], "ds": [4.0, 6.4, 8.8, 9.8]}, {"diff": "原创乐曲", "type": "SD", "title": "デコボコ体操第二", "level": ["4", "6", "7+", "9"], "ds": [4.0, 6.0, 7.7, 9.0]}, {"diff": "原创乐曲", "type": "SD", "title": "ソーラン☆節", "level": ["5", "7", "9+", "11+"], "ds": [5.0, 7.2, 9.8, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "おても☆Yan", "level": ["4", "6", "8+", "11+"], "ds": [4.0, 6.0, 8.9, 11.8]}, {"diff": "原创乐曲", "type": "SD", "title": "炭★坑★節", "level": ["4", "6", "8", "11+"], "ds": [4.0, 6.3, 8.5, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "ネコ日和。", "level": ["5", "7", "7", "10"], "ds": [5.0, 7.1, 7.5, 10.1]}, {"diff": "原创乐曲", "type": "SD", "title": "犬日和。", "level": ["4", "6", "8+", "10"], "ds": [4.0, 6.2, 8.7, 10.6]}, {"diff": "原创乐曲", "type": "SD", "title": "Endless World", "level": ["4", "6", "9+", "10+", "12"], "ds": [4.0, 6.2, 9.8, 10.7, 12.1]}, {"diff": "原创乐曲", "type": "SD", "title": "オレンジの夏", "level": ["5", "6", "8+", "10"], "ds": [5.0, 6.8, 8.7, 10.3]}, {"diff": "原创乐曲", "type": "SD", "title": "ぴぴぱぷぅ！", "level": ["3", "7", "9", "11"], "ds": [3.0, 7.4, 9.5, 11.1]}, {"diff": "原创乐曲", "type": "SD", "title": "炎歌 -ほむらうた-", "level": ["4", "6", "10", "12"], "ds": [4.0, 6.4, 10.5, 12.3]}, {"diff": "原创乐曲", "type": "SD", "title": "泣き虫O'clock", "level": ["4", "7", "9", "10+"], "ds": [4.0, 7.3, 9.4, 10.7]}, {"diff": "原创乐曲", "type": "SD", "title": "maiム・maiム feat.週刊少年マガジン", "level": ["4", "6", "9+", "11"], "ds": [4.0, 6.8, 9.7, 11.3]}, {"diff": "原创乐曲", "type": "SD", "title": "タカハせ！名人マン", "level": ["4", "6", "8", "12"], "ds": [4.0, 6.7, 8.2, 12.5]}, {"diff": "原创乐曲", "type": "SD", "title": "みんなのマイマイマー", "level": ["4", "7+", "9", "12"], "ds": [4.0, 7.8, 9.5, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "welcome to maimai!! with マイマイマー", "level": ["5", "7", "8", "11"], "ds": [5.0, 7.2, 8.4, 11.2]}, {"diff": "原创乐曲", "type": "SD", "title": "ぐるぐるWASH！コインランドリー・ディスコ", "level": ["4", "6", "8", "10+"], "ds": [4.0, 6.4, 8.2, 10.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Let's Go Away", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.0, 9.4, 11.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Conquista Ciela", "level": ["4", "6", "8", "11+"], "ds": [4.0, 6.8, 8.5, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Fist Bump", "level": ["5", "7+", "9+", "12"], "ds": [5.0, 7.7, 9.8, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Reach For The Stars", "level": ["5", "7+", "9", "12+"], "ds": [5.0, 7.8, 9.4, 12.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Live & Learn", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.8, 9.6, 11.8]}, {"diff": "原创乐曲", "type": "SD", "title": "Back 2 Back", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.0, 9.3, 12.5]}, {"diff": "原创乐曲", "type": "SD", "title": "Windy Hill -Zone 1", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.5, 9.4, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "City Escape: Act1", "level": ["4", "5", "8", "11", "11"], "ds": [4.0, 5.4, 8.0, 11.2, 11.3]}, {"diff": "原创乐曲", "type": "SD", "title": "Rooftop Run: Act1", "level": ["4", "6", "9+", "10", "11+"], "ds": [4.0, 6.6, 9.7, 10.1, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "終わりなき物語", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.8, 9.4, 11.5]}, {"diff": "原创乐曲", "type": "SD", "title": "Our Fighting", "level": ["4", "6", "9", "11"], "ds": [4.0, 6.8, 9.3, 11.1]}, {"diff": "原创乐曲", "type": "SD", "title": "Save This World νMIX", "level": ["5", "7", "8+", "11+", "11+"], "ds": [5.0, 7.3, 8.9, 11.9, 11.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Living Universe", "level": ["4", "7", "8+", "10", "11+"], "ds": [4.0, 7.3, 8.7, 10.5, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Ignite Infinity", "level": ["4", "6", "10", "10+"], "ds": [4.0, 6.4, 10.2, 10.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Garden Of The Dragon", "level": ["3", "6", "10", "11+"], "ds": [3.0, 6.2, 10.2, 11.8]}, {"diff": "原创乐曲", "type": "SD", "title": "時空を超えて久しぶり！", "level": ["3", "5", "8+", "11"], "ds": [3.0, 5.4, 8.8, 11.5]}, {"diff": "原创乐曲", "type": "SD", "title": "Her Dream Is To Be A Fantastic Sorceress", "level": ["3", "6", "9", "10"], "ds": [3.0, 6.0, 9.5, 10.3]}, {"diff": "原创乐曲", "type": "SD", "title": "キズナの物語", "level": ["4", "6", "7", "11+"], "ds": [4.0, 6.4, 7.6, 11.8]}, {"diff": "原创乐曲", "type": "SD", "title": "STAIRWAY TO GENERATION", "level": ["5", "7", "9+", "12"], "ds": [5.0, 7.0, 9.8, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "Last Brave ～ Go to zero", "level": ["4", "7", "10", "12"], "ds": [4.0, 7.2, 10.0, 12.5]}, {"diff": "原创乐曲", "type": "SD", "title": "Urban Crusher [Remix]", "level": ["6", "8", "11", "11+"], "ds": [6.0, 8.3, 11.5, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Catch The Future", "level": ["5", "7+", "9", "11"], "ds": [5.0, 7.9, 9.4, 11.0]}, {"diff": "原创乐曲", "type": "SD", "title": "awake", "level": ["4", "7+", "8", "11+"], "ds": [4.0, 7.7, 8.0, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Terminal Storm", "level": ["4", "7", "9+", "12"], "ds": [4.0, 7.0, 9.7, 12.1]}, {"diff": "原创乐曲", "type": "SD", "title": "After Burner", "level": ["5", "7+", "10", "12"], "ds": [5.0, 7.8, 10.0, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Space Harrier Main Theme [Reborn]", "level": ["5", "6", "9+", "12"], "ds": [5.0, 6.8, 9.9, 12.5]}, {"diff": "原创乐曲", "type": "SD", "title": "Quartet Theme [Reborn]", "level": ["4", "6", "10", "11"], "ds": [4.0, 6.5, 10.1, 11.6]}, {"diff": "原创乐曲", "type": "SD", "title": "Sky High [Reborn]", "level": ["5", "7", "9", "11"], "ds": [5.0, 7.4, 9.0, 11.2]}, {"diff": "原创乐曲", "type": "SD", "title": "Like the Wind [Reborn]", "level": ["5", "8", "9+", "12+"], "ds": [5.0, 8.2, 9.7, 12.7]}, {"diff": "原创乐曲", "type": "SD", "title": "YA･DA･YO [Reborn]", "level": ["4", "7+", "11", "11+"], "ds": [4.0, 7.9, 11.6, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Natural Flow", "level": ["4", "7", "10", "10"], "ds": [4.0, 7.1, 10.1, 10.1]}, {"diff": "原创乐曲", "type": "SD", "title": "Crush On You", "level": ["4", "6", "8", "10", "12+"], "ds": [4.0, 6.8, 8.0, 10.0, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Sun Dance", "level": ["4", "6", "7+", "9", "12+"], "ds": [4.0, 6.8, 7.7, 9.1, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "In Chaos", "level": ["5", "6", "8", "10+", "13+"], "ds": [5.0, 6.8, 8.0, 10.7, 13.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Beat Of Mind", "level": ["6", "8", "10", "10", "13"], "ds": [6.0, 8.5, 10.5, 10.5, 13.5]}, {"diff": "原创乐曲", "type": "SD", "title": "JACKY [Remix]", "level": ["4", "6", "9", "12"], "ds": [4.0, 6.7, 9.6, 12.1]}, {"diff": "原创乐曲", "type": "SD", "title": "Mysterious Destiny", "level": ["4", "6", "10", "12"], "ds": [4.0, 6.7, 10.6, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "Riders Of The Light", "level": ["3", "6", "9+", "10"], "ds": [3.0, 6.6, 9.9, 10.2]}, {"diff": "原创乐曲", "type": "SD", "title": "コトバ・カラフル", "level": ["3", "6", "7", "11"], "ds": [3.0, 6.4, 7.4, 11.6]}, {"diff": "原创乐曲", "type": "SD", "title": "天国と地獄", "level": ["5", "7", "8", "11+"], "ds": [5.0, 7.2, 8.6, 11.9]}, {"diff": "原创乐曲", "type": "SD", "title": "きみのためなら死ねる", "level": ["4", "6", "8", "10"], "ds": [4.0, 6.2, 8.6, 10.6]}, {"diff": "原创乐曲", "type": "SD", "title": "The Great Journey", "level": ["4", "6", "8+", "10"], "ds": [4.0, 6.0, 8.9, 10.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Burning Hearts ～炎のANGEL～", "level": ["4", "7", "9", "10", "12+"], "ds": [4.0, 7.6, 9.5, 10.4, 12.7]}, {"diff": "原创乐曲", "type": "SD", "title": "かせげ！ジャリンコヒーロー", "level": ["4", "6", "8", "10+"], "ds": [4.0, 6.8, 8.3, 10.7]}, {"diff": "原创乐曲", "type": "SD", "title": "ココロスキャンのうた", "level": ["4", "6", "9", "12"], "ds": [4.0, 6.7, 9.6, 12.5]}, {"diff": "原创乐曲", "type": "SD", "title": "超絶！Superlative", "level": ["5", "7+", "10", "10+"], "ds": [5.0, 7.9, 10.2, 10.8]}, {"diff": "原创乐曲", "type": "SD", "title": "采配の刻 Power of order", "level": ["5", "7+", "10", "11"], "ds": [5.0, 7.8, 10.2, 11.2]}, {"diff": "原创乐曲", "type": "SD", "title": "DO RORO DERODERO ON DO RORO", "level": ["5", "8", "11", "12"], "ds": [5.0, 8.1, 11.5, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "源平大戦絵巻テーマソング", "level": ["5", "7+", "9", "10+"], "ds": [5.0, 7.7, 9.1, 10.8]}, {"diff": "原创乐曲", "type": "SD", "title": "怪盗Rのテーマ", "level": ["5", "7", "8+", "11"], "ds": [5.0, 7.0, 8.9, 11.3]}, {"diff": "原创乐曲", "type": "SD", "title": "マリアをはげませ", "level": ["4", "6", "7", "10"], "ds": [4.0, 6.2, 7.4, 10.1]}, {"diff": "原创乐曲", "type": "SD", "title": "SHOW TIME", "level": ["4", "5", "7+", "10"], "ds": [4.0, 5.8, 7.8, 10.1]}, {"diff": "原创乐曲", "type": "SD", "title": "円舞曲、君に", "level": ["4", "6", "9+", "11+"], "ds": [4.0, 6.0, 9.8, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "御旗のもとに", "level": ["4", "6", "10", "11"], "ds": [4.0, 6.2, 10.6, 11.0]}, {"diff": "原创乐曲", "type": "SD", "title": "地上の戦士", "level": ["4", "6", "9", "10+"], "ds": [4.0, 6.9, 9.5, 10.7]}, {"diff": "原创乐曲", "type": "SD", "title": "檄！帝国華撃団(改)", "level": ["4", "6", "8", "8+", "11"], "ds": [4.0, 6.6, 8.1, 8.7, 11.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Outlaw's Lullaby", "level": ["4", "7+", "9", "12+"], "ds": [4.0, 7.8, 9.1, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "Brand-new Japanesque", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.6, 9.1, 11.8]}, {"diff": "原创乐曲", "type": "SD", "title": "鼓動", "level": ["3", "6", "9", "12"], "ds": [3.0, 6.9, 9.2, 12.6]}, {"diff": "原创乐曲", "type": "SD", "title": "神室雪月花", "level": ["4", "6", "10+", "11"], "ds": [4.0, 6.9, 10.7, 11.3]}, {"diff": "原创乐曲", "type": "SD", "title": "KONNANじゃないっ！", "level": ["4", "6", "7", "12"], "ds": [4.0, 6.0, 7.5, 12.3]}, {"diff": "原创乐曲", "type": "SD", "title": "セガサターン起動音[H.][Remix]", "level": ["3", "6", "9", "11+"], "ds": [3.0, 6.3, 9.6, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Infantoon Fantasy", "level": ["5", "7+", "9", "12"], "ds": [5.0, 7.8, 9.3, 12.5]}, {"diff": "原创乐曲", "type": "SD", "title": "幾四音-Ixion-", "level": ["5", "7+", "9", "11+"], "ds": [5.0, 7.8, 9.2, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Counselor", "level": ["4", "7", "9", "10+"], "ds": [4.0, 7.0, 9.0, 10.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Invitation", "level": ["4", "6", "8", "11+"], "ds": [4.0, 6.8, 8.3, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "その群青が愛しかったようだった", "level": ["5", "7", "9", "11"], "ds": [5.0, 7.0, 9.5, 11.4]}, {"diff": "原创乐曲", "type": "SD", "title": "The wheel to the right", "level": ["6", "8", "11", "12+"], "ds": [6.0, 8.1, 11.0, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "光線チューニング", "level": ["5", "7", "9+", "12"], "ds": [5.0, 7.2, 9.8, 12.1]}, {"diff": "原创乐曲", "type": "SD", "title": "心象蜃気楼", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.0, 9.5, 12.4]}, {"diff": "原创乐曲", "type": "SD", "title": "エンドマークに希望と涙を添えて", "level": ["6", "8+", "11", "13"], "ds": [6.0, 8.8, 11.1, 13.3]}, {"diff": "原创乐曲", "type": "SD", "title": "World Vanquisher", "level": ["6", "8+", "11", "13"], "ds": [6.0, 8.8, 11.6, 13.2]}, {"diff": "原创乐曲", "type": "SD", "title": "Xevel", "level": ["6", "8", "11", "13"], "ds": [6.0, 8.0, 11.0, 13.3]}, {"diff": "原创乐曲", "type": "SD", "title": "We Gonna Journey", "level": ["6", "8", "10+", "12+"], "ds": [6.0, 8.3, 10.9, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "My First Phone", "level": ["5", "7+", "10+", "12+"], "ds": [5.0, 7.8, 10.9, 12.8]}, {"diff": "原创乐曲", "type": "SD", "title": "怒槌", "level": ["6", "8+", "11+", "13"], "ds": [6.0, 8.8, 11.8, 13.6]}, {"diff": "原创乐曲", "type": "SD", "title": "TiamaT:F minor", "level": ["6", "9", "11+", "13"], "ds": [6.0, 9.5, 11.8, 13.2]}, {"diff": "原创乐曲", "type": "SD", "title": "Kattobi KEIKYU Rider", "level": ["5", "8", "11", "12+"], "ds": [5.0, 8.5, 11.0, 12.8]}, {"diff": "原创乐曲", "type": "SD", "title": "ハート・ビート", "level": ["5", "7", "9", "12"], "ds": [5.0, 7.5, 9.2, 12.1]}, {"diff": "原创乐曲", "type": "SD", "title": "brilliant better", "level": ["5", "6", "9+", "11+"], "ds": [5.0, 6.7, 9.9, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "フォルテシモBELL", "level": ["3", "6", "7+", "11"], "ds": [3.0, 6.1, 7.8, 11.2]}, {"diff": "原创乐曲", "type": "SD", "title": "DETARAME ROCK&ROLL THEORY", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.6, 9.5, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "私の中の幻想的世界観及びその顕現を想起させたある現実での出来事に関する一考察", "level": ["5", "6", "8", "12"], "ds": [5.0, 6.7, 8.2, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "猛進ソリストライフ！", "level": ["6", "8+", "10+", "12+"], "ds": [6.0, 8.7, 10.8, 12.7]}, {"diff": "原创乐曲", "type": "SD", "title": "My Dearest Song", "level": ["4", "7", "10", "12"], "ds": [4.0, 7.5, 10.2, 12.5]}, {"diff": "原创乐曲", "type": "SD", "title": "SPICY SWINGY STYLE", "level": ["5", "7+", "10", "12"], "ds": [5.0, 7.8, 10.0, 12.1]}, {"diff": "原创乐曲", "type": "SD", "title": "Bang Babang Bang!!!", "level": ["5", "7+", "9+", "12"], "ds": [5.0, 7.7, 9.8, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Tic Tac DREAMIN’", "level": ["4", "6", "8", "11"], "ds": [4.0, 6.5, 8.0, 11.0]}, {"diff": "原创乐曲", "type": "SD", "title": "猫祭り", "level": ["4", "7+", "10", "12"], "ds": [4.0, 7.7, 10.0, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "TRUST", "level": ["5", "7", "9+", "12"], "ds": [5.0, 7.0, 9.7, 12.1]}, {"diff": "原创乐曲", "type": "SD", "title": "奏者はただ背中と提琴で語るのみ", "level": ["6", "8", "10", "12+"], "ds": [6.0, 8.4, 10.5, 12.7]}, {"diff": "原创乐曲", "type": "SD", "title": "イロトリドリのメロディ", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.5, 9.5, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "-OutsideR:RequieM-", "level": ["4", "7", "9+", "12"], "ds": [4.0, 7.0, 9.8, 12.3]}, {"diff": "原创乐曲", "type": "SD", "title": "Change Our MIRAI！", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.2, 9.5, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "無敵We are one!!", "level": ["5", "7+", "8+", "12"], "ds": [5.0, 7.8, 8.7, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "ドキドキDREAM!!!", "level": ["5", "7+", "9+", "11+"], "ds": [5.0, 7.9, 9.9, 11.8]}, {"diff": "原创乐曲", "type": "SD", "title": "Still", "level": ["4", "6", "9+", "12"], "ds": [4.0, 6.8, 9.7, 12.4]}, {"diff": "原创乐曲", "type": "SD", "title": "あねぺったん", "level": ["5", "7", "9", "11+"], "ds": [5.0, 7.4, 9.2, 11.8]}, {"diff": "原创乐曲", "type": "SD", "title": "なるとなぎのパーフェクトロックンロール教室", "level": ["5", "7", "9+", "12"], "ds": [5.0, 7.0, 9.7, 12.3]}, {"diff": "原创乐曲", "type": "SD", "title": "Help me, あーりん！", "level": ["4", "7", "9", "11+"], "ds": [4.0, 7.0, 9.0, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "言ノ葉カルマ", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.7, 9.1, 11.9]}, {"diff": "原创乐曲", "type": "SD", "title": "悪戯", "level": ["4", "6", "8+", "11"], "ds": [4.0, 6.4, 8.8, 11.3]}, {"diff": "原创乐曲", "type": "SD", "title": "言ノ葉遊戯", "level": ["4", "7", "9", "11"], "ds": [4.0, 7.0, 9.4, 11.4]}, {"diff": "原创乐曲", "type": "SD", "title": "りばーぶ", "level": ["3", "6", "8", "10"], "ds": [3.0, 6.2, 8.5, 10.4]}, {"diff": "原创乐曲", "type": "SD", "title": "洗脳", "level": ["4", "6", "9", "10", "10+"], "ds": [4.0, 6.3, 9.0, 10.3, 10.7]}, {"diff": "原创乐曲", "type": "SD", "title": "Barbed Eye", "level": ["4", "6", "9", "11+"], "ds": [4.0, 6.8, 9.2, 11.7]}, {"diff": "原创乐曲", "type": "SD", "title": "空威張りビヘイビア", "level": ["4", "7", "9", "12"], "ds": [4.0, 7.3, 9.3, 12.4]}, {"diff": "原创乐曲", "type": "SD", "title": "分からない", "level": ["4", "7+", "9+", "12+"], "ds": [4.0, 7.7, 9.8, 12.9]}, {"diff": "原创乐曲", "type": "SD", "title": "天国と地獄 -言ノ葉リンネ-", "level": ["4", "6", "9+", "11+"], "ds": [4.0, 6.8, 9.8, 11.8]}, {"diff": "原创乐曲", "type": "SD", "title": "相思創愛", "level": ["5", "7+", "9+", "12"], "ds": [5.0, 7.8, 9.8, 12.2]}, {"diff": "原创乐曲", "type": "SD", "title": "咲キ誇レ常世ノ華", "level": ["5", "7", "10", "12"], "ds": [5.0, 7.2, 10.2, 12.4]}, {"diff": "原创乐曲", "type": "DX", "title": "BLACK ROSE", "level": ["3", "6", "9", "11+"], "ds": [3.0, 6.5, 9.5, 11.9]}, {"diff": "原创乐曲", "type": "DX", "title": "Secret Sleuth", "level": ["4", "7", "10", "12+"], "ds": [4.0, 7.0, 10.5, 12.8]}, {"diff": "原创乐曲", "type": "SD", "title": "PANDORA PARADOXXX", "level": ["7+", "10+", "12+", "13+", "14"], "ds": [7.7, 10.7, 12.7, 13.9, 14.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Believe the Rainbow", "level": ["4", "7+", "8+", "12"], "ds": [4.0, 7.8, 8.8, 12.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Oshama Scramble!", "level": ["5", "7+", "10", "13"], "ds": [5.0, 7.8, 10.0, 13.3]}, {"diff": "原创乐曲", "type": "DX", "title": "アポカリプスに反逆の焔を焚べろ", "level": ["6", "8", "11+", "13+"], "ds": [6.0, 8.5, 11.8, 13.7]}, {"diff": "原创乐曲", "type": "DX", "title": "Now or Never", "level": ["5", "7", "10", "12+"], "ds": [5.0, 7.5, 10.2, 12.8]}, {"diff": "原创乐曲", "type": "DX", "title": "TEmPTaTiON", "level": ["6", "8", "11+", "13+"], "ds": [6.0, 8.5, 11.9, 13.8]}, {"diff": "原创乐曲", "type": "DX", "title": "福宿音屋魂音泉", "level": ["4", "7", "10", "12+"], "ds": [4.0, 7.2, 10.5, 12.7]}, {"diff": "原创乐曲", "type": "DX", "title": "キリキリ舞Mine", "level": ["5", "7+", "10+", "12+"], "ds": [5.0, 7.8, 10.8, 12.7]}, {"diff": "原创乐曲", "type": "DX", "title": "一か罰", "level": ["5", "7+", "10+", "12"], "ds": [5.0, 7.8, 10.8, 12.4]}, {"diff": "原创乐曲", "type": "DX", "title": "玩具狂奏曲 -終焉-", "level": ["6", "8", "12", "13"], "ds": [6.0, 8.0, 12.0, 13.4]}, {"diff": "原创乐曲", "type": "DX", "title": "Titania", "level": ["6", "8", "11+", "13"], "ds": [6.0, 8.0, 11.8, 13.6]}, {"diff": "原创乐曲", "type": "DX", "title": "バーチャルダム　ネーション", "level": ["4", "8", "10", "13"], "ds": [0.0, 0.0, 0.0, 13.0]}, {"diff": "原创乐曲", "type": "SD", "title": "Session High⤴", "level": ["5", "6", "9", "11+"], "ds": [0.0, 0.0, 0.0, 11.8]}],
-      level_label: ['Basic', 'Advanced', 'Expert', 'Master', 'Re:MASTER'],
+      registerVisible: false,
+      dialogVisible: false,
+      modifyAchivementVisible: false,
     };
   },
   computed: {
-    sdData: function() {
-      let data = this.records.filter(elem => {return elem.type == 'SD'}).sort((a, b) => {return b.ra - a.ra})
+    sdData: function () {
+      let data = this.records
+        .filter((elem) => {
+          return elem.type == "SD";
+        })
+        .sort((a, b) => {
+          return b.ra - a.ra;
+        });
       for (let i = 0; i < data.length; i++) {
         data[i].rank = i + 1;
       }
       return data;
     },
-    dxData: function() {
-      let data = this.records.filter(elem => {return elem.type == 'DX'}).sort((a, b) => {return b.ra - a.ra})
+    dxData: function () {
+      let data = this.records
+        .filter((elem) => {
+          return elem.type == "DX";
+        })
+        .sort((a, b) => {
+          return b.ra - a.ra;
+        });
       for (let i = 0; i < data.length; i++) {
         data[i].rank = i + 1;
       }
       return data;
     },
-    sdRa: function() {
+    sdRa: function () {
       let ret = 0;
       for (let i = 0; i < Math.min(this.sdData.length, 25); i++) {
         ret += this.sdData[i].ra;
       }
       return ret;
     },
-    dxRa: function() {
+    dxRa: function () {
       let ret = 0;
       for (let i = 0; i < Math.min(this.dxData.length, 15); i++) {
         ret += this.dxData[i].ra;
       }
       return ret;
-    }
+    },
+  },
+  created: function () {
+    this.fetchMusicData();
+  },
+  watch: {
+    currentAchievements: function (to) {
+      if (to == "") return;
+      let flag = true;
+      if (to.toString().match(/\.0*$/)) flag = false;
+      const r = parseFloat(to);
+      if (isNaN(r)) {
+        this.currentAchievements = 0;
+      } else {
+        if (r < 0) {
+          this.currentAchievements = 0;
+        } else if (r > 101) {
+          this.currentAchievements = 101;
+        } else {
+          if (flag) this.currentAchievements = r;
+        }
+      }
+    },
   },
   methods: {
-    login: function() {
-      axios.post("http://localhost:8333/login", {
-        username: this.loginForm.username,
-        password: this.loginForm.password
-      }).then(() => {
-
-      }).catch(err => {
-        this.$message.error(err.response.data.message);
-      })
+    invokeRegister: function() {
+      this.loginVisible = false;
+      this.registerVisible = true;
     },
-    screenshot: function() {
-      const saveFile = function(data, filename){
-          var save_link = document.createElementNS('http://www.w3.org/1999/xhtml', 'a');
-          save_link.href = data;
-          save_link.download = filename;
+    editRow: function (record) {
+      this.currentUpdate = record;
+      this.currentAchievements = this.currentUpdate.achievements;
+      this.modifyAchivementVisible = true;
+    },
+    finishEditRow: function() {
+      this.currentUpdate.achievements = this.currentAchievements;
+      this.computeRecord(this.currentUpdate);
+      if (this.username == '未登录') return
+      axios
+        .post(
+          "https://www.diving-fish.com/api/maimaidxprober/player/update_record", this.currentUpdate
+        )
+        .then(() => {
+          this.$message.success("修改已同步");
+        });
+    },
+    register: function() {
+      if (this.registerForm.password !== this.registerForm.passwordConfirm) {
+        this.$message.error('两次输入的密码不一致')
+        return;
+      } 
+      if (this.registerForm.username.length < 4) {
+        this.$message.error('用户名至少长 4 个字符')
+        return;
+      }
+      axios
+        .post("https://www.diving-fish.com/api/maimaidxprober/register", {
+          username: this.registerForm.username,
+          password: this.registerForm.password,
+          records: this.records
+        }).then(() => {
+          this.$message.success("注册成功，数据已同步完成")
+          this.username = this.registerForm.username;
+          this.registerVisible = false;
+        }).catch(err => {
+          this.$message.error(err.response.data.message);
+        })
+    },
+    sync: function () {
+      axios
+        .post(
+          "https://www.diving-fish.com/api/maimaidxprober/player/update_records", this.records
+        )
+        .then(() => {
+          this.$message.success("数据已同步完成");
+        });
+    },
+    sendFeedback: function () {
+      axios
+        .post("https://www.diving-fish.com/api/maimaidxprober/feedback", {
+          message: this.feedbackText,
+        })
+        .then(() => {
+          this.$message.success("您的反馈我们已收到，谢谢！");
+          this.feedbackVisible = false;
+        });
+    },
+    fetchMusicData: function () {
+      axios
+        .get("https://www.diving-fish.com/api/maimaidxprober/music_data")
+        .then((resp) => {
+          this.music_data = resp.data;
+        });
+    },
+    login: function () {
+      axios
+        .post("https://www.diving-fish.com/api/maimaidxprober/login", {
+          username: this.loginForm.username,
+          password: this.loginForm.password,
+        })
+        .then(() => {
+          this.$message.success("登录成功，加载乐曲数据中……");
+          axios
+            .get(
+              "https://www.diving-fish.com/api/maimaidxprober/player/records"
+            )
+            .then((resp) => {
+              const data = resp.data;
+              this.username = data.username;
+              this.merge(data.records);
+              this.loginVisible = false;
+            });
+        })
+        .catch((err) => {
+          this.$message.error(err.response.data.message);
+        });
+    },
+    screenshot: function () {
+      const saveFile = function (data, filename) {
+        var save_link = document.createElementNS(
+          "http://www.w3.org/1999/xhtml",
+          "a"
+        );
+        save_link.href = data;
+        save_link.download = filename;
 
-          var event = document.createEvent('MouseEvents');
-          event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
-          save_link.dispatchEvent(event);
+        var event = document.createEvent("MouseEvents");
+        event.initMouseEvent(
+          "click",
+          true,
+          false,
+          window,
+          0,
+          0,
+          0,
+          0,
+          0,
+          false,
+          false,
+          false,
+          false,
+          0,
+          null
+        );
+        save_link.dispatchEvent(event);
       };
-      const dom = document.querySelector("#tableBody")
+      const dom = document.querySelector("#tableBody");
       html2canvas(dom, {
-        height: Math.min(2048, dom.clientHeight)
-      }).then(canvas => {
-        const pageData = canvas.toDataURL('image/jpeg', 1.0);
-        saveFile(pageData.replace("image/jpeg", "image/octet-stream"), (this.activeName == 'SD' ? '标准乐谱' : 'DX乐谱') + ".jpg");
+        height: Math.min(2048, dom.clientHeight),
+      }).then((canvas) => {
+        const pageData = canvas.toDataURL("image/jpeg", 1.0);
+        saveFile(
+          pageData.replace("image/jpeg", "image/octet-stream"),
+          (this.activeName == "SD" ? "标准乐谱" : "DX乐谱") + ".jpg"
+        );
       });
     },
-    flushData: function() {
-      const records = this.pageToRecordList(this.textarea);
+    computeRecord: function (record) {
+      record.ds = this.getDS(record.title, record.level_index, record.type);
+      record.level_label = this.level_label[record.level_index];
+      let l = 15;
+      const rate = record.achievements;
+      if (rate < 97) {
+        l = 9.4;
+      } else if (rate < 98) {
+        l = 10;
+      } else if (rate < 99) {
+        l = 11;
+      } else if (rate < 99.5) {
+        l = 12;
+      } else if (rate < 100) {
+        l = 13;
+      } else if (rate < 100.5) {
+        l = 14;
+      }
+      record.ra = Math.floor(record.ds * (Math.min(100.5, rate) / 100) * l);
+      if (isNaN(record.ra)) record.ra = 0;
+    },
+    merge: function (records) {
       for (const record of records) {
         let flag = true;
-        for (const ex of this.records) {
-          if (ex.title === record.title && ex.type === record.type && ex.level === record.level) {
+        for (let i = 0; i < this.records.length; i++) {
+          const ex = this.records[i];
+          if (
+            ex.title === record.title &&
+            ex.type === record.type &&
+            ex.level === record.level
+          ) {
             flag = false;
+            this.records[i].achievements = record.achievements;
             break;
           }
         }
+        // console.log(flag);
         if (flag) {
           this.records.push(record);
         }
       }
       for (let i = 0; i < this.records.length; i++) {
-        this.records[i].ds = this.getDS(this.records[i].title, this.records[i].level_index, this.records[i].type)
-        this.records[i].level_label = this.level_label[this.records[i].level_index]
-        let l = 15;
-        const rate = this.records[i].achievements;
-        if (rate < 97) {
-            l = 9.4
-        } else if (rate < 98) {
-            l = 10
-        } else if (rate < 99) {
-            l = 11
-        } else if (rate < 99.5) {
-            l = 12
-        } else if (rate < 100) {
-            l = 13
-        } else if (rate < 100.5) {
-            l = 14
-        }
-        this.records[i].ra = Math.floor(this.records[i].ds * (Math.min(100.5, rate) / 100) * l);
-        if (isNaN(this.records[i].ra)) this.records[i].ra = 0;
+        this.computeRecord(this.records[i]);
       }
-      console.log(this.records);
+      // console.log(this.records);
+    },
+    flushData: function () {
+      const records = this.pageToRecordList(this.textarea);
+      this.merge(records);
       this.textarea = "";
       this.dialogVisible = false;
     },
-    getDS: function(title, index, type) {
+    getDS: function (title, index, type) {
       for (const music of this.music_data) {
         if (music.type == type && music.title == title) {
-          return music.ds[index]
+          return music.ds[index];
         }
       }
     },
-    pageToRecordList: function(pageData) {
+    pageToRecordList: function (pageData) {
       let records = [];
       let doc = new dom().parseFromString(pageData);
-    
-      const scores = xpath.select('//div[@class="music_score_block w_120 t_r f_l f_12"]', doc)
-      const labels = ['basic', 'advanced', 'expert', 'master', 'remaster']
+
+      const scores = xpath.select(
+        '//div[@class="music_score_block w_120 t_r f_l f_12"]',
+        doc
+      );
+      const labels = ["basic", "advanced", "expert", "master", "remaster"];
 
       for (const score of scores) {
-        
-        let levelNode = score.previousSibling.previousSibling.previousSibling.previousSibling.previousSibling.previousSibling.previousSibling.previousSibling;
+        let levelNode =
+          score.previousSibling.previousSibling.previousSibling.previousSibling
+            .previousSibling.previousSibling.previousSibling.previousSibling;
         let record_data = {
-          title: '',
-          level: '',
-          level_index: labels.indexOf(levelNode.getAttribute("src").match('diff_(.*).png')[1]),
-          type: '',
+          title: "",
+          level: "",
+          level_index: labels.indexOf(
+            levelNode.getAttribute("src").match("diff_(.*).png")[1]
+          ),
+          type: "",
           achievements: 0,
           dxScore: 0,
-          rate: '',
-          fc: '',
-          fs: ''
-        }
-        const docId = score.parentNode.parentNode.parentNode.getAttribute('id')
+          rate: "",
+          fc: "",
+          fs: "",
+        };
+        const docId = score.parentNode.parentNode.parentNode.getAttribute("id");
         if (docId) {
-          record_data.type = docId.match(/(.*)_/)[1]
-          if (record_data.type == 'sta') record_data.type = 'SD';
-          else record_data.type = 'DX';
+          record_data.type = docId.match(/(.*)_/)[1];
+          if (record_data.type == "sta") record_data.type = "SD";
+          else record_data.type = "DX";
         } else {
-          record_data.type = score.parentNode.parentNode.nextSibling.nextSibling.getAttribute("src").match('_(.*).png')[1]
-          if (record_data.type == 'standard') record_data.type = 'SD';
-          else record_data.type = 'DX';
+          record_data.type = score.parentNode.parentNode.nextSibling.nextSibling
+            .getAttribute("src")
+            .match("_(.*).png")[1];
+          if (record_data.type == "standard") record_data.type = "SD";
+          else record_data.type = "DX";
         }
-        record_data.achievements = parseFloat(score.textContent)
+        record_data.achievements = parseFloat(score.textContent);
         let currentNode = score.previousSibling.previousSibling;
         record_data.title = currentNode.textContent;
         currentNode = currentNode.previousSibling.previousSibling;
         record_data.level = currentNode.textContent;
         currentNode = score.nextSibling.nextSibling;
-        record_data.dxScore = parseInt(currentNode.textContent.replace(',', ''))
+        record_data.dxScore = parseInt(
+          currentNode.textContent.replace(",", "")
+        );
         currentNode = currentNode.nextSibling.nextSibling;
-        record_data.fs = currentNode.getAttribute("src").match('_icon_(.*).png')[1].replace("back", "");
+        record_data.fs = currentNode
+          .getAttribute("src")
+          .match("_icon_(.*).png")[1]
+          .replace("back", "");
         currentNode = currentNode.nextSibling.nextSibling;
-        record_data.fc = currentNode.getAttribute("src").match('_icon_(.*).png')[1].replace("back", "");
+        record_data.fc = currentNode
+          .getAttribute("src")
+          .match("_icon_(.*).png")[1]
+          .replace("back", "");
         currentNode = currentNode.nextSibling.nextSibling;
-        record_data.rate = currentNode.getAttribute("src").match('_icon_(.*).png')[1]
+        record_data.rate = currentNode
+          .getAttribute("src")
+          .match("_icon_(.*).png")[1];
         records.push(record_data);
       }
       // console.log(records);
       return records;
-    }
-  }
-}
+    },
+  },
+};
 </script>
 
 <style>
@@ -274,22 +509,22 @@ export default {
 }
 
 .difficulty4 {
-  color: #BA67F8
+  color: #ba67f8;
 }
 
 .difficulty3 {
-  color: #9E45E2
+  color: #9e45e2;
 }
 
 .difficulty2 {
-  color: #F64861
+  color: #f64861;
 }
 
 .difficulty1 {
-  color: #FB9C2D
+  color: #fb9c2d;
 }
 
 .difficulty0 {
-  color: #22BB5B
+  color: #22bb5b;
 }
 </style>
