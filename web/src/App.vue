@@ -111,7 +111,9 @@
               </template>
             </el-table-column>
             <el-table-column prop="ds" sortable label="定数" width="120" />
-            <el-table-column prop="achievements" sortable label="达成率" width="120" />
+            <el-table-column sort-by="achievements" sortable label="达成率" width="120">
+              <template slot-scope="scope">{{ scope.row.achievements }}%</template>
+            </el-table-column>
             <el-table-column label="DX Rating" width="120">
               <template slot-scope="scope">
                 <a v-if="scope.row.rank <= 15" style="color: #3CB371">{{ scope.row.ra }}</a>
@@ -302,6 +304,14 @@ export default {
         .get("https://www.diving-fish.com/api/maimaidxprober/music_data")
         .then((resp) => {
           this.music_data = resp.data;
+          axios.get(
+            "https://www.diving-fish.com/api/maimaidxprober/player/records"
+          )
+          .then((resp) => {
+            const data = resp.data;
+            this.username = data.username;
+            this.merge(data.records);
+          });
         });
     },
     login: function () {
