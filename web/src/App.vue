@@ -70,9 +70,10 @@
     </div>
     <div id="tableBody">
       <p>底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</p>
+      <el-input placeholder="搜索乐曲" v-model="searchKey"></el-input>
       <el-tabs v-model="activeName">
         <el-tab-pane label="标准乐谱" name="SD">
-          <el-table :data="sdData" style="width: 100%">
+          <el-table :data="sdDisplay" style="width: 100%">
             <el-table-column prop="rank" label="排名" width="80" />
             <el-table-column prop="title" label="乐曲名" />
             <el-table-column label="难度" width="180">
@@ -100,7 +101,7 @@
           </el-table>
         </el-tab-pane>
         <el-tab-pane label="DX 乐谱" name="DX">
-          <el-table :data="dxData" style="width: 100%">
+          <el-table :data="dxDisplay" style="width: 100%">
             <el-table-column prop="rank" label="排名" width="80" />
             <el-table-column prop="title" label="乐曲名" />
             <el-table-column label="难度" width="180">
@@ -161,6 +162,7 @@ export default {
       username: "未登录",
       activeName: "SD",
       textarea: "",
+      searchKey: "",
       records: [],
       music_data: [],
       level_label: ["Basic", "Advanced", "Expert", "Master", "Re:MASTER"],
@@ -173,6 +175,12 @@ export default {
     };
   },
   computed: {
+    sdDisplay: function () {
+      return this.sdData.filter((elem) => {return elem.title.indexOf(this.searchKey) !== -1});
+    },
+    dxDisplay: function () {
+      return this.dxData.filter((elem) => {return elem.title.indexOf(this.searchKey) !== -1});
+    },
     sdData: function () {
       let data = this.records
         .filter((elem) => {
