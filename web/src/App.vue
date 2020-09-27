@@ -7,6 +7,7 @@
         href="https://github.com/Diving-Fish/maimaidx-prober"
       >https://github.com/Diving-Fish/maimaidx-prober</a>
     </p>
+    <p>欢迎加入舞萌DX查分器交流群：981682758</p>
     <el-dialog title="导入数据" :visible.sync="dialogVisible">
       <el-input type="textarea" :rows="15" placeholder="请将乐曲数据的源代码复制到这里" v-model="textarea"></el-input>
       <span slot="footer" class="dialog-footer">
@@ -75,7 +76,13 @@
         <el-tab-pane label="标准乐谱" name="SD">
           <el-table :data="sdDisplay" style="width: 100%">
             <el-table-column prop="rank" label="排名" width="80" />
-            <el-table-column prop="title" label="乐曲名" />
+            <el-table-column label="乐曲名">
+              <template slot-scope="scope">
+                <a>{{ scope.row.title }}</a>
+                <el-tag size="small" style="margin-left: 10px" type="success" v-if="scope.row.fc">{{ rawToString(scope.row.fc) }}</el-tag>
+                <el-tag size="small" style="margin-left: 10px" v-if="scope.row.fs">{{ rawToString(scope.row.fs) }}</el-tag>
+              </template>
+            </el-table-column>
             <el-table-column label="难度" width="180">
               <template slot-scope="scope">
                 <a
@@ -84,8 +91,10 @@
               </template>
             </el-table-column>
             <el-table-column prop="ds" sortable label="定数" width="120" />
-            <el-table-column sort-by="achievements" sortable label="达成率" width="120">
-              <template slot-scope="scope">{{ scope.row.achievements }}%</template>
+            <el-table-column sort-by="achievements" sortable label="达成率" width="180">
+              <template slot-scope="scope">{{ scope.row.achievements.toFixed(4) }}%
+                <el-tag size="small" style="margin-left: 10px" type="info">{{ rawToString(scope.row.rate) }}</el-tag>
+              </template>
             </el-table-column>
             <el-table-column label="DX Rating" width="120">
               <template slot-scope="scope">
@@ -103,7 +112,13 @@
         <el-tab-pane label="DX 乐谱" name="DX">
           <el-table :data="dxDisplay" style="width: 100%">
             <el-table-column prop="rank" label="排名" width="80" />
-            <el-table-column prop="title" label="乐曲名" />
+            <el-table-column label="乐曲名">
+              <template slot-scope="scope">
+                <a>{{ scope.row.title }}</a>
+                <el-tag size="small" style="margin-left: 10px" type="success" v-if="scope.row.fc">{{ rawToString(scope.row.fc) }}</el-tag>
+                <el-tag size="small" style="margin-left: 10px" v-if="scope.row.fs">{{ rawToString(scope.row.fs) }}</el-tag>
+              </template>
+            </el-table-column>
             <el-table-column label="难度" width="180">
               <template slot-scope="scope">
                 <a
@@ -112,8 +127,10 @@
               </template>
             </el-table-column>
             <el-table-column prop="ds" sortable label="定数" width="120" />
-            <el-table-column sort-by="achievements" sortable label="达成率" width="120">
-              <template slot-scope="scope">{{ scope.row.achievements }}%</template>
+            <el-table-column sort-by="achievements" sortable label="达成率" width="180">
+              <template slot-scope="scope">{{ scope.row.achievements.toFixed(4) }}%
+                <el-tag size="small" style="margin-left: 10px" type="info">{{ rawToString(scope.row.rate) }}</el-tag>
+              </template>
             </el-table-column>
             <el-table-column label="DX Rating" width="120">
               <template slot-scope="scope">
@@ -132,6 +149,7 @@
     </div>
     <div style="border-top: 2px #E4E7ED solid; text-align: left">
       <h3>更新记录</h3>
+      <p>2020/09/26 修正了ENENGY SYNERGY MATRIX的乐曲定数，补充了セイクリッド ルイン的定数。增加了评级标签和FC/FS标签</p>
       <p>2020/09/10 教师节快乐！增加了登录、注册和数据同步的功能，增加了修改单曲完成率的功能，不需要再反复导入数据了</p>
       <p>2020/09/02 增加了导出为截图的功能，增加了Session High⤴ 和 バーチャルダム ネーション 的 Master 难度乐曲定数</p>
       <p>2020/08/31 发布初版</p>
@@ -141,6 +159,7 @@
 
 <script>
 import axios from "axios";
+import Vue from 'vue';
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser,
   html2canvas = require("html2canvas");
@@ -245,6 +264,13 @@ export default {
     },
   },
   methods: {
+    rawToString: function(text) {
+      if (text[text.length - 1] == 'p' && text != 'ap') {
+        return text.substring(0, text.length - 1).toUpperCase() + '+';
+      } else {
+        return text.toUpperCase();
+      }
+    },
     invokeRegister: function() {
       this.loginVisible = false;
       this.registerVisible = true;
@@ -289,6 +315,7 @@ export default {
         })
     },
     sync: function () {
+      console.log(this.records);
       axios
         .post(
           "https://www.diving-fish.com/api/maimaidxprober/player/update_records", this.records
@@ -398,16 +425,48 @@ export default {
         l = 11;
       } else if (rate < 99.5) {
         l = 12;
-      } else if (rate < 100) {
+      } else if (rate < 99.99) {
         l = 13;
+      } else if (rate < 100) {
+        l = 13.5;
       } else if (rate < 100.5) {
         l = 14;
       }
       record.ra = Math.floor(record.ds * (Math.min(100.5, rate) / 100) * l);
       if (isNaN(record.ra)) record.ra = 0;
+      // Update Rate
+      if (record.achievements < 50) {
+        record.rate = 'd'
+      } else if (record.achievements < 60) {
+        record.rate = 'c'
+      } else if (record.achievements < 70) {
+        record.rate = 'b'
+      } else if (record.achievements < 75) {
+        record.rate = 'bb'
+      } else if (record.achievements < 80) {
+        record.rate = 'bbb'
+      } else if (record.achievements < 90) {
+        record.rate = 'a'
+      } else if (record.achievements < 94) {
+        record.rate = 'aa'
+      } else if (record.achievements < 97) {
+        record.rate = 'aaa'
+      } else if (record.achievements < 98) {
+        record.rate = 's'
+      } else if (record.achievements < 99) {
+        record.rate = 'sp'
+      } else if (record.achievements < 99.5) {
+        record.rate = 'ss'
+      } else if (record.achievements < 100) {
+        record.rate = 'ssp'
+      } else if (record.achievements < 100.5) {
+        record.rate = 'sss'
+      } else {
+        record.rate = 'sssp'
+      } 
     },
     merge: function (records) {
-      for (const record of records) {
+      for (let record of records) {
         let flag = true;
         for (let i = 0; i < this.records.length; i++) {
           const ex = this.records[i];
@@ -417,7 +476,8 @@ export default {
             ex.level === record.level
           ) {
             flag = false;
-            this.records[i].achievements = record.achievements;
+            Vue.set(this.records, i, record);
+            // this.records[i] = record;
             break;
           }
         }
