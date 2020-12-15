@@ -28,7 +28,7 @@
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/4.png)
 
-如果一切顺利的话，浏览器中将进入舞萌 DX 的主页。如果提示**Not Found**，有可能是操作慢了一点，可以再试一次！
+之后点击这个链接即可。如果一切顺利的话，浏览器中将进入舞萌 DX 的主页。如果提示**Not Found**，有可能是操作慢了一点，可以再试一次！
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/5.png)
 
