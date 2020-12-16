@@ -24,7 +24,7 @@
 
 然后 URL 会被重定向到 **https://open.weixin.qq.com/connect/oauth2/authorize** (后面的查询参数省略掉了)。
 
-之后，在任何聊天框中粘贴刚刚的 URL，如下图所示：
+之后，在网页版微信的任何聊天框中粘贴刚刚的 URL，如下图所示：
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/4.png)
 
