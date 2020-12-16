@@ -2,17 +2,24 @@
   <div id="app">
     <h1>舞萌 DX 查分器</h1>
     <p>
-      使用指南：
       <a
-        href="https://github.com/Diving-Fish/maimaidx-prober"
-      >https://github.com/Diving-Fish/maimaidx-prober</a>
+        href="/maimaidx/prober_guide" target="_blank"
+      >使用指南</a>
     </p>
     <p>欢迎加入舞萌DX查分器交流群：981682758</p>
+    <p>经反馈，微信更新到3.0版本后无法查看源代码，仍然需要使用该查分器的用户可以从<a href="https://pan.baidu.com/s/1PZOC7W1I1vX6TfaSHmh7EA">此链接（提取码：gj89）</a>下载2.9.5版本的微信安装包。<br>经测试，卸载时选择保存设置数据，数据不会丢失，但仍建议您进行数据备份。</p>
     <el-dialog title="导入数据" :visible.sync="dialogVisible">
       <el-input type="textarea" :rows="15" placeholder="请将乐曲数据的源代码复制到这里" v-model="textarea"></el-input>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" @click="flushData()">确定</el-button>
       </span>
+    </el-dialog>
+    <el-dialog title="微信扫码导入数据" :visible.sync="qrDialogVisible">
+      <p>该功能基于网页版微信开发，代码已开源。</p>
+      <p>如担心数据被盗风险，请使用原来的方式进行数据导入。</p>
+      <p>无法使用网页版微信的用户，请使用原来的方式进行数据导入。</p>
+      <img :src="'data:image/png;base64,' + qrcode" />
+      <p>{{ qrcodePrompt }}</p>
     </el-dialog>
     <el-dialog title="登录" width="30%" :visible.sync="loginVisible">
       <el-form label-width="80px">
@@ -69,6 +76,7 @@
       <el-button style="margin-left: 30px" @click="screenshot">导出为截图</el-button>
       <el-button style="margin-left: 30px" @click="feedbackVisible = true">提交反馈</el-button>
     </div>
+    <el-button style="margin-top: 20px" @click="scanQRCode" type="danger">使用微信扫码导入数据（不推荐）</el-button>
     <div id="tableBody">
       <p>底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</p>
       <el-input placeholder="搜索乐曲" v-model="searchKey"></el-input>
@@ -149,6 +157,7 @@
     </div>
     <div style="border-top: 2px #E4E7ED solid; text-align: left">
       <h3>更新记录</h3>
+      <p>2020/12/12 大家都在买东西，我在加功能。增加了使用微信扫码导入数据的功能。</p>
       <p>2020/09/26 修正了ENENGY SYNERGY MATRIX的乐曲定数，补充了セイクリッド ルイン的定数。增加了评级标签和FC/FS标签</p>
       <p>2020/09/10 教师节快乐！增加了登录、注册和数据同步的功能，增加了修改单曲完成率的功能，不需要再反复导入数据了</p>
       <p>2020/09/02 增加了导出为截图的功能，增加了Session High⤴ 和 バーチャルダム ネーション 的 Master 难度乐曲定数</p>
@@ -191,6 +200,10 @@ export default {
       registerVisible: false,
       dialogVisible: false,
       modifyAchivementVisible: false,
+      qrDialogVisible: false,
+      qrcode: "",
+      qrcodePrompt: "",
+      ws: null
     };
   },
   computed: {
@@ -262,8 +275,48 @@ export default {
         }
       }
     },
+    qrDialogVisible: function(to) {
+      if (!to) {
+        console.log("cancelled by user.")
+        this.qrcode = ""
+        this.ws.close()
+        this.ws = null
+      }
+    }
   },
   methods: {
+    scanQRCode: function() {
+      this.qrDialogVisible = true
+      this.qrcodePrompt = "请使用微信扫描上方二维码，加载二维码需要一定时间，请稍候……"
+      this.ws = new WebSocket("wss://www.diving-fish.com:8099/ws")
+      this.ws.exitcode = 0
+      let main_message = false
+      this.ws.onmessage = (event) => {
+        if (event.data == "main-part") {
+          main_message = true
+          this.qrcode = ""
+          this.qrcodePrompt = "导入数据需要 30 秒左右，请耐心等待……"
+          return
+        }
+        if (main_message) {
+          if (event.data == 'no-web-wx') {
+            this.ws.exitcode = -1
+            return
+          }
+          const records = this.pageToRecordList(event.data);
+          this.merge(records);
+        } else {
+          this.qrcode = event.data
+        }
+      }
+      this.ws.onclose = () => {
+        if (this.ws.exitcode == 0)
+          this.qrcodePrompt = "导入完毕，请关闭窗口"
+        else
+          this.qrcodePrompt = "您的微信号无法登录网页微信"
+        this.ws = null
+      }
+    },
     rawToString: function(text) {
       if (text[text.length - 1] == 'p' && text != 'ap') {
         return text.substring(0, text.length - 1).toUpperCase() + '+';
@@ -315,7 +368,7 @@ export default {
         })
     },
     sync: function () {
-      console.log(this.records);
+      // console.log(this.records);
       axios
         .post(
           "https://www.diving-fish.com/api/maimaidxprober/player/update_records", this.records
@@ -417,10 +470,22 @@ export default {
       record.level_label = this.level_label[record.level_index];
       let l = 15;
       const rate = record.achievements;
-      if (rate < 97) {
+      if (rate < 50) {
+        l = 0;
+      } else if (rate < 60) {
+        l = 5;
+      } else if (rate < 70) {
+        l = 6;
+      } else if (rate < 75) {
+        l = 7;
+      } else if (rate < 80) {
+        l = 7.5;
+      } else if (rate < 90) {
+        l = 8;
+      } else if (rate < 94) {
+        l = 9;
+      } else if (rate < 97) {
         l = 9.4;
-      } else if (rate < 98) {
-        l = 10;
       } else if (rate < 99) {
         l = 11;
       } else if (rate < 99.5) {
@@ -473,7 +538,8 @@ export default {
           if (
             ex.title === record.title &&
             ex.type === record.type &&
-            ex.level === record.level
+            ex.level === record.level &&
+            ex.level_index == record.level_index
           ) {
             flag = false;
             Vue.set(this.records, i, record);

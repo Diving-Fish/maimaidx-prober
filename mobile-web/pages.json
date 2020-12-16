@@ -3,7 +3,19 @@
 		{
 			"path": "pages/index/index"
 		}
-	],
+	    ,{
+            "path" : "pages/components/login/login",
+            "style" : {}
+        }
+        ,{
+            "path" : "pages/components/player/player",
+            "style" : {}
+        }
+        ,{
+            "path" : "pages/components/record/record",
+            "style" : {}
+        }
+    ],
 	"globalStyle": {
 		"navigationStyle": "custom",
 		"navigationBarTitleText": "舞萌 DX 查分器"
