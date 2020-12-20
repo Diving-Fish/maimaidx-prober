@@ -64,7 +64,7 @@
 				})
 			},
 			logined: function() {
-				that.login = true;
+				this.login = true;
 				this.fetchRecords();
 			}
 		},
