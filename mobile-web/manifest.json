@@ -72,7 +72,11 @@
     "mp-toutiao" : {
         "usingComponents" : true
     },
-    "uniStatistics": {  
-        "enable": false
+    "uniStatistics" : {
+        "enable" : false
+    },
+    "h5" : {
+        "title" : "舞萌 DX 查分器",
+        "domain" : "www.diving-fish.com"
     }
 }

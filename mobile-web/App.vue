@@ -1,7 +1,9 @@
 <script>
 	import Vue from 'vue'
 	export default {
-		globalData: {},
+		globalData: {
+			login: false
+		},
 		onLaunch: function() {
 			uni.getSystemInfo({
 				success: function(e) {
