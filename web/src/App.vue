@@ -6,6 +6,7 @@
         href="/maimaidx/prober_guide" target="_blank"
       >使用指南</a>
     </p>
+    <p>点个 Star 吧！<a href="https://github.com/Diving-Fish/maimaidx-prober"><img src="https://img.shields.io/github/stars/Diving-Fish/maimaidx-prober?style=social" /></a></p>
     <p>欢迎加入舞萌DX查分器交流群：981682758</p>
     <p>经反馈，微信更新到3.0版本后无法查看源代码，仍然需要使用该查分器的用户可以从<a href="https://pan.baidu.com/s/1PZOC7W1I1vX6TfaSHmh7EA">此链接（提取码：gj89）</a>下载2.9.5版本的微信安装包。<br>经测试，卸载时选择保存设置数据，数据不会丢失，但仍建议您进行数据备份。</p>
     <el-dialog title="导入数据" :visible.sync="dialogVisible">
@@ -14,13 +15,13 @@
         <el-button type="primary" @click="flushData()">确定</el-button>
       </span>
     </el-dialog>
-    <el-dialog title="微信扫码导入数据" :visible.sync="qrDialogVisible">
+    <!-- <el-dialog title="微信扫码导入数据" :visible.sync="qrDialogVisible">
       <p>该功能基于网页版微信开发，代码已开源。</p>
       <p>如担心数据被盗风险，请使用原来的方式进行数据导入。</p>
       <p>无法使用网页版微信的用户，请使用原来的方式进行数据导入。</p>
       <img :src="'data:image/png;base64,' + qrcode" />
       <p>{{ qrcodePrompt }}</p>
-    </el-dialog>
+    </el-dialog> -->
     <el-dialog title="登录" width="30%" :visible.sync="loginVisible">
       <el-form label-width="80px">
         <el-form-item label="用户名">
@@ -76,7 +77,7 @@
       <el-button style="margin-left: 30px" @click="screenshot">导出为截图</el-button>
       <el-button style="margin-left: 30px" @click="feedbackVisible = true">提交反馈</el-button>
     </div>
-    <el-button style="margin-top: 20px" @click="scanQRCode" type="danger">使用微信扫码导入数据（不推荐）</el-button>
+    <!-- <el-button style="margin-top: 20px" @click="scanQRCode" type="danger">使用微信扫码导入数据（不推荐）</el-button> -->
     <div id="tableBody">
       <p>底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</p>
       <el-input placeholder="搜索乐曲" v-model="searchKey"></el-input>
