@@ -560,6 +560,7 @@ export default {
     flushData: function () {
       const records = this.pageToRecordList(this.textarea);
       this.merge(records);
+      this.sync();
       this.textarea = "";
       this.dialogVisible = false;
     },
