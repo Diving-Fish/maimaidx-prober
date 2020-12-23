@@ -155,4 +155,34 @@ async def update_record():
     }
 
 
+def cal_ra(records):
+    def isTypeSD(elem):
+        return elem['type'] == 'SD'
+    def isTypeDX(elem):
+        return elem['type'] == 'DX'
+    def get_ra(elem):
+        return elem["ra"]
+    sd_records = list(filter(isTypeSD, records))
+    sd_records.sort(key=get_ra)
+    dx_records = list(filter(isTypeDX, records))
+    dx_records.sort(key=get_ra)
+    rt = 0
+    for i in range(min(25, len(sd_records))):
+        rt += sd_records[i]["ra"]
+    for i in range(min(15, len(dx_records))):
+        rt += dx_records[i]["ra"]
+    return rt
+
+
+@app.route("/rating_ranking", methods=['GET'])
+async def rating_ranking():
+    csr = db.playerData.find()
+    data = []
+    async for player in csr:
+        data.append({"username": player["username"], "ra": int(cal_ra(player["records"]))})
+    resp = await make_response(json.dumps(data, ensure_ascii=False))
+    resp.headers['content-type'] = "application/json; charset=utf-8"
+    return resp
+
+
 app.run(host='0.0.0.0', port=8333, loop=asyncio.get_event_loop())
