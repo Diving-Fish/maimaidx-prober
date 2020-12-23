@@ -125,15 +125,19 @@ def update_one(records, record):
         r = records[i]
         if r['level_index'] == record['level_index'] and r['title'] == record['title'] and r['type'] == record['type']:
             records[i] = record
+            return
+    records.append(record)
 
 
 @app.route("/player/update_records", methods=['POST'])
 @login_required
 async def update_records():
     records = g.user["records"]
-    update_one(records, await request.get_json())
+    j = await request.get_json()
+    for r in j:
+        update_one(records, r)
     g.user["records"] = records
-    db.playerData.update_one({'_id': g.user['_id']}, g.user)
+    db.playerData.replace_one({'_id': g.user['_id']}, g.user)
     return {
         "message": "更新成功",
     }
@@ -143,11 +147,9 @@ async def update_records():
 @login_required
 async def update_record():
     records = g.user["records"]
-    j = await request.get_json()
-    for r in j:
-        update_one(records, r)
+    update_one(records, await request.get_json())
     g.user["records"] = records
-    db.playerData.update_one({'_id': g.user['_id']}, g.user)
+    db.playerData.replace_one({'_id': g.user['_id']}, g.user)
     return {
         "message": "更新成功",
     }
