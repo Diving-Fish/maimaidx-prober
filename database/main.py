@@ -106,14 +106,18 @@ async def get_music_data():
     async for c in csr:
         del c["_id"]
         data.append(c)
-    return json.dumps(data, ensure_ascii=False)
+    resp = await make_response(json.dumps(data, ensure_ascii=False))
+    resp.headers['content-type'] = "application/json; charset=utf-8"
+    return resp
 
 
 @app.route("/player/records", methods=['GET'])
 @login_required
 async def get_records():
     records = g.user["records"]
-    return json.dumps(records, ensure_ascii=False)
+    resp = await make_response(json.dumps(records, ensure_ascii=False))
+    resp.headers['content-type'] = "application/json; charset=utf-8"
+    return resp
 
 
 def update_one(records, record):
