@@ -115,7 +115,7 @@ async def get_music_data():
 @login_required
 async def get_records():
     records = g.user["records"]
-    resp = await make_response(json.dumps(records, ensure_ascii=False))
+    resp = await make_response('{"records":' + json.dumps(records, ensure_ascii=False) + ', "username": "' + g.username + '"}')
     resp.headers['content-type'] = "application/json; charset=utf-8"
     return resp
 
