@@ -163,9 +163,9 @@ def cal_ra(records):
     def get_ra(elem):
         return elem["ra"]
     sd_records = list(filter(isTypeSD, records))
-    sd_records.sort(key=get_ra)
+    sd_records.sort(key=get_ra, reverse=True)
     dx_records = list(filter(isTypeDX, records))
-    dx_records.sort(key=get_ra)
+    dx_records.sort(key=get_ra, reverse=True)
     rt = 0
     for i in range(min(25, len(sd_records))):
         rt += sd_records[i]["ra"]
