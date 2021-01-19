@@ -532,6 +532,7 @@ export default {
       } 
     },
     merge: function (records) {
+      console.log(records);
       for (let record of records) {
         let flag = true;
         for (let i = 0; i < this.records.length; i++) {
@@ -601,8 +602,7 @@ export default {
         };
         const docId = score.parentNode.parentNode.parentNode.getAttribute("id");
         if (docId) {
-          record_data.type = docId.match(/(.*)_/)[1];
-          if (record_data.type == "sta") record_data.type = "SD";
+          if (docId.slice(0, 3) == "sta") record_data.type = "SD";
           else record_data.type = "DX";
         } else {
           record_data.type = score.parentNode.parentNode.nextSibling.nextSibling
