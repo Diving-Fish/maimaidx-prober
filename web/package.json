@@ -13,6 +13,7 @@
     "element-ui": "^2.13.2",
     "html2canvas": "^1.0.0-rc.7",
     "vue": "^2.6.11",
+    "vuetify": "^2.4.0",
     "xmldom": "^0.3.0",
     "xpath": "0.0.29"
   },
@@ -23,7 +24,11 @@
     "babel-eslint": "^10.1.0",
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^6.2.2",
-    "vue-template-compiler": "^2.6.11"
+    "sass": "^1.32.0",
+    "sass-loader": "^10.0.0",
+    "vue-cli-plugin-vuetify": "~2.1.0",
+    "vue-template-compiler": "^2.6.11",
+    "vuetify-loader": "^1.7.0"
   },
   "eslintConfig": {
     "root": true,
