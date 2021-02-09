@@ -17,6 +17,9 @@
           <span style="color: #4CAF50" v-if="item.rank <= limit">{{ item.ra }}</span>
           <span v-else>{{ item.ra }}</span>
       </template>
+      <template #item.actions="{ item }">
+          <v-icon small @click="$emit('edit', item)">mdi-pencil</v-icon>
+      </template>
   </v-data-table>
 </template>
 
@@ -37,7 +40,7 @@ export default {
                 {text: '定数', value: 'ds'},
                 {text: '达成率', value: 'achievements'},
                 {text: 'DX Rating', value: 'ra'}, 
-                {text: 'Actions', value: 'actions', sortable: false}
+                {text: '编辑', value: 'actions', sortable: false}
             ]
         }
     },
