@@ -45,7 +45,7 @@
             v-model="loginForm.username" label="用户名" :rules="[u => !!u || '用户名不能为空']">
           </v-text-field>
           <v-text-field 
-            v-model="loginForm.password" label="密码" :rules="[u => !!u || '密码不能为空']">
+            v-model="loginForm.password" label="密码" :rules="[u => !!u || '密码不能为空']" type="password">
           </v-text-field>
         </v-form>
         <v-btn class="mr-4" color="primary" @click="login">登录</v-btn>
@@ -490,6 +490,8 @@ export default {
         l = 9;
       } else if (rate < 97) {
         l = 9.4;
+      } else if (rate < 98) {
+        l = 10;
       } else if (rate < 99) {
         l = 11;
       } else if (rate < 99.5) {
