@@ -99,9 +99,9 @@
         <v-btn style="margin-left: 30px" @click="dialogVisible = true"
           >导入数据</v-btn
         >
-        <!-- <v-btn style="margin-left: 30px" @click="screenshot"
-          >导出为截图</v-btn
-        > -->
+        <v-btn style="margin-left: 30px" @click="exportToCSV"
+          >导出为 CSV</v-btn
+        >
         <v-btn style="margin-left: 30px" @click="feedbackVisible = true"
           >提交反馈</v-btn
         >
@@ -141,6 +141,8 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
+          2021/02/15
+          添加了导出为 csv 的功能。在导入的页面源代码有问题时新增了报错提示。<br>
           2021/02/10
           更改了UI。废弃了微信扫码登录的功能和导出为截图的功能。<br>
           2020/12/12
@@ -161,6 +163,7 @@
 import axios from "axios";
 import Vue from "vue";
 import ChartTable from '../components/ChartTable.vue';
+import GBK from '../plugins/gbk';
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser,
   html2canvas = require("html2canvas");
@@ -579,68 +582,99 @@ export default {
       }
     },
     pageToRecordList: function (pageData) {
-      let records = [];
-      let doc = new dom().parseFromString(pageData);
-      const scores = xpath.select(
-        '//div[@class="music_score_block w_120 t_r f_l f_12"]',
-        doc
-      );
-      const labels = ["basic", "advanced", "expert", "master", "remaster"];
-      for (const score of scores) {
-        let levelNode =
-          score.previousSibling.previousSibling.previousSibling.previousSibling
-            .previousSibling.previousSibling.previousSibling.previousSibling;
-        let record_data = {
-          title: "",
-          level: "",
-          level_index: labels.indexOf(
-            levelNode.getAttribute("src").match("diff_(.*).png")[1]
-          ),
-          type: "",
-          achievements: 0,
-          dxScore: 0,
-          rate: "",
-          fc: "",
-          fs: "",
-        };
-        const docId = score.parentNode.parentNode.parentNode.getAttribute("id");
-        if (docId) {
-          if (docId.slice(0, 3) == "sta") record_data.type = "SD";
-          else record_data.type = "DX";
-        } else {
-          record_data.type = score.parentNode.parentNode.nextSibling.nextSibling
-            .getAttribute("src")
-            .match("_(.*).png")[1];
-          if (record_data.type == "standard") record_data.type = "SD";
-          else record_data.type = "DX";
-        }
-        record_data.achievements = parseFloat(score.textContent);
-        let currentNode = score.previousSibling.previousSibling;
-        record_data.title = currentNode.textContent;
-        currentNode = currentNode.previousSibling.previousSibling;
-        record_data.level = currentNode.textContent;
-        currentNode = score.nextSibling.nextSibling;
-        record_data.dxScore = parseInt(
-          currentNode.textContent.replace(",", "")
+      try {
+        let records = [];
+        let doc = new dom().parseFromString(pageData);
+        const scores = xpath.select(
+          '//div[@class="music_score_block w_120 t_r f_l f_12"]',
+          doc
         );
-        currentNode = currentNode.nextSibling.nextSibling;
-        record_data.fs = currentNode
-          .getAttribute("src")
-          .match("_icon_(.*).png")[1]
-          .replace("back", "");
-        currentNode = currentNode.nextSibling.nextSibling;
-        record_data.fc = currentNode
-          .getAttribute("src")
-          .match("_icon_(.*).png")[1]
-          .replace("back", "");
-        currentNode = currentNode.nextSibling.nextSibling;
-        record_data.rate = currentNode
-          .getAttribute("src")
-          .match("_icon_(.*).png")[1];
-        records.push(record_data);
+        const labels = ["basic", "advanced", "expert", "master", "remaster"];
+        for (const score of scores) {
+          let levelNode =
+            score.previousSibling.previousSibling.previousSibling.previousSibling
+              .previousSibling.previousSibling.previousSibling.previousSibling;
+          let record_data = {
+            title: "",
+            level: "",
+            level_index: labels.indexOf(
+              levelNode.getAttribute("src").match("diff_(.*).png")[1]
+            ),
+            type: "",
+            achievements: 0,
+            dxScore: 0,
+            rate: "",
+            fc: "",
+            fs: "",
+          };
+          const docId = score.parentNode.parentNode.parentNode.getAttribute("id");
+          if (docId) {
+            if (docId.slice(0, 3) == "sta") record_data.type = "SD";
+            else record_data.type = "DX";
+          } else {
+            record_data.type = score.parentNode.parentNode.nextSibling.nextSibling
+              .getAttribute("src")
+              .match("_(.*).png")[1];
+            if (record_data.type == "standard") record_data.type = "SD";
+            else record_data.type = "DX";
+          }
+          record_data.achievements = parseFloat(score.textContent);
+          let currentNode = score.previousSibling.previousSibling;
+          record_data.title = currentNode.textContent;
+          currentNode = currentNode.previousSibling.previousSibling;
+          record_data.level = currentNode.textContent;
+          currentNode = score.nextSibling.nextSibling;
+          record_data.dxScore = parseInt(
+            currentNode.textContent.replace(",", "")
+          );
+          currentNode = currentNode.nextSibling.nextSibling;
+          record_data.fs = currentNode
+            .getAttribute("src")
+            .match("_icon_(.*).png")[1]
+            .replace("back", "");
+          currentNode = currentNode.nextSibling.nextSibling;
+          record_data.fc = currentNode
+            .getAttribute("src")
+            .match("_icon_(.*).png")[1]
+            .replace("back", "");
+          currentNode = currentNode.nextSibling.nextSibling;
+          record_data.rate = currentNode
+            .getAttribute("src")
+            .match("_icon_(.*).png")[1];
+          records.push(record_data);
+        }
+        // console.log(records);
+        return records;
+      } catch (err) {
+        console.log(err);
+        this.$message.error("导入页面信息出错，请确认您导入的是【记录】-【乐曲成绩】-【歌曲类别】。")
       }
-      // console.log(records);
-      return records;
+    },
+    exportToCSV: function() {
+      let sdText = "排名,曲名,难度,等级,定数,达成率, DX Rating\n";
+      let dxText = "排名,曲名,难度,等级,定数,达成率, DX Rating\n";
+      const escape = function(value) {
+        if (value.indexOf(',') == -1) {
+          return value
+        } else {
+          return `"${value}"`
+        }
+      }
+      for (const m of this.sdData) {
+        sdText += `${m.rank},${escape(m.title)},${m.level_label},${m.level},${m.ds},${m.achievements},${m.ra}\n`
+      }
+      for (const m of this.dxData) {
+        dxText += `${m.rank},${escape(m.title)},${m.level_label},${m.level},${m.ds},${m.achievements},${m.ra}\n`
+      }
+      const sdBlob = new Blob([new Uint8Array(GBK.encode(sdText))]);
+      const dxBlob = new Blob([new Uint8Array(GBK.encode(dxText))]);
+      const a = document.createElement("a")
+      a.href = URL.createObjectURL(sdBlob);
+      a.download = "标准乐谱.csv"
+      a.click();
+      a.href = URL.createObjectURL(dxBlob);
+      a.download = "DX 乐谱.csv"
+      a.click();
     },
   },
 };
