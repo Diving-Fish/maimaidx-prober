@@ -127,7 +127,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-btn v-if="username !== '未登录'" @click="sync()" color="primary"
+        <v-btn v-if="username !== '未登录'" @click="sync()" color="primary" class="mt-3 mr-4"
           >同步数据</v-btn
         >
         <v-dialog width="1000px" :fullscreen="mobile" v-model="dialogVisible">
