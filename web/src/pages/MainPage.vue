@@ -1,9 +1,17 @@
 <template>
-    <div id="app">
+  <div id="app">
+    <v-container>
       <h1>舞萌 DX 查分器</h1>
       <v-divider class="mt-4 mb-4" />
       <p>
-        <v-btn><a href="/maimaidx/prober_guide" style="text-decoration: none" target="_blank">使用指南</a></v-btn>
+        <v-btn
+          ><a
+            href="/maimaidx/prober_guide"
+            style="text-decoration: none"
+            target="_blank"
+            >使用指南</a
+          ></v-btn
+        >
       </p>
       <p>
         点个 Star 吧！<a href="https://github.com/Diving-Fish/maimaidx-prober"
@@ -18,98 +26,211 @@
           >此链接（提取码：gj89）</a
         >下载2.9.5版本的微信安装包。<br />经测试，卸载时选择保存设置数据，数据不会丢失，但仍建议您进行数据备份。
       </p>
-      <el-dialog title="导入数据" :visible.sync="dialogVisible">
-        <v-textarea
-          type="textarea"
-          label="请将乐曲数据的源代码复制到这里"
-          v-model="textarea"
-          :rows="15"
-          outlined
-        ></v-textarea>
-        <span slot="footer" class="dialog-footer">
-          <v-btn type="primary" @click="flushData()">确定</v-btn>
-        </span>
-      </el-dialog>
-      <!-- <el-dialog title="微信扫码导入数据" :visible.sync="qrDialogVisible">
-      <p>该功能基于网页版微信开发，代码已开源。</p>
-      <p>如担心数据被盗风险，请使用原来的方式进行数据导入。</p>
-      <p>无法使用网页版微信的用户，请使用原来的方式进行数据导入。</p>
-      <img :src="'data:image/png;base64,' + qrcode" />
-      <p>{{ qrcodePrompt }}</p>
-    </el-dialog> -->
-      <el-dialog title="登录" width="30%" :visible.sync="loginVisible">
-        <v-form
-          ref="form"
-          v-model="valid">
-          <v-text-field
-            v-model="loginForm.username" label="用户名" :rules="[u => !!u || '用户名不能为空']">
-          </v-text-field>
-          <v-text-field 
-            v-model="loginForm.password" label="密码" :rules="[u => !!u || '密码不能为空']" type="password">
-          </v-text-field>
-        </v-form>
-        <v-btn class="mr-4" color="primary" @click="login">登录</v-btn>
-        <v-btn @click="invokeRegister">立即注册</v-btn>
-      </el-dialog>
-      <el-dialog title="注册" width="30%" :visible.sync="registerVisible">
-        注册后会自动同步当前已导入的乐曲数据
-        <v-form
-          ref="regForm"
-          v-model="valid2">
-          <v-text-field
-            v-model="registerForm.username" label="用户名" :rules="[u => !!u || '用户名不能为空', u => (u.length >= 4) || '用户名至少长 4 个字符']">
-          </v-text-field>
-          <v-text-field 
-            v-model="registerForm.password" label="密码" :rules="[u => !!u || '密码不能为空']">
-          </v-text-field>
-          <v-text-field
-            v-model="registerForm.passwordConfirm" label="确认密码" :rules="[u => !!u || '密码不能为空', u => (registerForm.password == u) || '密码不一致']">
-          </v-text-field>
-        </v-form>
-        <v-btn type="primary" @click="register">注册</v-btn>
-      </el-dialog>
-      <el-dialog title="反馈" width="40%" :visible.sync="feedbackVisible">
-        <v-textarea
-          rows="5"
-          placeholder="补充乐曲定数或者对查分器有什么意见和建议都可以写在这里"
-          v-model="feedbackText"
-        ></v-textarea>
-        <span slot="footer" class="dialog-footer">
-          <v-btn type="primary" @click="sendFeedback()">确定</v-btn>
-        </span>
-      </el-dialog>
-      <el-dialog
-        :title="`修改${currentUpdate.title}（${currentUpdate.level_label}）的完成率为`"
-        width="40%"
-        :visible.sync="modifyAchivementVisible"
+      <div
+        style="
+          display: flex;
+          line-height: 64px;
+          justify-content: center;
+          flex-wrap: wrap;
+        "
       >
-        <v-text-field v-model="currentAchievements" />
-        <span slot="footer" class="dialog-footer">
-          <v-btn type="primary" @click="finishEditRow()">确定</v-btn>
-        </span>
-      </el-dialog>
-      <div style="display: flex; margin: 0 auto; width: fit-content">
-        <v-btn
-          v-if="username == '未登录'"
-          @click="loginVisible = true"
-          type="primary"
-          >登录并同步数据</v-btn
+        <v-dialog width="500px" :fullscreen="mobile" v-model="loginVisible">
+          <template #activator="{ on, attrs }">
+            <v-btn
+              class="mt-3 mr-4"
+              v-if="username == '未登录'"
+              v-bind="attrs"
+              v-on="on"
+              color="primary"
+              >登录并同步数据</v-btn
+            >
+          </template>
+          <v-card>
+            <v-card-title>
+              登录
+              <v-spacer />
+              <v-btn icon @click="loginVisible = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-card-title>
+            <v-card-text>
+              <v-form ref="form" v-model="valid">
+                <v-text-field
+                  v-model="loginForm.username"
+                  label="用户名"
+                  :rules="[(u) => !!u || '用户名不能为空']"
+                >
+                </v-text-field>
+                <v-text-field
+                  v-model="loginForm.password"
+                  label="密码"
+                  :rules="[(u) => !!u || '密码不能为空']"
+                  type="password"
+                >
+                </v-text-field>
+              </v-form>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn class="mr-4" color="primary" @click="login">登录</v-btn>
+              <v-btn @click="invokeRegister">立即注册</v-btn>
+              <v-dialog
+                width="500"
+                :fullscreen="mobile"
+                v-model="registerVisible"
+              >
+                <v-card>
+                  <v-card-title>
+                    注册
+                    <v-spacer />
+                    <v-btn icon @click="registerVisible = false">
+                      <v-icon>mdi-close</v-icon>
+                    </v-btn>
+                  </v-card-title>
+                  <v-card-subtitle>
+                    注册后会自动同步当前已导入的乐曲数据
+                  </v-card-subtitle>
+                  <v-card-text>
+                    <v-form ref="regForm" v-model="valid2">
+                      <v-text-field
+                        v-model="registerForm.username"
+                        label="用户名"
+                        :rules="[
+                          (u) => !!u || '用户名不能为空',
+                          (u) => u.length >= 4 || '用户名至少长 4 个字符',
+                        ]"
+                      >
+                      </v-text-field>
+                      <v-text-field
+                        v-model="registerForm.password"
+                        label="密码"
+                        :rules="[(u) => !!u || '密码不能为空']"
+                      >
+                      </v-text-field>
+                      <v-text-field
+                        v-model="registerForm.passwordConfirm"
+                        label="确认密码"
+                        :rules="[
+                          (u) => !!u || '密码不能为空',
+                          (u) => registerForm.password == u || '密码不一致',
+                        ]"
+                      >
+                      </v-text-field>
+                    </v-form>
+                  </v-card-text>
+                  <v-card-actions>
+                    <v-spacer />
+                    <v-btn color="primary" @click="register">注册</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-dialog>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <v-btn v-if="username !== '未登录'" @click="sync()" color="primary"
+          >同步数据</v-btn
         >
-        <v-btn v-else @click="sync()" type="primary">同步数据</v-btn>
-        <v-btn style="margin-left: 30px" @click="dialogVisible = true"
-          >导入数据</v-btn
-        >
-        <v-btn style="margin-left: 30px" @click="exportToCSV"
-          >导出为 CSV</v-btn
-        >
-        <v-btn style="margin-left: 30px" @click="feedbackVisible = true"
-          >提交反馈</v-btn
-        >
+        <v-dialog width="1000px" :fullscreen="mobile" v-model="dialogVisible">
+          <template #activator="{ on, attrs }">
+            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导入数据</v-btn>
+          </template>
+          <v-card>
+            <v-card-title>
+              导入数据
+              <v-spacer />
+              <v-btn icon @click="dialogVisible = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-card-title>
+            <v-card-text>
+              <v-textarea
+                type="textarea"
+                label="请将乐曲数据的源代码复制到这里"
+                v-model="textarea"
+                :rows="15"
+                outlined
+              ></v-textarea>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn color="primary" @click="flushData()">确定</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <v-dialog width="500px" :fullscreen="mobile" v-model="feedbackVisible">
+          <template #activator="{ on, attrs }">
+            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">提交反馈</v-btn>
+          </template>
+          <v-card>
+            <v-card-title>
+              反馈
+              <v-spacer />
+              <v-btn icon @click="feedbackVisible = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-card-title>
+            <v-card-text>
+              <v-textarea
+                rows="5"
+                placeholder="补充乐曲定数或者对查分器有什么意见和建议都可以写在这里"
+                v-model="feedbackText"
+              ></v-textarea>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn color="primary" @click="sendFeedback()">确定</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <v-dialog v-model="exportVisible" width="500px" :fullscreen="mobile">
+          <template #activator="{ on, attrs }">
+              <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导出为 CSV</v-btn>
+          </template>
+          <v-card>
+            <v-card-title>
+              导出为 CSV
+              <v-spacer />
+              <v-btn icon @click="exportVisible = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-card-title>
+            <v-card-actions>
+              <v-btn class="mr-4" @click="exportToCSV('sd')">导出标准乐谱</v-btn>
+              <v-btn @click="exportToCSV('dx')">导出 DX 乐谱</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
       </div>
-      <!-- <v-btn style="margin-top: 20px" @click="scanQRCode" type="danger">使用微信扫码导入数据（不推荐）</v-btn> -->
+      <v-dialog
+        width="500px"
+        :fullscreen="mobile"
+        v-model="modifyAchivementVisible"
+      >
+        <v-card>
+          <v-card-title>
+            修改完成率
+            <v-spacer />
+            <v-btn icon @click="modifyAchivementVisible = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+          <v-card-subtitle>
+            修改{{ currentUpdate.title }}（{{
+              currentUpdate.level_label
+            }}）的完成率为
+          </v-card-subtitle>
+          <v-card-text>
+            <v-text-field v-model="currentAchievements" />
+          </v-card-text>
+          <v-card-actions>
+            <v-btn color="primary" @click="finishEditRow()">确定</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
       <div id="tableBody" style="margin-top: 2em">
         <v-card>
-          <v-card-title>成绩表格
+          <v-card-title
+            >成绩表格
             <v-spacer />
             <v-text-field
               v-model="searchKey"
@@ -117,62 +238,81 @@
               label="查找乐曲"
               single-line
               hide-details
+              class="mb-4"
             ></v-text-field>
           </v-card-title>
-          <v-card-subtitle>底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</v-card-subtitle>
+          <v-card-subtitle
+            >底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</v-card-subtitle
+          >
           <v-card-text>
-          <v-tabs v-model="tab">
-            <v-tab key="sd">标准乐谱</v-tab>
-            <v-tab key="dx">DX 乐谱</v-tab>
-          </v-tabs>
-          <v-tabs-items v-model="tab">
-            <v-tab-item key="sd">
-              <chart-table @edit="editRow" :search="searchKey" :items="sdData" :limit="25" :loading="loading" sort-by="achievements">
-              </chart-table>
-            </v-tab-item>
-            <v-tab-item key="dx">
-              <chart-table @edit="editRow" :search="searchKey" :items="dxData" :limit="15" :loading="loading" sort-by="achievements">
-              </chart-table>
-            </v-tab-item>
-          </v-tabs-items>
+            <v-tabs v-model="tab">
+              <v-tab key="sd">标准乐谱</v-tab>
+              <v-tab key="dx">DX 乐谱</v-tab>
+            </v-tabs>
+            <v-tabs-items v-model="tab">
+              <v-tab-item key="sd">
+                <chart-table
+                  @edit="editRow"
+                  :search="searchKey"
+                  :items="sdData"
+                  :limit="25"
+                  :loading="loading"
+                  sort-by="achievements"
+                >
+                </chart-table>
+              </v-tab-item>
+              <v-tab-item key="dx">
+                <chart-table
+                  @edit="editRow"
+                  :search="searchKey"
+                  :items="dxData"
+                  :limit="15"
+                  :loading="loading"
+                  sort-by="achievements"
+                >
+                </chart-table>
+              </v-tab-item>
+            </v-tabs-items>
           </v-card-text>
         </v-card>
       </div>
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
-          2021/02/15
-          添加了导出为 csv 的功能。在导入的页面源代码有问题时新增了报错提示。<br>
-          2021/02/10
-          更改了UI。废弃了微信扫码登录的功能和导出为截图的功能。<br>
+          2021/02/17 废弃了目前在使用的移动端（Vuetify さいこう！），导出为 csv
+          增加了一个二次确认窗口。以及优化了所有的对话框。<br />
+          2021/02/15 添加了导出为 csv
+          的功能。在导入的页面源代码有问题时新增了报错提示。<br />
+          2021/02/10 更改了UI。废弃了微信扫码登录的功能和导出为截图的功能。<br />
           2020/12/12
-          大家都在买东西，我在加功能。增加了使用微信扫码导入数据的功能。<br>
+          大家都在买东西，我在加功能。增加了使用微信扫码导入数据的功能。<br />
           2020/09/26 修正了ENENGY SYNERGY MATRIX的乐曲定数，补充了セイクリッド
-          ルイン的定数。增加了评级标签和FC/FS标签<br>
+          ルイン的定数。增加了评级标签和FC/FS标签<br />
           2020/09/10
-          教师节快乐！增加了登录、注册和数据同步的功能，增加了修改单曲完成率的功能，不需要再反复导入数据了<br>
+          教师节快乐！增加了登录、注册和数据同步的功能，增加了修改单曲完成率的功能，不需要再反复导入数据了<br />
           2020/09/02 增加了导出为截图的功能，增加了Session High⤴ 和
-          バーチャルダム ネーション 的 Master 难度乐曲定数<br>
+          バーチャルダム ネーション 的 Master 难度乐曲定数<br />
           2020/08/31 发布初版
         </v-card-text>
       </v-card>
-    </div>
+    </v-container>
+  </div>
 </template>
 
 <script>
 import axios from "axios";
 import Vue from "vue";
-import ChartTable from '../components/ChartTable.vue';
-import GBK from '../plugins/gbk';
+import ChartTable from "../components/ChartTable.vue";
+import GBK from "../plugins/gbk";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser,
   html2canvas = require("html2canvas");
 export default {
   name: "App",
   components: {
-    ChartTable
+    ChartTable,
   },
-  data: function() {
+  data: function () {
     return {
       tab: "",
       loginForm: {
@@ -205,7 +345,8 @@ export default {
       ws: null,
       loading: false,
       valid: false,
-      valid2: false
+      valid2: false,
+      exportVisible: false
     };
   },
   computed: {
@@ -258,6 +399,13 @@ export default {
         ret += this.dxData[i].ra;
       }
       return ret;
+    },
+    mobile: function () {
+      return (
+        navigator.userAgent.match(
+          /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
+        ) !== null
+      );
     },
   },
   created: function () {
@@ -540,7 +688,7 @@ export default {
       }
     },
     merge: function (records) {
-      console.log(records);
+      // console.log(records);
       for (let record of records) {
         let flag = true;
         for (let i = 0; i < this.records.length; i++) {
@@ -592,8 +740,9 @@ export default {
         const labels = ["basic", "advanced", "expert", "master", "remaster"];
         for (const score of scores) {
           let levelNode =
-            score.previousSibling.previousSibling.previousSibling.previousSibling
-              .previousSibling.previousSibling.previousSibling.previousSibling;
+            score.previousSibling.previousSibling.previousSibling
+              .previousSibling.previousSibling.previousSibling.previousSibling
+              .previousSibling;
           let record_data = {
             title: "",
             level: "",
@@ -607,7 +756,9 @@ export default {
             fc: "",
             fs: "",
           };
-          const docId = score.parentNode.parentNode.parentNode.getAttribute("id");
+          const docId = score.parentNode.parentNode.parentNode.getAttribute(
+            "id"
+          );
           if (docId) {
             if (docId.slice(0, 3) == "sta") record_data.type = "SD";
             else record_data.type = "DX";
@@ -647,33 +798,29 @@ export default {
         return records;
       } catch (err) {
         console.log(err);
-        this.$message.error("导入页面信息出错，请确认您导入的是【记录】-【乐曲成绩】-【歌曲类别】。")
+        this.$message.error(
+          "导入页面信息出错，请确认您导入的是【记录】-【乐曲成绩】-【歌曲类别】。"
+        );
       }
     },
-    exportToCSV: function() {
-      let sdText = "排名,曲名,难度,等级,定数,达成率, DX Rating\n";
-      let dxText = "排名,曲名,难度,等级,定数,达成率, DX Rating\n";
-      const escape = function(value) {
-        if (value.indexOf(',') == -1) {
-          return value
+    exportToCSV: function (type) {
+      let text = "排名,曲名,难度,等级,定数,达成率, DX Rating\n";
+      const escape = function (value) {
+        if (value.indexOf(",") == -1) {
+          return value;
         } else {
-          return `"${value}"`
+          return `"${value}"`;
         }
+      };
+      for (const m of this[type + "Data"]) {
+        text += `${m.rank},${escape(m.title)},${m.level_label},${m.level},${
+          m.ds
+        },${m.achievements},${m.ra}\n`;
       }
-      for (const m of this.sdData) {
-        sdText += `${m.rank},${escape(m.title)},${m.level_label},${m.level},${m.ds},${m.achievements},${m.ra}\n`
-      }
-      for (const m of this.dxData) {
-        dxText += `${m.rank},${escape(m.title)},${m.level_label},${m.level},${m.ds},${m.achievements},${m.ra}\n`
-      }
-      const sdBlob = new Blob([new Uint8Array(GBK.encode(sdText))]);
-      const dxBlob = new Blob([new Uint8Array(GBK.encode(dxText))]);
-      const a = document.createElement("a")
-      a.href = URL.createObjectURL(sdBlob);
-      a.download = "标准乐谱.csv"
-      a.click();
-      a.href = URL.createObjectURL(dxBlob);
-      a.download = "DX 乐谱.csv"
+      const blob = new Blob([new Uint8Array(GBK.encode(text))]);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = type == "sd" ? "标准乐谱.csv" : "DX 乐谱.csv";
       a.click();
     },
   },
