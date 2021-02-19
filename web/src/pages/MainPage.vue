@@ -194,6 +194,24 @@
                 <v-icon>mdi-close</v-icon>
               </v-btn>
             </v-card-title>
+            <v-card-text>
+              <div style="display: flex">
+                <v-select v-model="exportEncoding" label="选择编码" :items="exportEncodings">
+                </v-select>
+                <v-tooltip bottom>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon
+                      v-bind="attrs"
+                      v-on="on"
+                      class="ml-4"
+                    >
+                      mdi-help-circle
+                    </v-icon>
+                  </template>
+                  <span>GBK编码一般用于Excel打开，UTF-8编码则可以供部分其他编辑器直接显示。</span>
+                </v-tooltip>
+              </div>
+            </v-card-text>
             <v-card-actions>
               <v-btn class="mr-4" @click="exportToCSV('sd')">导出标准乐谱</v-btn>
               <v-btn @click="exportToCSV('dx')">导出 DX 乐谱</v-btn>
@@ -305,8 +323,7 @@ import Vue from "vue";
 import ChartTable from "../components/ChartTable.vue";
 import GBK from "../plugins/gbk";
 const xpath = require("xpath"),
-  dom = require("xmldom").DOMParser,
-  html2canvas = require("html2canvas");
+  dom = require("xmldom").DOMParser
 export default {
   name: "App",
   components: {
@@ -346,7 +363,9 @@ export default {
       loading: false,
       valid: false,
       valid2: false,
-      exportVisible: false
+      exportVisible: false,
+      exportEncoding: 'GBK',
+      exportEncodings: ['GBK', 'UTF-8']
     };
   },
   computed: {
@@ -439,37 +458,6 @@ export default {
     },
   },
   methods: {
-    scanQRCode: function () {
-      this.qrDialogVisible = true;
-      this.qrcodePrompt =
-        "请使用微信扫描上方二维码，加载二维码需要一定时间，请稍候……";
-      this.ws = new WebSocket("wss://www.diving-fish.com:8099/ws");
-      this.ws.exitcode = 0;
-      let main_message = false;
-      this.ws.onmessage = (event) => {
-        if (event.data == "main-part") {
-          main_message = true;
-          this.qrcode = "";
-          this.qrcodePrompt = "导入数据需要 30 秒左右，请耐心等待……";
-          return;
-        }
-        if (main_message) {
-          if (event.data == "no-web-wx") {
-            this.ws.exitcode = -1;
-            return;
-          }
-          const records = this.pageToRecordList(event.data);
-          this.merge(records);
-        } else {
-          this.qrcode = event.data;
-        }
-      };
-      this.ws.onclose = () => {
-        if (this.ws.exitcode == 0) this.qrcodePrompt = "导入完毕，请关闭窗口";
-        else this.qrcodePrompt = "您的微信号无法登录网页微信";
-        this.ws = null;
-      };
-    },
     rawToString: function (text) {
       if (text[text.length - 1] == "p" && text != "ap") {
         return text.substring(0, text.length - 1).toUpperCase() + "+";
@@ -580,45 +568,6 @@ export default {
         .catch((err) => {
           this.$message.error(err.response.data.message);
         });
-    },
-    screenshot: function () {
-      const saveFile = function (data, filename) {
-        var save_link = document.createElementNS(
-          "http://www.w3.org/1999/xhtml",
-          "a"
-        );
-        save_link.href = data;
-        save_link.download = filename;
-        var event = document.createEvent("MouseEvents");
-        event.initMouseEvent(
-          "click",
-          true,
-          false,
-          window,
-          0,
-          0,
-          0,
-          0,
-          0,
-          false,
-          false,
-          false,
-          false,
-          0,
-          null
-        );
-        save_link.dispatchEvent(event);
-      };
-      const dom = document.querySelector("#tableBody");
-      html2canvas(dom, {
-        height: Math.min(2048, dom.clientHeight),
-      }).then((canvas) => {
-        const pageData = canvas.toDataURL("image/jpeg", 1.0);
-        saveFile(
-          pageData.replace("image/jpeg", "image/octet-stream"),
-          (this.activeName == "SD" ? "标准乐谱" : "DX乐谱") + ".jpg"
-        );
-      });
     },
     computeRecord: function (record) {
       record.ds = this.getDS(record.title, record.level_index, record.type);
@@ -817,7 +766,7 @@ export default {
           m.ds
         },${m.achievements},${m.ra}\n`;
       }
-      const blob = new Blob([new Uint8Array(GBK.encode(text))]);
+      const blob = new Blob([this.exportEncoding === 'GBK' ? new Uint8Array(GBK.encode(text)) : text]);
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = type == "sd" ? "标准乐谱.csv" : "DX 乐谱.csv";
