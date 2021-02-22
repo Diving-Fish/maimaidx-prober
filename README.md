@@ -5,7 +5,9 @@
 ### 使用指南
 
 <details>
-<summary>可以使用网页版微信的用户请查看此部分</summary>
+<summary>可以使用网页版微信的用户请查看此部分(点击展开)</summary>
+&nbsp;
+
 用任意浏览器访问如下网址：https://tgk-wcaime.wahlap.com/wc_auth/oauth/authorize/maimai-dx
 
 然后 URL 会被重定向到 **https://open.weixin.qq.com/connect/oauth2/authorize** (后面的查询参数省略掉了)。
@@ -24,7 +26,9 @@
 </details>
 &nbsp;
 <details>
-<summary>不能使用网页版微信的用户请查看此部分</summary>
+<summary>不能使用网页版微信的用户请查看此部分(点击展开)</summary>
+&nbsp;
+
 使用电脑版微信打开【舞萌DX】公众号，点击底部【我的记录】，在打开的页面中导航至【记录】-【乐曲成绩】。
   
 在下方乐曲成绩中选择难度后，右击鼠标并点击【获取源代码】（如果右击无效可以往下滑动一些再右击），复制源代码到剪切板中。
@@ -34,6 +38,8 @@
 ![](https://www.diving-fish.com/images/maimaidx-prober/2.png)
 </details>
 &nbsp;
+
+*您同样可以使用 Fiddler 等抓包工具实现获取网页的源代码。*
 
 将网页的源代码复制到查分器中，点击上方【导入数据】按钮，粘贴源代码，之后点击确认。
 
