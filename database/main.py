@@ -198,7 +198,7 @@ async def rating_ranking():
 
 @app.route("/count_view", methods=['GET'])
 async def count_view():
-    view = db.views.find_one({"key": "prober"})
+    view = await db.views.find_one({"key": "prober"})
     view["value"] += 1
     db.views.replace_one({'_id': view['_id']}, view)
     return {"message": "success"}
