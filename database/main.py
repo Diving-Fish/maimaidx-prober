@@ -201,6 +201,7 @@ async def count_view():
     view = db.views.find_one({"key": "prober"})
     view["value"] += 1
     db.views.replace_one({'_id': view['_id']}, view)
+    return {"message": "success"}
 
 
 app.run(host='0.0.0.0', port=8333, loop=asyncio.get_event_loop())
