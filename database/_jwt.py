@@ -14,7 +14,7 @@ def ts(offset: int = 0):
 
 
 def username_encode(username: str):
-    data = jwt.encode({'username': username, 'exp': ts(86400)}, secret_key, algorithm='HS256')
+    data = jwt.encode({'username': username, 'exp': ts(86400 * 30)}, secret_key, algorithm='HS256')
     return data
 
 

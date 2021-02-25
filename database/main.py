@@ -68,7 +68,7 @@ async def login():
         user = await db.playerData.find_one({"username": username})
         if md5(password + user["salt"]) == user["password"]:
             resp = await make_response({"message": "登录成功"})
-            resp.set_cookie('jwt_token', username_encode(username))
+            resp.set_cookie('jwt_token', username_encode(username), max_age=30 * 86400)
             return resp
     except Exception:
         pass
@@ -110,6 +110,17 @@ async def get_music_data():
     resp.headers['content-type'] = "application/json; charset=utf-8"
     return resp
 
+
+@app.route("/vote_data", methods=['GET'])
+async def get_vote_data():
+    data = []
+    async for c in db.musicData.find():
+        if 10001 <= int(c['id']) <= 11000:
+            continue
+        data.append({"id": c['id'], 'title': c['title'], 'basic_info': c['basic_info']})
+    resp = await make_response(json.dumps(data, ensure_ascii=False))
+    resp.headers['content-type'] = "application/json; charset=utf-8"
+    return resp
 
 @app.route("/player/records", methods=['GET'])
 @login_required
