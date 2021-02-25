@@ -65,7 +65,7 @@ func fetchData(url *url.URL, cookies []*http.Cookie) {
 		resp, _ := client.Do(req)
 		commit(resp.Body)
 	}
-	fmt.Println("所有数据均已导入完成，请按 Enter 键以关闭此窗口。")
+	fmt.Println("所有数据均已导入完成，请按 Enter 键以关闭此窗口，不要忘记还原代理设置哦~")
 	bufio.NewReader(os.Stdin).ReadString('\n')
 	os.Exit(0)
 }

@@ -25,7 +25,7 @@ key.pem - 私钥文件，无需进行任何操作
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/1.png)
 
-之后，填写`config.json`文件，将您的用户名和密码写入对应区域的引号中，类似这样：
+之后，填写`config.json`文件，将您查分器的用户名和密码写入对应区域的引号中，类似这样：
 
 ```json
 {"username": "MyAccount", "password": "MyPassword"}
@@ -42,7 +42,7 @@ key.pem - 私钥文件，无需进行任何操作
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/3.png)
 
-*如果您使用了其他的系统代理软件（Shadowsocks、V2Ray 等），请将它们关闭或调整至直连模式再进行设置。*
+*如果您使用了其他的系统代理软件（ Shadowsocks、V2Ray 等），请将它们关闭或调整至直连模式再进行设置。*
 
 点击保存，打开**电脑版微信**，进入舞萌 DX 公众号，点击**我的记录**。如果您的代理设置无误，页面将如下图显示：
 
@@ -52,7 +52,7 @@ key.pem - 私钥文件，无需进行任何操作
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/5.png)
 
-在导入完毕后，刷新查分器界面，即可看到最新的乐曲成绩。关闭代理程序后，别忘了在【代理服务器设置】中恢复以前的设置。
+在导入完毕后，刷新查分器界面，即可看到最新的乐曲成绩。**关闭代理程序后，别忘了在【代理服务器设置】中恢复以前的设置。**
 
 如果您需要更新您的成绩数据，只需要做第 2 步便可。
 
