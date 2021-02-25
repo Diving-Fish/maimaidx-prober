@@ -84,8 +84,8 @@ key.pem - 私钥文件，无需进行任何操作
 
 <details>
 <summary>点击展开收款码</summary>
-<img src="https://www.diving-fish.com/images/qrcode/alipay_qrcode.jpg">
-<img src="https://www.diving-fish.com/images/qrcode/wechat_qrcode.jpg">
+<img style="width: 48%" src="https://www.diving-fish.com/images/qrcode/alipay_qrcode.jpg">
+<img style="width: 50%" src="https://www.diving-fish.com/images/qrcode/wechat_qrcode.jpg">
 </details>
 
 ### License & Disclaimer
