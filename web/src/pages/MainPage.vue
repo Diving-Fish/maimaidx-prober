@@ -20,13 +20,6 @@
         /></a>
       </p>
       <p>欢迎加入舞萌DX查分器交流群：981682758</p>
-      <p>
-        经反馈，微信更新到3.0版本后无法查看源代码，仍然需要使用该查分器的用户可以从<a
-          href="https://pan.baidu.com/s/1PZOC7W1I1vX6TfaSHmh7EA"
-          >此链接（提取码：gj89）</a
-        >下载2.9.5版本的微信安装包。卸载新版本微信时，选择“保存设置数据”，数据不会丢失，但仍建议您进行数据备份。<br>
-        您同样可以使用Fiddler等抓包工具获取网页源代码。
-      </p>
       <div
         style="
           display: flex;
@@ -105,12 +98,14 @@
                       <v-text-field
                         v-model="registerForm.password"
                         label="密码"
+                        type="password"
                         :rules="[(u) => !!u || '密码不能为空']"
                       >
                       </v-text-field>
                       <v-text-field
                         v-model="registerForm.passwordConfirm"
                         label="确认密码"
+                        type="password"
                         :rules="[
                           (u) => !!u || '密码不能为空',
                           (u) => registerForm.password == u || '密码不一致',
@@ -146,7 +141,7 @@
             <v-card-text>
               <v-textarea
                 type="textarea"
-                label="请将乐曲数据的源代码复制到这里"
+                label="请将乐曲数据的源代码粘贴到这里"
                 v-model="textarea"
                 :rows="15"
                 outlined
@@ -216,6 +211,27 @@
             <v-card-actions>
               <v-btn class="mr-4" @click="exportToCSV('sd')">导出标准乐谱</v-btn>
               <v-btn @click="exportToCSV('dx')">导出 DX 乐谱</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <v-dialog v-model="logoutVisible" width="500px" v-if="username !== '未登录'" :fullscreen="mobile">
+          <template #activator="{ on, attrs }">
+            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">登出</v-btn>
+          </template>
+          <v-card>
+            <v-card-title>
+              确认
+              <v-spacer />
+              <v-btn icon @click="logoutVisible = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-card-title>
+            <v-card-text>
+              您确定要登出吗？
+            </v-card-text>
+            <v-card-actions>
+              <v-btn class="mr-4" @click="logout" color="primary">登出</v-btn>
+              <v-btn @click="logoutVisible = false">取消</v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
@@ -298,6 +314,7 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
+          2021/02/26 发布 1.0 版本，添加了登出按钮，并优化了一些成绩导入方式。提供了代理服务器供便捷导入成绩。<br />
           2021/02/17 废弃了目前在使用的移动端（Vuetify さいこう！），导出为 csv
           增加了一个二次确认窗口。以及优化了所有的对话框。<br />
           2021/02/15 添加了导出为 csv
@@ -366,7 +383,8 @@ export default {
       valid2: false,
       exportVisible: false,
       exportEncoding: 'GBK',
-      exportEncodings: ['GBK', 'UTF-8']
+      exportEncodings: ['GBK', 'UTF-8'],
+      logoutVisible: false
     };
   },
   computed: {
@@ -773,6 +791,17 @@ export default {
       a.download = type == "sd" ? "标准乐谱.csv" : "DX 乐谱.csv";
       a.click();
     },
+    logout: function() {
+      const setCookie = function(cname, cvalue, exdays) {
+          var d = new Date();
+          d.setTime(d.getTime() + (exdays*24*60*60*1000));
+          var expires = "expires="+d.toUTCString();
+          document.cookie = cname + "=" + cvalue + "; " + expires + ";path=/";
+      }
+      setCookie("jwt_token", "", -1);
+      this.logoutVisible = false;
+      window.location.reload();
+    }
   },
 };
 </script>
