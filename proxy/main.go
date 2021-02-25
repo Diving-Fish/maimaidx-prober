@@ -1,17 +1,23 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/cookiejar"
+	"net/url"
 	"os"
 	"proxy/lib"
 	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/elazarl/goproxy"
 )
@@ -26,9 +32,8 @@ func tryLogin(username string, password string) {
 	b, _ := json.Marshal(&body)
 	resp, _ := http.Post("https://www.diving-fish.com/api/maimaidxprober/login", "application/json", bytes.NewReader(b))
 	if resp.StatusCode != 200 {
-		fmt.Println("登录凭据错误。请按任意键继续……")
-		var a byte
-		fmt.Scan(&a)
+		fmt.Println("登录凭据错误。请按 Enter 键继续……")
+		bufio.NewReader(os.Stdin).ReadString('\n')
 		os.Exit(0)
 	}
 	cookies := resp.Cookies()
@@ -36,7 +41,9 @@ func tryLogin(username string, password string) {
 	fmt.Println("登录成功，代理已开启到127.0.0.1:8033")
 }
 
-func commit(b []byte) {
+func commit(data io.Reader) {
+	resp2, _ := http.Post("http://www.diving-fish.com:8089/page", "text/plain", data)
+	b, _ := ioutil.ReadAll(resp2.Body)
 	req, _ := http.NewRequest("POST", "https://www.diving-fish.com/api/maimaidxprober/player/update_records", bytes.NewReader(b))
 	req.Header.Add("Content-Type", "application/json")
 	req.AddCookie(jwt)
@@ -45,16 +52,32 @@ func commit(b []byte) {
 	fmt.Println("导入成功")
 }
 
+func fetchData(url *url.URL, cookies []*http.Cookie) {
+	client := &http.Client{}
+	client.Jar, _ = cookiejar.New(nil)
+	client.Jar.SetCookies(url, cookies)
+	labels := []string{
+		"Basic", "Advanced", "Expert", "Master", "Re: MASTER",
+	}
+	for i := 0; i < 5; i++ {
+		fmt.Printf("正在导入 %s 难度……", labels[i])
+		req, _ := http.NewRequest("GET", "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff=" + strconv.Itoa(i), nil)
+		resp, _ := client.Do(req)
+		commit(resp.Body)
+	}
+	fmt.Println("所有数据均已导入完成，请按 Enter 键以关闭此窗口。")
+	bufio.NewReader(os.Stdin).ReadString('\n')
+	os.Exit(0)
+}
+
 func main() {
 	b, err := ioutil.ReadFile("config.json")
 	if err != nil {
 		// First run
 		lib.GenerateCert()
-		b2, _ := json.Marshal(map[string]interface{}{"username": "", "password": ""})
-		ioutil.WriteFile("config.json", b2, 0644)
-		fmt.Println("初次使用请填写config.json文件，并依据教程完成根证书的安装。请按任意键继续……")
-		var a byte
-		fmt.Scan(&a)
+		ioutil.WriteFile("config.json", []byte("{\"username\": \"\", \"password\": \"\"}"), 0644)
+		fmt.Println("初次使用请填写config.json文件，并依据教程完成根证书的安装。请按 Enter 键继续……")
+		bufio.NewReader(os.Stdin).ReadString('\n')
 		os.Exit(0)
 	}
 	obj := map[string]interface{}{}
@@ -69,13 +92,14 @@ func main() {
 	proxy.OnResponse().DoFunc(
 		func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
 			path := resp.Request.URL.Path
-			rawQuery := resp.Request.URL.RawQuery
-			if path == "/maimai-mobile/record/musicGenre/search/" && regexp.MustCompile("genre=99&diff=[0-4]").MatchString(rawQuery) {
-				data, _ := ioutil.ReadAll(resp.Body)
-				resp.Body = ioutil.NopCloser(bytes.NewReader(data))
-				resp2, _ := http.Post("http://www.diving-fish.com:8089/page", "text/plain", bytes.NewReader(data))
-				b, _ := ioutil.ReadAll(resp2.Body)
-				commit(b)
+			if regexp.MustCompile("^/maimai-mobile/home.*").MatchString(path) {
+				resp.Body = ioutil.NopCloser(strings.NewReader("<p>正在获取您的乐曲数据，请稍候……这可能需要花费数秒，具体进度可以在代理服务器的命令行窗口查看。</p><p>此页面仅用于提示您成功访问了代理服务器，您可以立即关闭此窗口。</p>"))
+				if resp.StatusCode == 302 {
+					fmt.Println("访问舞萌 DX 的成绩界面出错。请按 Enter 键继续……")
+					bufio.NewReader(os.Stdin).ReadString('\n')
+					os.Exit(0)
+				}
+				go fetchData(resp.Request.URL, resp.Cookies())
 			}
 			return resp
 	})
