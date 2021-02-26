@@ -49,7 +49,7 @@ key.pem - 私钥文件，无需进行任何操作
 <summary>点击展开</summary>
 &nbsp;
 
-打开代理程序后，在 Windows 设置中搜索**代理服务器设置**，进入设置界面，将设置调整如下图所示：
+打开代理程序后，在 Windows 设置中搜索**代理服务器设置**，进入设置界面，将设置调整如下图所示，之后点击保存。
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/3.png)
 
@@ -58,7 +58,7 @@ key.pem - 私钥文件，无需进行任何操作
 </details>
 &nbsp;
 
-点击保存，打开**电脑版微信**，进入舞萌 DX 公众号，点击**我的记录**。如果您的代理设置无误，页面将如下图显示：
+打开**电脑版微信**，进入舞萌 DX 公众号，点击**我的记录**。如果您的代理设置无误，页面将如下图显示：
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/4.png)
 
