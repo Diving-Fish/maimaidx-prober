@@ -13,13 +13,15 @@
           ></v-btn
         >
       </p>
-      <p>
-        点个 Star 吧！<a href="https://github.com/Diving-Fish/maimaidx-prober"
-          ><img
-            src="https://img.shields.io/github/stars/Diving-Fish/maimaidx-prober?style=social"
-        /></a>
+      <p class="mb-2">
+      点个 Star 吧！
       </p>
-      <p>欢迎加入舞萌DX查分器交流群：981682758</p>
+      <a href="https://github.com/Diving-Fish/maimaidx-prober"
+        ><img
+          src="https://img.shields.io/github/stars/Diving-Fish/maimaidx-prober?style=social"
+      /></a>
+      <view-badge class="ml-3" />
+      <p class="mt-3">欢迎加入舞萌DX查分器交流群：981682758</p>
       <p>代理工具上线！使用微信客户端导入数据，请查看新版本的使用指南。</p>
       <div
         style="
@@ -340,6 +342,7 @@
 import axios from "axios";
 import Vue from "vue";
 import ChartTable from "../components/ChartTable.vue";
+import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser
@@ -347,6 +350,7 @@ export default {
   name: "App",
   components: {
     ChartTable,
+    ViewBadge
   },
   data: function () {
     return {
@@ -449,7 +453,6 @@ export default {
   },
   created: function () {
     this.fetchMusicData();
-    axios.get("https://www.diving-fish.com/api/maimaidxprober/count_view")
   },
   watch: {
     currentAchievements: function (to) {
