@@ -449,6 +449,7 @@ export default {
   },
   created: function () {
     this.fetchMusicData();
+    axios.get("https://www.diving-fish.com/api/maimaidxprober/count_view")
   },
   watch: {
     currentAchievements: function (to) {
