@@ -77,10 +77,10 @@ export default {
             return map[str]
         },
         getRate(str) {
-            if (str.startsWith('sssp')) return '#f85e5ed0'
-            if (str.startsWith('sss')) return '#25bcf5d0'
-            if (str.startsWith('ssp')) return '#fda609d0'
-            return '#00000020'
+            if (str.startsWith('sssp')) return 'red'
+            if (str.startsWith('sss')) return 'blue darken-1'
+            if (str.startsWith('ssp')) return 'amber darken-2'
+            return ''
         }
     }
 }
