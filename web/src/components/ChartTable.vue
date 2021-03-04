@@ -12,7 +12,7 @@
       </template>
       <template #item.achievements="{ item }">
           {{ item.achievements.toFixed(4)}}%
-          <v-chip outlined class="ml-1">{{ item.rate.replace('p', '+').toUpperCase() }}</v-chip>
+          <v-chip :color="getRate(item.rate)" outlined class="ml-1">{{ item.rate.replace('p', '+').toUpperCase() }}</v-chip>
       </template>
       <template #item.ra="{ item }">
           <span style="color: #4CAF50" v-if="item.rank <= limit">{{ item.ra }}</span>
@@ -75,6 +75,12 @@ export default {
                 'app': 'AP+'
             }
             return map[str]
+        },
+        getRate(str) {
+            if (str.startsWith('sssp')) return '#f85e5ed0'
+            if (str.startsWith('sss')) return '#25bcf5d0'
+            if (str.startsWith('ssp')) return '#fda609d0'
+            return '#00000020'
         }
     }
 }
