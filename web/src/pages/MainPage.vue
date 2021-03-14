@@ -13,9 +13,7 @@
           ></v-btn
         >
       </p>
-      <p class="mb-2">
-      点个 Star 吧！
-      </p>
+      <p class="mb-2">点个 Star 吧！</p>
       <a href="https://github.com/Diving-Fish/maimaidx-prober"
         ><img
           src="https://img.shields.io/github/stars/Diving-Fish/maimaidx-prober?style=social"
@@ -23,6 +21,9 @@
       <view-badge class="ml-3" />
       <p class="mt-3">欢迎加入舞萌DX查分器交流群：981682758</p>
       <p>代理工具上线！使用微信客户端导入数据，请查看新版本的使用指南。</p>
+      <p style="color: #f44336">
+        迁移了数据库以加快网站的响应速度及后续开发。如遇任何无法导入成绩或出错的情况，请及时添加讨论群进行反馈。
+      </p>
       <div
         style="
           display: flex;
@@ -180,7 +181,7 @@
         </v-dialog>
         <v-dialog v-model="exportVisible" width="500px" :fullscreen="mobile">
           <template #activator="{ on, attrs }">
-              <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导出为 CSV</v-btn>
+            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导出为 CSV</v-btn>
           </template>
           <v-card>
             <v-card-title>
@@ -192,29 +193,38 @@
             </v-card-title>
             <v-card-text>
               <div style="display: flex">
-                <v-select v-model="exportEncoding" label="选择编码" :items="exportEncodings">
+                <v-select
+                  v-model="exportEncoding"
+                  label="选择编码"
+                  :items="exportEncodings"
+                >
                 </v-select>
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon
-                      v-bind="attrs"
-                      v-on="on"
-                      class="ml-4"
-                    >
+                    <v-icon v-bind="attrs" v-on="on" class="ml-4">
                       mdi-help-circle
                     </v-icon>
                   </template>
-                  <span>GBK编码一般用于Excel打开，UTF-8编码则可以供部分其他编辑器直接显示。</span>
+                  <span
+                    >GBK编码一般用于Excel打开，UTF-8编码则可以供部分其他编辑器直接显示。</span
+                  >
                 </v-tooltip>
               </div>
             </v-card-text>
             <v-card-actions>
-              <v-btn class="mr-4" @click="exportToCSV('sd')">导出标准乐谱</v-btn>
+              <v-btn class="mr-4" @click="exportToCSV('sd')"
+                >导出标准乐谱</v-btn
+              >
               <v-btn @click="exportToCSV('dx')">导出 DX 乐谱</v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog v-model="logoutVisible" width="500px" v-if="username !== '未登录'" :fullscreen="mobile">
+        <v-dialog
+          v-model="logoutVisible"
+          width="500px"
+          v-if="username !== '未登录'"
+          :fullscreen="mobile"
+        >
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">登出</v-btn>
           </template>
@@ -226,9 +236,7 @@
                 <v-icon>mdi-close</v-icon>
               </v-btn>
             </v-card-title>
-            <v-card-text>
-              您确定要登出吗？
-            </v-card-text>
+            <v-card-text> 您确定要登出吗？ </v-card-text>
             <v-card-actions>
               <v-btn class="mr-4" @click="logout" color="primary">登出</v-btn>
               <v-btn @click="logoutVisible = false">取消</v-btn>
@@ -292,6 +300,7 @@
                   :items="sdData"
                   :limit="25"
                   :loading="loading"
+                  :chart_stats="chart_stats"
                   sort-by="achievements"
                 >
                 </chart-table>
@@ -303,6 +312,7 @@
                   :items="dxData"
                   :limit="15"
                   :loading="loading"
+                  :chart_stats="chart_stats"
                   sort-by="achievements"
                 >
                 </chart-table>
@@ -314,7 +324,8 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
-          2021/02/26 发布 1.0 版本，添加了登出按钮，并优化了一些成绩导入方式。提供了代理服务器供便捷导入成绩。<br />
+          2021/02/26 发布 1.0
+          版本，添加了登出按钮，并优化了一些成绩导入方式。提供了代理服务器供便捷导入成绩。<br />
           2021/02/17 废弃了目前在使用的移动端（Vuetify さいこう！），导出为 csv
           增加了一个二次确认窗口。以及优化了所有的对话框。<br />
           2021/02/15 添加了导出为 csv
@@ -342,12 +353,12 @@ import ChartTable from "../components/ChartTable.vue";
 import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
 const xpath = require("xpath"),
-  dom = require("xmldom").DOMParser
+  dom = require("xmldom").DOMParser;
 export default {
   name: "App",
   components: {
     ChartTable,
-    ViewBadge
+    ViewBadge,
   },
   data: function () {
     return {
@@ -361,6 +372,7 @@ export default {
         password: "",
         passwordConfirm: "",
       },
+      chart_stats: {},
       currentUpdate: {},
       currentAchievements: 0,
       username: "未登录",
@@ -384,9 +396,9 @@ export default {
       valid: false,
       valid2: false,
       exportVisible: false,
-      exportEncoding: 'GBK',
-      exportEncodings: ['GBK', 'UTF-8'],
-      logoutVisible: false
+      exportEncoding: "GBK",
+      exportEncodings: ["GBK", "UTF-8"],
+      logoutVisible: false,
     };
   },
   computed: {
@@ -551,10 +563,16 @@ export default {
         });
     },
     fetchMusicData: function () {
+      const that = this;
       axios
         .get("https://www.diving-fish.com/api/maimaidxprober/music_data")
         .then((resp) => {
           this.music_data = resp.data;
+          axios
+            .get("https://www.diving-fish.com/api/maimaidxprober/chart_stats")
+            .then((resp) => {
+              that.chart_stats = resp.data;
+            });
           axios
             .get(
               "https://www.diving-fish.com/api/maimaidxprober/player/records"
@@ -655,6 +673,12 @@ export default {
         record.rate = "sss";
       } else {
         record.rate = "sssp";
+      }
+      let elem = this.chart_stats[record.title + record.type][record.level_index];
+      if (elem.t) {
+        record.tag = (elem.v + 0.5) / elem.t;
+      } else {
+        record.tag = 0.5;
       }
     },
     merge: function (records) {
@@ -787,23 +811,25 @@ export default {
           m.ds
         },${m.achievements},${m.ra}\n`;
       }
-      const blob = new Blob([this.exportEncoding === 'GBK' ? new Uint8Array(GBK.encode(text)) : text]);
+      const blob = new Blob([
+        this.exportEncoding === "GBK" ? new Uint8Array(GBK.encode(text)) : text,
+      ]);
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = type == "sd" ? "标准乐谱.csv" : "DX 乐谱.csv";
       a.click();
     },
-    logout: function() {
-      const setCookie = function(cname, cvalue, exdays) {
-          var d = new Date();
-          d.setTime(d.getTime() + (exdays*24*60*60*1000));
-          var expires = "expires="+d.toUTCString();
-          document.cookie = cname + "=" + cvalue + "; " + expires + ";path=/";
-      }
+    logout: function () {
+      const setCookie = function (cname, cvalue, exdays) {
+        var d = new Date();
+        d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+        var expires = "expires=" + d.toUTCString();
+        document.cookie = cname + "=" + cvalue + "; " + expires + ";path=/";
+      };
       setCookie("jwt_token", "", -1);
       this.logoutVisible = false;
       window.location.reload();
-    }
+    },
   },
 };
 </script>
