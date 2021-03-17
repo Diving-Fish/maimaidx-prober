@@ -88,7 +88,7 @@ export default {
       headers: [
         { text: "排名", value: "rank" },
         { text: "乐曲名", value: "title" },
-        { text: "难度", value: "level" },
+        { text: "难度", value: "level", sortable: false },
         { text: "定数", value: "ds" },
         { text: "达成率", value: "achievements" },
         { text: "DX Rating", value: "ra" },
