@@ -243,6 +243,29 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+        <v-dialog
+          v-model="allModeVisible"
+          width="500px"
+          :fullscreen="mobile"
+        >
+          <template #activator="{ on, attrs }">
+            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on" color="deep-orange" dark>解锁全曲</v-btn>
+          </template>
+          <v-card>
+            <v-card-title>
+              确认
+              <v-spacer />
+              <v-btn icon @click="allModeVisible = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-card-title>
+            <v-card-text>解锁全曲可以让您看到所有谱面的定数数据和相对难度，但您无法对这些谱面进行修改。确定解锁全曲？ </v-card-text>
+            <v-card-actions>
+              <v-btn class="mr-4" @click="mergeOnAllMode" color="primary">解锁</v-btn>
+              <v-btn @click="allModeVisible = false">取消</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
       </div>
       <v-dialog
         width="500px"
@@ -325,7 +348,7 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
-          2021/03/18 加载动画和按难度/定数筛选，你们要的筛选来了。<br />
+          2021/03/18 加载动画和按难度/定数筛选，你们要的筛选来了。顺便加了个可以看全曲的功能。<br />
           2021/02/26 发布 1.0
           版本，添加了登出按钮，并优化了一些成绩导入方式。提供了代理服务器供便捷导入成绩。<br />
           2021/02/17 废弃了目前在使用的移动端（Vuetify さいこう！），导出为 csv
@@ -402,7 +425,8 @@ export default {
       exportVisible: false,
       exportEncoding: "GBK",
       exportEncodings: ["GBK", "UTF-8"],
-      logoutVisible: false
+      logoutVisible: false,
+      allModeVisible: false
     };
   },
   computed: {
@@ -556,7 +580,7 @@ export default {
       axios
         .post(
           "https://www.diving-fish.com/api/maimaidxprober/player/update_records",
-          this.records
+          this.records.filter(elem => {return elem.block !== true})
         )
         .then(() => {
           this.$message.success("数据已同步完成");
@@ -579,14 +603,15 @@ export default {
         .get("https://www.diving-fish.com/api/maimaidxprober/music_data")
         .then((resp) => {
           this.music_data = resp.data;
-          Promise.all([axios.get("https://www.diving-fish.com/api/maimaidxprober/chart_stats"), axios.get("https://www.diving-fish.com/api/maimaidxprober/player/records")]).then(([resp1, resp2]) => {
-            that.chart_stats = resp1.data;
-            const data = resp2.data;
-            that.username = data.username;
-            that.merge(data.records);
-          }).finally(() => {
+          Promise.allSettled([axios.get("https://www.diving-fish.com/api/maimaidxprober/chart_stats"), axios.get("https://www.diving-fish.com/api/maimaidxprober/player/records")]).then(([resp1, resp2]) => {
+            that.chart_stats = resp1.value.data;
+            if (resp2.status !== "rejected") {
+              const data = resp2.value.data;
+              that.username = data.username;
+              that.merge(data.records);
+            }
             that.loading = false;
-          });
+          })
         });
     },
     login: function () {
@@ -684,6 +709,49 @@ export default {
         record.tag = (elem.v + 0.5) / elem.t;
       } else {
         record.tag = 0.5;
+      }
+    },
+    mergeOnAllMode: function () {
+      this.allModeVisible = false;
+      for (const music of this.music_data) {
+        //console.log(music);
+        for (let j = 0; j < music.ds.length; j++) {
+          const record = {
+            title: music.title,
+            ds: music.ds[j],
+            level: music.level[j],
+            level_index: j,
+            type: music.type,
+            achievements: 0,
+            dxScore: 0,
+            fc: "",
+            fs: "",
+            rate: "d",
+            ra: 0,
+            level_label: this.level_label[j],
+            block: true
+          }
+          let flag = true;
+          for (let i = 0; i < this.records.length; i++) {
+            const ex = this.records[i];
+            if (
+              ex.title === record.title &&
+              ex.type === record.type &&
+              ex.level === record.level &&
+              ex.level_index == record.level_index
+            ) {
+              flag = false;
+              break;
+            }
+          }
+          if (flag) {
+            this.records.push(record);
+          }
+        }
+      }
+      //console.log(this.records);
+      for (let i = 0; i < this.records.length; i++) {
+        this.computeRecord(this.records[i]);
       }
     },
     merge: function (records) {

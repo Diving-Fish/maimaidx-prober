@@ -69,7 +69,7 @@
       </v-tooltip>
     </template>
     <template #item.actions="{ item }">
-      <v-icon small @click="$emit('edit', item)">mdi-pencil</v-icon>
+      <v-icon small @click="modify(item)">mdi-pencil</v-icon>
     </template>
   </v-data-table>
 </template>
@@ -134,6 +134,14 @@ export default {
       return "";
     },
     getTag(item) {
+      console.log(this.chart_stats)
+      if (!this.chart_stats[item.title + item.type]) {
+        return {
+          exists: false,
+          value: "Data Not Enough",
+          color: "grey"
+        }
+      }
       let elem = this.chart_stats[item.title + item.type][item.level_index];
       let tag = elem.tag;
       let color = "";
@@ -154,11 +162,18 @@ export default {
         value: tag,
         color: color,
         rank_text: elem.v + 1 + "/" + elem.t,
-        ac: elem.avg.toFixed(2),
+        ac: elem.avg ? elem.avg.toFixed(2) : "0.00",
         rate_text: elem.sssp_count + "/" + elem.count,
         rate: ((elem.sssp_count * 100) / elem.count).toFixed(2),
       };
     },
+    modify(item) {
+      if (item.block) {
+        this.$message.error('您无法修改此谱面的完成率');
+        return
+      }
+      this.$emit('edit', item);
+    }
   },
 };
 </script>
