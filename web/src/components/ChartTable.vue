@@ -4,7 +4,6 @@
     :footer-props="{ 'items-per-page-options': [limit, -1] }"
     :headers="headers"
     :loading="loading"
-    loading-text="加载中，请稍候……"
     :items="items"
     :search="search"
     sort-by="rank"
@@ -105,7 +104,6 @@ export default {
   },
   methods: {
     getLevel(index) {
-      console.log("invoke");
       return ["#22bb5b", "#fb9c2d", "#f64861", "#9e45e2", "#ba67f8"][index];
     },
     getFC(str) {

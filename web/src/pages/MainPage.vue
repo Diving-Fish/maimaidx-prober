@@ -287,6 +287,7 @@
           <v-card-subtitle
             >底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</v-card-subtitle
           >
+          <filter-slider ref="filterSlider"></filter-slider>
           <v-card-text>
             <v-tabs v-model="tab">
               <v-tab key="sd">标准乐谱</v-tab>
@@ -297,7 +298,7 @@
                 <chart-table
                   @edit="editRow"
                   :search="searchKey"
-                  :items="sdData"
+                  :items="sdDisplay"
                   :limit="25"
                   :loading="loading"
                   :chart_stats="chart_stats"
@@ -309,7 +310,7 @@
                 <chart-table
                   @edit="editRow"
                   :search="searchKey"
-                  :items="dxData"
+                  :items="dxDisplay"
                   :limit="15"
                   :loading="loading"
                   :chart_stats="chart_stats"
@@ -324,6 +325,7 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
+          2021/03/18 加载动画和按难度/定数筛选，你们要的筛选来了。<br />
           2021/02/26 发布 1.0
           版本，添加了登出按钮，并优化了一些成绩导入方式。提供了代理服务器供便捷导入成绩。<br />
           2021/02/17 废弃了目前在使用的移动端（Vuetify さいこう！），导出为 csv
@@ -352,6 +354,7 @@ import Vue from "vue";
 import ChartTable from "../components/ChartTable.vue";
 import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
+import FilterSlider from '../components/FilterSlider.vue';
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 export default {
@@ -359,6 +362,7 @@ export default {
   components: {
     ChartTable,
     ViewBadge,
+    FilterSlider
   },
   data: function () {
     return {
@@ -398,18 +402,20 @@ export default {
       exportVisible: false,
       exportEncoding: "GBK",
       exportEncodings: ["GBK", "UTF-8"],
-      logoutVisible: false,
+      logoutVisible: false
     };
   },
   computed: {
     sdDisplay: function () {
+      const that = this;
       return this.sdData.filter((elem) => {
-        return elem.title.indexOf(this.searchKey) !== -1;
+        return that.$refs.filterSlider.f(elem);
       });
     },
     dxDisplay: function () {
+      const that = this;
       return this.dxData.filter((elem) => {
-        return elem.title.indexOf(this.searchKey) !== -1;
+        return that.$refs.filterSlider.f(elem);
       });
     },
     sdData: function () {
@@ -491,6 +497,10 @@ export default {
     },
   },
   methods: {
+    test: function() {
+      this.$refs.filterSlider.f(1)
+      return false;
+    },
     rawToString: function (text) {
       if (text[text.length - 1] == "p" && text != "ap") {
         return text.substring(0, text.length - 1).toUpperCase() + "+";
@@ -564,24 +574,19 @@ export default {
     },
     fetchMusicData: function () {
       const that = this;
+      that.loading = true;
       axios
         .get("https://www.diving-fish.com/api/maimaidxprober/music_data")
         .then((resp) => {
           this.music_data = resp.data;
-          axios
-            .get("https://www.diving-fish.com/api/maimaidxprober/chart_stats")
-            .then((resp) => {
-              that.chart_stats = resp.data;
-            });
-          axios
-            .get(
-              "https://www.diving-fish.com/api/maimaidxprober/player/records"
-            )
-            .then((resp) => {
-              const data = resp.data;
-              this.username = data.username;
-              this.merge(data.records);
-            });
+          Promise.all([axios.get("https://www.diving-fish.com/api/maimaidxprober/chart_stats"), axios.get("https://www.diving-fish.com/api/maimaidxprober/player/records")]).then(([resp1, resp2]) => {
+            that.chart_stats = resp1.data;
+            const data = resp2.data;
+            that.username = data.username;
+            that.merge(data.records);
+          }).finally(() => {
+            that.loading = false;
+          });
         });
     },
     login: function () {

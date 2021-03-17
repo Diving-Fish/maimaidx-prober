@@ -15,6 +15,8 @@ def md5(v: str):
     return hashlib.md5(v.encode(encoding='UTF-8')).hexdigest()
 
 
+cs_need_update = True
+cs_cache = {}
 app = Quart(__name__)
 
 with open('config.json', encoding='utf-8') as fr:
@@ -180,6 +182,8 @@ async def compute_ra(player: Player):
 @app.route("/player/update_records", methods=['POST'])
 @login_required
 async def update_records():
+    global cs_need_update
+    cs_need_update = True
     r = Record.select().where(Record.player == g.user.id)
     records = []
     for record in r:
@@ -204,11 +208,16 @@ async def update_records():
 @app.route("/player/update_record", methods=['POST'])
 @login_required
 async def update_record():
+    global cs_need_update
+    cs_need_update = True
     record = await request.get_json()
     r: Record = Record.get((Record.player == g.user.id) & (Record.level_index == record["level_index"]) &
                            (Record.title == record["title"]) & (Record.type == record["type"]))
     r.achievements = record['achievements']
     r.ra = record['ra']
+    r.fc = record['fc']
+    r.fs = record['fs']
+    r.rate = record['rate']
     r.save()
     await compute_ra(g.user)
     return {
@@ -240,37 +249,14 @@ async def stat():
     pass
 
 
-def record_filter(r):
-    re = regex.match("([0-9]+)(\+?)", r.level)
-    grp = re.groups()
-    level = int(grp[0])
-    plus = grp[1] == "+"
-    if plus:
-        ran = (level + 0.7, level + 0.9)
-    else:
-        ran = (level, level + 0.6)
-    return ran[1] >= r.ds >= ran[0]
-
-
-@app.route("/easy_on_level/<level>", methods=['GET'])
-async def easy_on_level(level):
-    cs = Record.select().where(Record.level == level)
-    m = defaultdict(lambda: [0, 0])
-    for r in cs:
-        r: Record
-        if not record_filter(r):
-            continue
-        name = r.title + r.type
-        m[name][0] += 1
-        if r.achievements >= 100.5:
-            m[name][1] += 1
-    resp = await make_response(json.dumps(m, ensure_ascii=False))
-    resp.headers['content-type'] = "application/json; charset=utf-8"
-    return resp
-
-
 @app.route("/chart_stats", methods=['GET'])
 async def chart_stats():
+    global cs_need_update
+    global cs_cache
+    if not cs_need_update:
+        resp = await make_response(json.dumps(cs_cache, ensure_ascii=False))
+        resp.headers['content-type'] = "application/json; charset=utf-8"
+        return resp
     cursor = Record.raw(
         'select record.title, record.type, record.level_index, count(*) as cnt, avg(achievements) as `avg`, sum(case'
         ' when achievements > 100.5 then 1 else 0 end) as sssp_count from record group by title, `type`, level_index')
@@ -321,6 +307,8 @@ async def chart_stats():
             del elem['key']
             del elem['level_index']
             data[key][level_index] = elem
+    cs_cache = data
+    cs_need_update = False
     resp = await make_response(json.dumps(data, ensure_ascii=False))
     resp.headers['content-type'] = "application/json; charset=utf-8"
     return resp
