@@ -243,13 +243,16 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog
-          v-model="allModeVisible"
-          width="500px"
-          :fullscreen="mobile"
-        >
+        <v-dialog v-model="allModeVisible" width="500px" :fullscreen="mobile">
           <template #activator="{ on, attrs }">
-            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on" color="deep-orange" dark>解锁全曲</v-btn>
+            <v-btn
+              class="mt-3 mr-4"
+              v-bind="attrs"
+              v-on="on"
+              color="deep-orange"
+              dark
+              >解锁全曲</v-btn
+            >
           </template>
           <v-card>
             <v-card-title>
@@ -259,9 +262,13 @@
                 <v-icon>mdi-close</v-icon>
               </v-btn>
             </v-card-title>
-            <v-card-text>解锁全曲可以让您看到所有谱面的定数数据和相对难度，但您无法对这些谱面进行修改。确定解锁全曲？ </v-card-text>
+            <v-card-text
+              >解锁全曲可以让您看到所有谱面的定数数据和相对难度，但您无法对这些谱面进行修改。确定解锁全曲？
+            </v-card-text>
             <v-card-actions>
-              <v-btn class="mr-4" @click="mergeOnAllMode" color="primary">解锁</v-btn>
+              <v-btn class="mr-4" @click="mergeOnAllMode" color="primary"
+                >解锁</v-btn
+              >
               <v-btn @click="allModeVisible = false">取消</v-btn>
             </v-card-actions>
           </v-card>
@@ -348,7 +355,8 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
-          2021/03/18 加载动画和按难度/定数筛选，你们要的筛选来了。顺便加了个可以看全曲的功能。<br />
+          2021/03/18
+          加载动画和按难度/定数筛选，你们要的筛选来了。顺便加了个可以看全曲的功能。<br />
           2021/02/26 发布 1.0
           版本，添加了登出按钮，并优化了一些成绩导入方式。提供了代理服务器供便捷导入成绩。<br />
           2021/02/17 废弃了目前在使用的移动端（Vuetify さいこう！），导出为 csv
@@ -377,7 +385,7 @@ import Vue from "vue";
 import ChartTable from "../components/ChartTable.vue";
 import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
-import FilterSlider from '../components/FilterSlider.vue';
+import FilterSlider from "../components/FilterSlider.vue";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 export default {
@@ -385,7 +393,7 @@ export default {
   components: {
     ChartTable,
     ViewBadge,
-    FilterSlider
+    FilterSlider,
   },
   data: function () {
     return {
@@ -426,7 +434,7 @@ export default {
       exportEncoding: "GBK",
       exportEncodings: ["GBK", "UTF-8"],
       logoutVisible: false,
-      allModeVisible: false
+      allModeVisible: false,
     };
   },
   computed: {
@@ -521,8 +529,8 @@ export default {
     },
   },
   methods: {
-    test: function() {
-      this.$refs.filterSlider.f(1)
+    test: function () {
+      this.$refs.filterSlider.f(1);
       return false;
     },
     rawToString: function (text) {
@@ -580,7 +588,9 @@ export default {
       axios
         .post(
           "https://www.diving-fish.com/api/maimaidxprober/player/update_records",
-          this.records.filter(elem => {return elem.block !== true})
+          this.records.filter((elem) => {
+            return elem.block !== true;
+          })
         )
         .then(() => {
           this.$message.success("数据已同步完成");
@@ -603,7 +613,14 @@ export default {
         .get("https://www.diving-fish.com/api/maimaidxprober/music_data")
         .then((resp) => {
           this.music_data = resp.data;
-          Promise.allSettled([axios.get("https://www.diving-fish.com/api/maimaidxprober/chart_stats"), axios.get("https://www.diving-fish.com/api/maimaidxprober/player/records")]).then(([resp1, resp2]) => {
+          Promise.allSettled([
+            axios.get(
+              "https://www.diving-fish.com/api/maimaidxprober/chart_stats"
+            ),
+            axios.get(
+              "https://www.diving-fish.com/api/maimaidxprober/player/records"
+            ),
+          ]).then(([resp1, resp2]) => {
             that.chart_stats = resp1.value.data;
             if (resp2.status !== "rejected") {
               const data = resp2.value.data;
@@ -611,7 +628,7 @@ export default {
               that.merge(data.records);
             }
             that.loading = false;
-          })
+          });
         });
     },
     login: function () {
@@ -704,11 +721,17 @@ export default {
       } else {
         record.rate = "sssp";
       }
-      let elem = this.chart_stats[record.title + record.type][record.level_index];
-      if (elem.t) {
-        record.tag = (elem.v + 0.5) / elem.t;
-      } else {
+      if (!this.chart_stats[record.title + record.type]) {
         record.tag = 0.5;
+      } else {
+        let elem = this.chart_stats[record.title + record.type][
+          record.level_index
+        ];
+        if (elem.t) {
+          record.tag = (elem.v + 0.5) / elem.t;
+        } else {
+          record.tag = 0.5;
+        }
       }
     },
     mergeOnAllMode: function () {
@@ -729,8 +752,8 @@ export default {
             rate: "d",
             ra: 0,
             level_label: this.level_label[j],
-            block: true
-          }
+            block: true,
+          };
           let flag = true;
           for (let i = 0; i < this.records.length; i++) {
             const ex = this.records[i];
@@ -797,71 +820,81 @@ export default {
       }
     },
     pageToRecordList: function (pageData) {
+      const getSibN = function (node, n) {
+        let cur = node;
+        let f = false;
+        if (n < 0) {
+          n = -n;
+          f = true;
+        }
+        for (let i = 0; i < n; i++) {
+          if (f) cur = cur.previousSibling;
+          else cur = cur.nextSibling;
+        }
+        return cur;
+      };
       try {
+        let link = false;
         let records = [];
         let doc = new dom().parseFromString(pageData);
-        const scores = xpath.select(
-          '//div[@class="music_score_block w_120 t_r f_l f_12"]',
+        // this modify is about to detect two different 'Link'.
+        const names = xpath.select(
+          '//div[@class="music_name_block t_l f_13 break"]',
           doc
         );
         const labels = ["basic", "advanced", "expert", "master", "remaster"];
-        for (const score of scores) {
-          let levelNode =
-            score.previousSibling.previousSibling.previousSibling
-              .previousSibling.previousSibling.previousSibling.previousSibling
-              .previousSibling;
+        for (const name of names) {
+          let title = name.textContent;
+          if (title == "Link") {
+            if (!link) {
+              title = "Link(CoF)";
+              link = true;
+            }
+          }
+          let diffNode = getSibN(name, -6);
+          let levelNode = getSibN(name, -2);
+          let scoreNode = getSibN(name, 2);
+          if (scoreNode.tagName !== "div") {
+            continue;
+          }
+          let dxScoreNode = getSibN(name, 4);
+          let fsNode = getSibN(name, 6);
+          let fcNode = getSibN(name, 8);
+          let rateNode = getSibN(name, 10);
           let record_data = {
-            title: "",
-            level: "",
+            title: title,
+            level: levelNode.textContent,
             level_index: labels.indexOf(
-              levelNode.getAttribute("src").match("diff_(.*).png")[1]
+              diffNode.getAttribute("src").match("diff_(.*).png")[1]
             ),
             type: "",
-            achievements: 0,
-            dxScore: 0,
-            rate: "",
-            fc: "",
-            fs: "",
+            achievements: parseFloat(scoreNode.textContent),
+            dxScore: parseInt(dxScoreNode.textContent.replace(",", "")),
+            rate: rateNode.getAttribute("src").match("_icon_(.*).png")[1],
+            fc: fcNode
+              .getAttribute("src")
+              .match("_icon_(.*).png")[1]
+              .replace("back", ""),
+            fs: fsNode
+              .getAttribute("src")
+              .match("_icon_(.*).png")[1]
+              .replace("back", ""),
           };
-          const docId = score.parentNode.parentNode.parentNode.getAttribute(
+          const docId = name.parentNode.parentNode.parentNode.getAttribute(
             "id"
           );
           if (docId) {
             if (docId.slice(0, 3) == "sta") record_data.type = "SD";
             else record_data.type = "DX";
           } else {
-            record_data.type = score.parentNode.parentNode.nextSibling.nextSibling
+            record_data.type = name.parentNode.parentNode.nextSibling.nextSibling
               .getAttribute("src")
               .match("_(.*).png")[1];
             if (record_data.type == "standard") record_data.type = "SD";
             else record_data.type = "DX";
           }
-          record_data.achievements = parseFloat(score.textContent);
-          let currentNode = score.previousSibling.previousSibling;
-          record_data.title = currentNode.textContent;
-          currentNode = currentNode.previousSibling.previousSibling;
-          record_data.level = currentNode.textContent;
-          currentNode = score.nextSibling.nextSibling;
-          record_data.dxScore = parseInt(
-            currentNode.textContent.replace(",", "")
-          );
-          currentNode = currentNode.nextSibling.nextSibling;
-          record_data.fs = currentNode
-            .getAttribute("src")
-            .match("_icon_(.*).png")[1]
-            .replace("back", "");
-          currentNode = currentNode.nextSibling.nextSibling;
-          record_data.fc = currentNode
-            .getAttribute("src")
-            .match("_icon_(.*).png")[1]
-            .replace("back", "");
-          currentNode = currentNode.nextSibling.nextSibling;
-          record_data.rate = currentNode
-            .getAttribute("src")
-            .match("_icon_(.*).png")[1];
           records.push(record_data);
         }
-        // console.log(records);
         return records;
       } catch (err) {
         console.log(err);

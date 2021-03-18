@@ -134,7 +134,7 @@ export default {
       return "";
     },
     getTag(item) {
-      console.log(this.chart_stats)
+      // console.log(this.chart_stats)
       if (!this.chart_stats[item.title + item.type]) {
         return {
           exists: false,
