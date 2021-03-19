@@ -244,9 +244,34 @@ async def count_view():
     return {"views": v.prober}
 
 
-@app.route("/stat", methods=['GET'])
-async def stat():
-    pass
+async def message_resp():
+    today_ts = int((time.time() + 8 * 3600) / 86400) * 86400 - 8 * 3600
+    results = Message.select(Message, Player).join(Player).where(Message.ts >= today_ts)
+    l = []
+    for r in results:
+        l.append({"text": r.text, "username": r.player.username, "ts": r.ts, "nickname": r.nickname})
+    resp = await make_response(json.dumps(l, ensure_ascii=False))
+    resp.headers['content-type'] = "application/json; charset=utf-8"
+    return resp
+
+
+@app.route("/message", methods=['GET'])
+async def message_g():
+    return await message_resp()
+
+
+@app.route("/message", methods=['POST'])
+@login_required
+async def message():
+    if request.method == 'POST':
+        a = Message()
+        a.player = g.user
+        j = await request.get_json()
+        a.text = j["text"]
+        a.nickname = j["nickname"]
+        a.ts = int(time.time())
+        a.save(force_insert=True)
+    return await message_resp()
 
 
 @app.route("/chart_stats", methods=['GET'])

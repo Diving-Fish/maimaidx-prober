@@ -100,4 +100,11 @@ class Views(BaseModel):
     prober = IntegerField()
 
 
-db.create_tables([Music, Chart, Player, Record, FeedBack, Views])
+class Message(BaseModel):
+    text = CharField()
+    player = ForeignKeyField(Player)
+    nickname = CharField()
+    ts = IntegerField()
+
+
+db.create_tables([Music, Chart, Player, Record, FeedBack, Views, Message])

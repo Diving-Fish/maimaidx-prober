@@ -32,7 +32,7 @@
           flex-wrap: wrap;
         "
       >
-        <v-dialog width="500px" :fullscreen="mobile" v-model="loginVisible">
+        <v-dialog width="500px" :fullscreen="$vuetify.breakpoint.mobile" v-model="loginVisible">
           <template #activator="{ on, attrs }">
             <v-btn
               class="mt-3 mr-4"
@@ -74,7 +74,7 @@
               <v-btn @click="invokeRegister">立即注册</v-btn>
               <v-dialog
                 width="500"
-                :fullscreen="mobile"
+                :fullscreen="$vuetify.breakpoint.mobile"
                 v-model="registerVisible"
               >
                 <v-card>
@@ -127,7 +127,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog width="1000px" :fullscreen="mobile" v-model="dialogVisible">
+        <v-dialog width="1000px" :fullscreen="$vuetify.breakpoint.mobile" v-model="dialogVisible">
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导入数据</v-btn>
           </template>
@@ -154,7 +154,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog width="500px" :fullscreen="mobile" v-model="feedbackVisible">
+        <v-dialog width="500px" :fullscreen="$vuetify.breakpoint.mobile" v-model="feedbackVisible">
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">提交反馈</v-btn>
           </template>
@@ -179,7 +179,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog v-model="exportVisible" width="500px" :fullscreen="mobile">
+        <v-dialog v-model="exportVisible" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导出为 CSV</v-btn>
           </template>
@@ -223,7 +223,7 @@
           v-model="logoutVisible"
           width="500px"
           v-if="username !== '未登录'"
-          :fullscreen="mobile"
+          :fullscreen="$vuetify.breakpoint.mobile"
         >
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">登出</v-btn>
@@ -243,7 +243,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog v-model="allModeVisible" width="500px" :fullscreen="mobile">
+        <v-dialog v-model="allModeVisible" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
           <template #activator="{ on, attrs }">
             <v-btn
               class="mt-3 mr-4"
@@ -276,7 +276,7 @@
       </div>
       <v-dialog
         width="500px"
-        :fullscreen="mobile"
+        :fullscreen="$vuetify.breakpoint.mobile"
         v-model="modifyAchivementVisible"
       >
         <v-card>
@@ -352,6 +352,10 @@
           </v-card-text>
         </v-card>
       </div>
+      <div class="mid" :style="$vuetify.breakpoint.mobile ? '' : 'display: flex'">
+        <message :style="$vuetify.breakpoint.mobile ? '' : 'width: 48%;'" class="mbe-2"></message>
+        <advertisement :style="$vuetify.breakpoint.mobile ? '' : 'width: 48%;'" class="mbe-2"></advertisement>
+      </div>
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
@@ -386,6 +390,8 @@ import ChartTable from "../components/ChartTable.vue";
 import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
 import FilterSlider from "../components/FilterSlider.vue";
+import Advertisement from "../components/Advertisement.vue";
+import Message from '../components/Message.vue';
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 export default {
@@ -394,6 +400,8 @@ export default {
     ChartTable,
     ViewBadge,
     FilterSlider,
+    Advertisement,
+    Message
   },
   data: function () {
     return {
@@ -489,14 +497,7 @@ export default {
         ret += this.dxData[i].ra;
       }
       return ret;
-    },
-    mobile: function () {
-      return (
-        navigator.userAgent.match(
-          /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
-        ) !== null
-      );
-    },
+    }
   },
   created: function () {
     this.fetchMusicData();
@@ -961,5 +962,13 @@ export default {
 }
 .difficulty0 {
   color: #22bb5b;
+}
+
+.mid {
+  justify-content: space-between;
+}
+
+.mbe-2 {
+  margin-bottom: 2em;
 }
 </style>
