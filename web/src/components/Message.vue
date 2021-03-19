@@ -100,6 +100,8 @@ export default {
       if (!this.$refs.msgNickForm.validate()) return;
       this.vsb = false;
       if (!this.$refs.msgForm.validate()) return;
+      this.buffer = "";
+      this.nickname = "";
       axios.post("https://www.diving-fish.com/api/maimaidxprober/message", {
           "nickname": this.nickname,
           "text": this.buffer
