@@ -133,8 +133,8 @@ const pageToRecordList = function (pageData) {
         continue;
       }
       let dxScoreNode = getSibN(name, 4);
-      let fcNode = getSibN(name, 6);
-      let fsNode = getSibN(name, 8);
+      let fsNode = getSibN(name, 6);
+      let fcNode = getSibN(name, 8);
       let rateNode = getSibN(name, 10);
       let record_data = {
         title: title,
