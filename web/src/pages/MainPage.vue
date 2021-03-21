@@ -353,8 +353,8 @@
         </v-card>
       </div>
       <div class="mid" :style="$vuetify.breakpoint.mobile ? '' : 'display: flex'">
-        <message :style="$vuetify.breakpoint.mobile ? '' : 'width: 48%;'" class="mbe-2"></message>
-        <advertisement :style="$vuetify.breakpoint.mobile ? '' : 'width: 48%;'" class="mbe-2"></advertisement>
+        <message @resize="$refs.advertisement.resize()" :style="`flex: 1; ${$vuetify.breakpoint.mobile ? '' : 'min-width: 500px; margin-right: 16px'}`" class="mbe-2"></message>
+        <advertisement ref="advertisement" class="mbe-2"></advertisement>
       </div>
       <v-card>
         <v-card-title>更新记录</v-card-title>

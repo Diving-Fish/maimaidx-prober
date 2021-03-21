@@ -1,5 +1,5 @@
 <template>
-  <v-card>
+  <v-card id="tdMessage">
     <v-card-title> 今日留言 </v-card-title>
     <v-card-subtitle class="pb-0"> 吹水，扩列，或者……？ </v-card-subtitle>
     <v-window v-model="window" class="elevation-1" style="margin: 12px 12px">
@@ -77,6 +77,8 @@
         </template>
       </v-dialog>
     </div>
+    <div id="tdMessageFoot">
+    </div>
   </v-card>
 </template>
 
@@ -95,6 +97,11 @@ export default {
   created: function () {
     this.getMessages();
   },
+  watch: {
+    window() {
+      this.resize();
+    }
+  },
   methods: {
     sumbitMessage: function() {
       if (!this.$refs.msgNickForm.validate()) return;
@@ -104,8 +111,9 @@ export default {
           "nickname": this.nickname,
           "text": this.buffer
       }).then(resp => {
-          this.messages = resp.data;
-          this.window = this.messages.length - 1; 
+          this.messages = resp.data.sort((a, b) => {return b.ts - a.ts});
+          this.window = this.messages.length - 1;
+          this.resize();
       })
       this.buffer = "";
       this.nickname = "";
@@ -113,8 +121,13 @@ export default {
     getMessages: function() {
       axios.get("https://www.diving-fish.com/api/maimaidxprober/message").then((resp) => {
         this.messages = resp.data;
+        this.resize();
       });
     },
+    resize() {
+      const that = this;
+      setTimeout(function() {that.$emit('resize')}, 150);
+    }
   },
 };
 </script>
