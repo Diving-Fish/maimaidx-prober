@@ -3,10 +3,9 @@ package main
 /* Notice:
  * If you want to build this program on other platform or operating system,
  * you need to remove code about proxy auto configuring, including:
- * setProxyForWin()
- * rollback()
+ * applySystemProxySettings()
+ * rollbackSystemProxySettings()
  */
-
 
 import (
 	"bufio"
@@ -34,21 +33,20 @@ import (
 
 const (
 	MODE_UPDATE = 0
-	MODE_EXPORT = 1 	// only for debug or other
+	MODE_EXPORT = 1 // only for debug or other
 )
 
-
 var (
-	ProxyEnable uint64 = 39
-	ProxyServer = "rollback"
-	AutoConfigURL = "rollback"
-	mode = MODE_UPDATE
+	ProxyEnable   uint64 = 39
+	ProxyServer          = "rollback"
+	AutoConfigURL        = "rollback"
+	mode                 = MODE_UPDATE
 )
 
 var jwt *http.Cookie
 
 func commandFatal(prompt string) {
-	rollBack()
+	rollbackSystemProxySettings()
 	fmt.Printf("%s请按 Enter 键继续……", prompt)
 	bufio.NewReader(os.Stdin).ReadString('\n')
 	os.Exit(0)
@@ -100,7 +98,7 @@ func fetchData(url *url.URL, cookies []*http.Cookie) {
 		}
 	}
 	if ProxyEnable != 39 {
-		rollBack()
+		rollbackSystemProxySettings()
 		fmt.Println("所有数据均已导入完成，请按 Enter 键以关闭此窗口，代理设置已经恢复到先前的设置~")
 	} else {
 		fmt.Println("所有数据均已导入完成，请按 Enter 键以关闭此窗口，不要忘记还原代理设置哦~")
@@ -109,7 +107,7 @@ func fetchData(url *url.URL, cookies []*http.Cookie) {
 	os.Exit(0)
 }
 
-func rollBack() {
+func rollbackSystemProxySettings() {
 	if ProxyEnable == 39 {
 		return
 	}
@@ -125,7 +123,7 @@ func rollBack() {
 	_, _ = lib.InternetOptionSettingsChanged()
 }
 
-func setProxyForWin() {
+func applySystemProxySettings() {
 	_, err := lib.InternetOptionSettingsChanged()
 	if err != nil {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
@@ -136,25 +134,25 @@ func setProxyForWin() {
 	ProxyEnable, _, err = key.GetIntegerValue("ProxyEnable")
 	if err != nil {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
-		rollBack()
+		rollbackSystemProxySettings()
 		return
 	}
 	err = key.SetDWordValue("ProxyEnable", 1)
 	if err != nil {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
-		rollBack()
+		rollbackSystemProxySettings()
 		return
 	}
 	ProxyServer, _, err = key.GetStringValue("ProxyServer")
 	if err != nil {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
-		rollBack()
+		rollbackSystemProxySettings()
 		return
 	}
 	err = key.SetStringValue("ProxyServer", "127.0.0.1:8033")
 	if err != nil {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
-		rollBack()
+		rollbackSystemProxySettings()
 		return
 	}
 	AutoConfigURL, _, err = key.GetStringValue("AutoConfigURL")
@@ -163,14 +161,14 @@ func setProxyForWin() {
 			AutoConfigURL = "rollback"
 		} else {
 			fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
-			rollBack()
+			rollbackSystemProxySettings()
 			return
 		}
 	}
 	err = key.DeleteValue("AutoConfigURL")
 	if err != nil && err != syscall.ENOENT {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
-		rollBack()
+		rollbackSystemProxySettings()
 		return
 	}
 	_, _ = lib.InternetOptionSettingsChanged()
@@ -191,7 +189,7 @@ func main() {
 		mode = MODE_EXPORT
 	}
 	tryLogin(obj["username"].(string), obj["password"].(string))
-	setProxyForWin()
+	applySystemProxySettings()
 	crt, _ := ioutil.ReadFile("cert.crt")
 	pem, _ := ioutil.ReadFile("key.pem")
 	goproxy.GoproxyCa, _ = tls.X509KeyPair(crt, pem)
@@ -209,7 +207,7 @@ func main() {
 				go fetchData(resp.Request.URL, resp.Cookies())
 			}
 			return resp
-	})
+		})
 	verbose := flag.Bool("v", false, "should every proxy request be logged to stdout")
 	addr := flag.String("addr", ":8033", "proxy listen address")
 	flag.Parse()
