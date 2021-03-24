@@ -4,10 +4,11 @@ package main
 
 import (
 	"fmt"
-	"proxy/lib"
 	"syscall"
 
 	"golang.org/x/sys/windows/registry"
+
+	"github.com/Diving-Fish/maimaidx-prober/proxy/lib"
 )
 
 func rollbackSystemProxySettings() {

@@ -14,12 +14,13 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
-	"proxy/lib"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/elazarl/goproxy"
+
+	"github.com/Diving-Fish/maimaidx-prober/proxy/lib"
 )
 
 const (
