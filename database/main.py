@@ -93,6 +93,48 @@ async def register():
     return resp
 
 
+@app.route("/player/profile", methods=['GET', 'POST'])
+@login_required
+async def profile():
+    if request.method == 'GET':
+        u: Player = g.user
+        return {
+            "username": u.username,
+            "nickname": u.nickname,
+            "additional_rating": u.additional_rating,
+            "bind_qq": u.bind_qq,
+            "privacy": u.privacy
+        }
+    else:
+        try:
+            obj = await request.json
+            for key in obj:
+                g.user.__setattr__(key, obj[key])
+            g.user.save()
+            u: Player = g.user
+            return {
+                "username": u.username,
+                "nickname": u.nickname,
+                "additional_rating": u.additional_rating,
+                "bind_qq": u.bind_qq,
+                "privacy": u.privacy
+            }
+        except Exception:
+            return {
+                "message": "error"
+            }, 400
+
+
+@app.route("/player/change_password", methods=['POST'])
+@login_required
+async def change_password():
+    password = (await request.json)["password"]
+    if len(password) >= 30:
+        return {"message": "密码不能大于30位"}, 400
+    g.user.password = md5(password + g.user.salt)
+    return {"message": "success"}
+
+
 def music_data():
     data = []
     dct = None
@@ -150,9 +192,52 @@ async def get_records():
     for record in r:
         records.append(record.json())
     resp = await make_response(
-        '{"records":' + json.dumps(records, ensure_ascii=False) + ', "username": "' + g.username + '"}')
+        '{"records":' + json.dumps(records, ensure_ascii=False) + ', "username": "' + g.username + '", "additional_rating": ' + g.user.additional_rating + '"}')
     resp.headers['content-type'] = "application/json; charset=utf-8"
     return resp
+
+
+@app.route("/query/player", methods=['POST'])
+async def query_player():
+    obj = await request.json
+    try:
+        if "qq" in obj:
+            p: Player = Player.get(Player.bind_qq == obj["qq"])
+        else:
+            username = obj["username"]
+            p: Player = Player.get(Player.username == username)
+    except Exception:
+        return {
+            "message": "user not exists"
+        }, 400
+    if p.privacy and "username" in obj:
+        try:
+            token = decode(request.cookies['jwt_token'])
+        except KeyError:
+            return {"status": "error", "msg": "已设置隐私"}, 403
+        if token == {}:
+            return {"status": "error", "msg": "已设置隐私"}, 403
+        if token['exp'] < ts():
+            return {"status": "error", "msg": "会话过期"}, 403
+        if token['username'] != obj["username"]:
+            return {"status": "error", "msg": "已设置隐私"}, 403
+    sd: List = Record.select().where((Record.player == p.id) & (Record.type == "SD")).order_by(Record.ra.desc()).limit(
+        25)
+    dx: List = Record.select().where((Record.player == p.id) & (Record.type == "DX")).order_by(Record.ra.desc()).limit(
+        15)
+    nickname = p.nickname
+    if nickname == "":
+        nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
+    return {
+        "username": p.username,
+        "rating": p.rating,
+        "additional_rating": p.additional_rating,
+        "nickname": nickname,
+        "charts": {
+            "sd": [c.json() for c in sd],
+            "dx": [c.json() for c in dx]
+        }
+    }
 
 
 def update_one(records, record):

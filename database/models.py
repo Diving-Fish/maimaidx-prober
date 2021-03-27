@@ -45,6 +45,10 @@ class Player(BaseModel):
     password = CharField()
     salt = CharField()
     rating = IntegerField()
+    additional_rating = IntegerField()
+    nickname = CharField()
+    bind_qq = CharField()
+    privacy = BooleanField()
 
 
 class Record(BaseModel):
