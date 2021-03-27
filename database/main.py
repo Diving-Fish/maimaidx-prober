@@ -281,11 +281,11 @@ async def update_records():
             del new["rank"]
         if "tag" in new:
             del new["tag"]
-        if "id" in new:
-            del new["id"]
         update_one(records, new)
     for r in records:
         r["player"] = g.user
+        if "id" in r:
+            del r["id"]
     Record.delete().where(Record.player == g.user.id).execute()
     Record.insert_many(records).execute()
     await compute_ra(g.user)
