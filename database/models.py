@@ -1,5 +1,5 @@
 import json
-from typing import List
+from typing import List, Optional, Dict
 
 from peewee import *
 from playhouse.db_url import connect
@@ -66,8 +66,8 @@ class Record(BaseModel):
     level_label = CharField()
     ra = IntegerField()
 
-    def json(self):
-        return {
+    def json(self, md: Optional[List] = None):
+        data = {
             "title": self.title,
             "level": self.level,
             "level_index": self.level_index,
@@ -81,6 +81,12 @@ class Record(BaseModel):
             "ra": self.ra,
             "ds": self.ds
         }
+        if md:
+            for m in md:
+                if m['title'] == self.title:
+                    data["id"] = m['id']
+                    break
+        return data
 
     def json_output(self):
         return {

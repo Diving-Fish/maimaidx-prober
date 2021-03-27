@@ -1,5 +1,6 @@
 from collections import defaultdict
 from functools import wraps
+from typing import Optional, Dict
 
 from quart import *
 from _jwt import *
@@ -15,8 +16,51 @@ def md5(v: str):
     return hashlib.md5(v.encode(encoding='UTF-8')).hexdigest()
 
 
+def music_data():
+    data = []
+    dct = None
+    music = Music.select(Music, Chart).join(Chart)
+    prev_music_id = 0
+    for m in music:
+        m: Music
+        if m.id != prev_music_id:
+            if dct:
+                data.append(dct)
+            prev_music_id = m.id
+            value = vars(m)['__data__']
+            dct = {
+                "id": str(value["id"]),
+                "title": value["title"],
+                "type": value["type"],
+                "ds": [],
+                "level": [],
+                "charts": [],
+                "basic_info": {
+                    "title": value["title"],
+                    "artist": value["artist"],
+                    "genre": value["genre"],
+                    "bpm": value["bpm"],
+                    "release_date": value["release_date"],
+                    "from": value["version"]
+                }
+            }
+        c: Chart = m.chart
+        dct['ds'].append(c.ds)
+        dct['level'].append(c.difficulty)
+        if m.type == 'SD':
+            notes = [c.tap_note, c.hold_note, c.slide_note, c.break_note]
+        else:
+            notes = [c.tap_note, c.hold_note, c.slide_note, c.touch_note, c.break_note]
+        dct['charts'].append({
+            'notes': notes, "charter": c.charter
+        })
+    data.append(dct)
+    return data
+
+
 cs_need_update = True
 cs_cache = {}
+md_cache = music_data()
 app = Quart(__name__)
 
 with open('config.json', encoding='utf-8') as fr:
@@ -135,51 +179,9 @@ async def change_password():
     return {"message": "success"}
 
 
-def music_data():
-    data = []
-    dct = None
-    music = Music.select(Music, Chart).join(Chart)
-    prev_music_id = 0
-    for m in music:
-        m: Music
-        if m.id != prev_music_id:
-            if dct:
-                data.append(dct)
-            prev_music_id = m.id
-            value = vars(m)['__data__']
-            dct = {
-                "id": str(value["id"]),
-                "title": value["title"],
-                "type": value["type"],
-                "ds": [],
-                "level": [],
-                "charts": [],
-                "basic_info": {
-                    "title": value["title"],
-                    "artist": value["artist"],
-                    "genre": value["genre"],
-                    "bpm": value["bpm"],
-                    "release_date": value["release_date"],
-                    "from": value["version"]
-                }
-            }
-        c: Chart = m.chart
-        dct['ds'].append(c.ds)
-        dct['level'].append(c.difficulty)
-        if m.type == 'SD':
-            notes = [c.tap_note, c.hold_note, c.slide_note, c.break_note]
-        else:
-            notes = [c.tap_note, c.hold_note, c.slide_note, c.touch_note, c.break_note]
-        dct['charts'].append({
-            'notes': notes, "charter": c.charter
-        })
-    data.append(dct)
-    return data
-
-
 @app.route("/music_data", methods=['GET'])
 async def get_music_data():
-    resp = await make_response(json.dumps(music_data()))
+    resp = await make_response(json.dumps(md_cache))
     resp.headers['content-type'] = "application/json; charset=utf-8"
     return resp
 
@@ -190,7 +192,7 @@ async def get_records():
     r = Record.select().where(Record.player == g.user.id)
     records = []
     for record in r:
-        records.append(record.json())
+        records.append(record.json(md=md_cache))
     resp = await make_response(
         '{"records":' + json.dumps(records, ensure_ascii=False) + ', "username": "' + g.username + '", "additional_rating": ' + str(g.user.additional_rating) + '"}')
     resp.headers['content-type'] = "application/json; charset=utf-8"
@@ -234,8 +236,8 @@ async def query_player():
         "additional_rating": p.additional_rating,
         "nickname": nickname,
         "charts": {
-            "sd": [c.json() for c in sd],
-            "dx": [c.json() for c in dx]
+            "sd": [c.json(md=md_cache) for c in sd],
+            "dx": [c.json(md=md_cache) for c in dx]
         }
     }
 
@@ -272,7 +274,7 @@ async def update_records():
     r = Record.select().where(Record.player == g.user.id)
     records = []
     for record in r:
-        records.append(record.json())
+        records.append(record.json(md=md_cache))
     j = await request.get_json()
     for new in j:
         if "rank" in new:
@@ -377,7 +379,7 @@ async def chart_stats():
                                                           "sssp_count": int(elem.sssp_count)
                                                           }
     level_dict = defaultdict(lambda: [])
-    md = music_data()
+    md = md_cache
     for elem in md:
         key = elem['title'] + elem['type']
         for i in range(len(elem['ds'])):
