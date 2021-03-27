@@ -281,6 +281,8 @@ async def update_records():
             del new["rank"]
         if "tag" in new:
             del new["tag"]
+        if "id" in new:
+            del new["id"]
         update_one(records, new)
     for r in records:
         r["player"] = g.user
