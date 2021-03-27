@@ -192,7 +192,7 @@ async def get_records():
     for record in r:
         records.append(record.json())
     resp = await make_response(
-        '{"records":' + json.dumps(records, ensure_ascii=False) + ', "username": "' + g.username + '", "additional_rating": ' + g.user.additional_rating + '"}')
+        '{"records":' + json.dumps(records, ensure_ascii=False) + ', "username": "' + g.username + '", "additional_rating": ' + str(g.user.additional_rating) + '"}')
     resp.headers['content-type'] = "application/json; charset=utf-8"
     return resp
 
