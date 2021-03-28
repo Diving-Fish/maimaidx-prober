@@ -13,14 +13,17 @@
           ></v-btn
         >
       </p>
-      <p>
-        点个 Star 吧！<a href="https://github.com/Diving-Fish/maimaidx-prober"
-          ><img
-            src="https://img.shields.io/github/stars/Diving-Fish/maimaidx-prober?style=social"
-        /></a>
-      </p>
-      <p>欢迎加入舞萌DX查分器交流群：981682758</p>
+      <p class="mb-2">点个 Star 吧！</p>
+      <a href="https://github.com/Diving-Fish/maimaidx-prober"
+        ><img
+          src="https://img.shields.io/github/stars/Diving-Fish/maimaidx-prober?style=social"
+      /></a>
+      <view-badge class="ml-3" />
+      <p class="mt-3">欢迎加入舞萌DX查分器交流群：981682758</p>
       <p>代理工具上线！使用微信客户端导入数据，请查看新版本的使用指南。</p>
+      <p style="color: #f44336">
+        迁移了数据库以加快网站的响应速度及后续开发。如遇任何无法导入成绩或出错的情况，请及时添加讨论群进行反馈。
+      </p>
       <div
         style="
           display: flex;
@@ -29,7 +32,7 @@
           flex-wrap: wrap;
         "
       >
-        <v-dialog width="500px" :fullscreen="mobile" v-model="loginVisible">
+        <v-dialog width="500px" :fullscreen="$vuetify.breakpoint.mobile" v-model="loginVisible">
           <template #activator="{ on, attrs }">
             <v-btn
               class="mt-3 mr-4"
@@ -71,7 +74,7 @@
               <v-btn @click="invokeRegister">立即注册</v-btn>
               <v-dialog
                 width="500"
-                :fullscreen="mobile"
+                :fullscreen="$vuetify.breakpoint.mobile"
                 v-model="registerVisible"
               >
                 <v-card>
@@ -124,10 +127,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-btn v-if="username !== '未登录'" @click="sync()" color="primary" class="mt-3 mr-4"
-          >同步数据</v-btn
-        >
-        <v-dialog width="1000px" :fullscreen="mobile" v-model="dialogVisible">
+        <v-dialog width="1000px" :fullscreen="$vuetify.breakpoint.mobile" v-model="dialogVisible">
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导入数据</v-btn>
           </template>
@@ -154,7 +154,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog width="500px" :fullscreen="mobile" v-model="feedbackVisible">
+        <v-dialog width="500px" :fullscreen="$vuetify.breakpoint.mobile" v-model="feedbackVisible">
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">提交反馈</v-btn>
           </template>
@@ -179,9 +179,9 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog v-model="exportVisible" width="500px" :fullscreen="mobile">
+        <v-dialog v-model="exportVisible" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
           <template #activator="{ on, attrs }">
-              <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导出为 CSV</v-btn>
+            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导出为 CSV</v-btn>
           </template>
           <v-card>
             <v-card-title>
@@ -193,29 +193,38 @@
             </v-card-title>
             <v-card-text>
               <div style="display: flex">
-                <v-select v-model="exportEncoding" label="选择编码" :items="exportEncodings">
+                <v-select
+                  v-model="exportEncoding"
+                  label="选择编码"
+                  :items="exportEncodings"
+                >
                 </v-select>
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon
-                      v-bind="attrs"
-                      v-on="on"
-                      class="ml-4"
-                    >
+                    <v-icon v-bind="attrs" v-on="on" class="ml-4">
                       mdi-help-circle
                     </v-icon>
                   </template>
-                  <span>GBK编码一般用于Excel打开，UTF-8编码则可以供部分其他编辑器直接显示。</span>
+                  <span
+                    >GBK编码一般用于Excel打开，UTF-8编码则可以供部分其他编辑器直接显示。</span
+                  >
                 </v-tooltip>
               </div>
             </v-card-text>
             <v-card-actions>
-              <v-btn class="mr-4" @click="exportToCSV('sd')">导出标准乐谱</v-btn>
+              <v-btn class="mr-4" @click="exportToCSV('sd')"
+                >导出标准乐谱</v-btn
+              >
               <v-btn @click="exportToCSV('dx')">导出 DX 乐谱</v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog v-model="logoutVisible" width="500px" v-if="username !== '未登录'" :fullscreen="mobile">
+        <v-dialog
+          v-model="logoutVisible"
+          width="500px"
+          v-if="username !== '未登录'"
+          :fullscreen="$vuetify.breakpoint.mobile"
+        >
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">登出</v-btn>
           </template>
@@ -227,19 +236,47 @@
                 <v-icon>mdi-close</v-icon>
               </v-btn>
             </v-card-title>
-            <v-card-text>
-              您确定要登出吗？
-            </v-card-text>
+            <v-card-text> 您确定要登出吗？ </v-card-text>
             <v-card-actions>
               <v-btn class="mr-4" @click="logout" color="primary">登出</v-btn>
               <v-btn @click="logoutVisible = false">取消</v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
+        <v-dialog v-model="allModeVisible" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
+          <template #activator="{ on, attrs }">
+            <v-btn
+              class="mt-3 mr-4"
+              v-bind="attrs"
+              v-on="on"
+              color="deep-orange"
+              dark
+              >解锁全曲</v-btn
+            >
+          </template>
+          <v-card>
+            <v-card-title>
+              确认
+              <v-spacer />
+              <v-btn icon @click="allModeVisible = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-card-title>
+            <v-card-text
+              >解锁全曲可以让您看到所有谱面的定数数据和相对难度，但您无法对这些谱面进行修改。确定解锁全曲？
+            </v-card-text>
+            <v-card-actions>
+              <v-btn class="mr-4" @click="mergeOnAllMode" color="primary"
+                >解锁</v-btn
+              >
+              <v-btn @click="allModeVisible = false">取消</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
       </div>
       <v-dialog
         width="500px"
-        :fullscreen="mobile"
+        :fullscreen="$vuetify.breakpoint.mobile"
         v-model="modifyAchivementVisible"
       >
         <v-card>
@@ -280,6 +317,7 @@
           <v-card-subtitle
             >底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</v-card-subtitle
           >
+          <filter-slider ref="filterSlider"></filter-slider>
           <v-card-text>
             <v-tabs v-model="tab">
               <v-tab key="sd">标准乐谱</v-tab>
@@ -290,9 +328,10 @@
                 <chart-table
                   @edit="editRow"
                   :search="searchKey"
-                  :items="sdData"
+                  :items="sdDisplay"
                   :limit="25"
                   :loading="loading"
+                  :chart_stats="chart_stats"
                   sort-by="achievements"
                 >
                 </chart-table>
@@ -301,9 +340,10 @@
                 <chart-table
                   @edit="editRow"
                   :search="searchKey"
-                  :items="dxData"
+                  :items="dxDisplay"
                   :limit="15"
                   :loading="loading"
+                  :chart_stats="chart_stats"
                   sort-by="achievements"
                 >
                 </chart-table>
@@ -312,10 +352,17 @@
           </v-card-text>
         </v-card>
       </div>
+      <div class="mid" :style="$vuetify.breakpoint.mobile ? '' : 'display: flex'">
+        <message @resize="$refs.advertisement.resize()" :style="`flex: 1; ${$vuetify.breakpoint.mobile ? '' : 'min-width: 500px; margin-right: 16px'}`" class="mbe-2"></message>
+        <advertisement ref="advertisement" class="mbe-2"></advertisement>
+      </div>
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
-          2021/02/26 发布 1.0 版本，添加了登出按钮，并优化了一些成绩导入方式。提供了代理服务器供便捷导入成绩。<br />
+          2021/03/18
+          加载动画和按难度/定数筛选，你们要的筛选来了。顺便加了个可以看全曲的功能。<br />
+          2021/02/26 发布 1.0
+          版本，添加了登出按钮，并优化了一些成绩导入方式。提供了代理服务器供便捷导入成绩。<br />
           2021/02/17 废弃了目前在使用的移动端（Vuetify さいこう！），导出为 csv
           增加了一个二次确认窗口。以及优化了所有的对话框。<br />
           2021/02/15 添加了导出为 csv
@@ -340,13 +387,21 @@
 import axios from "axios";
 import Vue from "vue";
 import ChartTable from "../components/ChartTable.vue";
+import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
+import FilterSlider from "../components/FilterSlider.vue";
+import Advertisement from "../components/Advertisement.vue";
+import Message from '../components/Message.vue';
 const xpath = require("xpath"),
-  dom = require("xmldom").DOMParser
+  dom = require("xmldom").DOMParser;
 export default {
   name: "App",
   components: {
     ChartTable,
+    ViewBadge,
+    FilterSlider,
+    Advertisement,
+    Message
   },
   data: function () {
     return {
@@ -360,6 +415,7 @@ export default {
         password: "",
         passwordConfirm: "",
       },
+      chart_stats: {},
       currentUpdate: {},
       currentAchievements: 0,
       username: "未登录",
@@ -383,20 +439,23 @@ export default {
       valid: false,
       valid2: false,
       exportVisible: false,
-      exportEncoding: 'GBK',
-      exportEncodings: ['GBK', 'UTF-8'],
-      logoutVisible: false
+      exportEncoding: "GBK",
+      exportEncodings: ["GBK", "UTF-8"],
+      logoutVisible: false,
+      allModeVisible: false,
     };
   },
   computed: {
     sdDisplay: function () {
+      const that = this;
       return this.sdData.filter((elem) => {
-        return elem.title.indexOf(this.searchKey) !== -1;
+        return that.$refs.filterSlider.f(elem);
       });
     },
     dxDisplay: function () {
+      const that = this;
       return this.dxData.filter((elem) => {
-        return elem.title.indexOf(this.searchKey) !== -1;
+        return that.$refs.filterSlider.f(elem);
       });
     },
     sdData: function () {
@@ -438,18 +497,10 @@ export default {
         ret += this.dxData[i].ra;
       }
       return ret;
-    },
-    mobile: function () {
-      return (
-        navigator.userAgent.match(
-          /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i
-        ) !== null
-      );
-    },
+    }
   },
   created: function () {
     this.fetchMusicData();
-    axios.get("https://www.diving-fish.com/api/maimaidxprober/count_view")
   },
   watch: {
     currentAchievements: function (to) {
@@ -479,6 +530,10 @@ export default {
     },
   },
   methods: {
+    test: function () {
+      this.$refs.filterSlider.f(1);
+      return false;
+    },
     rawToString: function (text) {
       if (text[text.length - 1] == "p" && text != "ap") {
         return text.substring(0, text.length - 1).toUpperCase() + "+";
@@ -534,7 +589,9 @@ export default {
       axios
         .post(
           "https://www.diving-fish.com/api/maimaidxprober/player/update_records",
-          this.records
+          this.records.filter((elem) => {
+            return elem.block !== true;
+          })
         )
         .then(() => {
           this.$message.success("数据已同步完成");
@@ -551,19 +608,28 @@ export default {
         });
     },
     fetchMusicData: function () {
+      const that = this;
+      that.loading = true;
       axios
         .get("https://www.diving-fish.com/api/maimaidxprober/music_data")
         .then((resp) => {
           this.music_data = resp.data;
-          axios
-            .get(
+          Promise.allSettled([
+            axios.get(
+              "https://www.diving-fish.com/api/maimaidxprober/chart_stats"
+            ),
+            axios.get(
               "https://www.diving-fish.com/api/maimaidxprober/player/records"
-            )
-            .then((resp) => {
-              const data = resp.data;
-              this.username = data.username;
-              this.merge(data.records);
-            });
+            ),
+          ]).then(([resp1, resp2]) => {
+            that.chart_stats = resp1.value.data;
+            if (resp2.status !== "rejected") {
+              const data = resp2.value.data;
+              that.username = data.username;
+              that.merge(data.records);
+            }
+            that.loading = false;
+          });
         });
     },
     login: function () {
@@ -656,6 +722,61 @@ export default {
       } else {
         record.rate = "sssp";
       }
+      if (!this.chart_stats[record.title + record.type]) {
+        record.tag = 0.5;
+      } else {
+        let elem = this.chart_stats[record.title + record.type][
+          record.level_index
+        ];
+        if (elem.t) {
+          record.tag = (elem.v + 0.5) / elem.t;
+        } else {
+          record.tag = 0.5;
+        }
+      }
+    },
+    mergeOnAllMode: function () {
+      this.allModeVisible = false;
+      for (const music of this.music_data) {
+        //console.log(music);
+        for (let j = 0; j < music.ds.length; j++) {
+          const record = {
+            title: music.title,
+            ds: music.ds[j],
+            level: music.level[j],
+            level_index: j,
+            type: music.type,
+            achievements: 0,
+            dxScore: 0,
+            fc: "",
+            fs: "",
+            rate: "d",
+            ra: 0,
+            level_label: this.level_label[j],
+            block: true,
+          };
+          let flag = true;
+          for (let i = 0; i < this.records.length; i++) {
+            const ex = this.records[i];
+            if (
+              ex.title === record.title &&
+              ex.type === record.type &&
+              ex.level === record.level &&
+              ex.level_index == record.level_index
+            ) {
+              flag = false;
+              break;
+            }
+          }
+          if (flag) {
+            this.records.push(record);
+          }
+        }
+      }
+      //console.log(this.records);
+      for (let i = 0; i < this.records.length; i++) {
+        this.computeRecord(this.records[i]);
+      }
     },
     merge: function (records) {
       // console.log(records);
@@ -700,71 +821,81 @@ export default {
       }
     },
     pageToRecordList: function (pageData) {
+      const getSibN = function (node, n) {
+        let cur = node;
+        let f = false;
+        if (n < 0) {
+          n = -n;
+          f = true;
+        }
+        for (let i = 0; i < n; i++) {
+          if (f) cur = cur.previousSibling;
+          else cur = cur.nextSibling;
+        }
+        return cur;
+      };
       try {
+        let link = false;
         let records = [];
         let doc = new dom().parseFromString(pageData);
-        const scores = xpath.select(
-          '//div[@class="music_score_block w_120 t_r f_l f_12"]',
+        // this modify is about to detect two different 'Link'.
+        const names = xpath.select(
+          '//div[@class="music_name_block t_l f_13 break"]',
           doc
         );
         const labels = ["basic", "advanced", "expert", "master", "remaster"];
-        for (const score of scores) {
-          let levelNode =
-            score.previousSibling.previousSibling.previousSibling
-              .previousSibling.previousSibling.previousSibling.previousSibling
-              .previousSibling;
+        for (const name of names) {
+          let title = name.textContent;
+          if (title == "Link") {
+            if (!link) {
+              title = "Link(CoF)";
+              link = true;
+            }
+          }
+          let diffNode = getSibN(name, -6);
+          let levelNode = getSibN(name, -2);
+          let scoreNode = getSibN(name, 2);
+          if (scoreNode.tagName !== "div") {
+            continue;
+          }
+          let dxScoreNode = getSibN(name, 4);
+          let fsNode = getSibN(name, 6);
+          let fcNode = getSibN(name, 8);
+          let rateNode = getSibN(name, 10);
           let record_data = {
-            title: "",
-            level: "",
+            title: title,
+            level: levelNode.textContent,
             level_index: labels.indexOf(
-              levelNode.getAttribute("src").match("diff_(.*).png")[1]
+              diffNode.getAttribute("src").match("diff_(.*).png")[1]
             ),
             type: "",
-            achievements: 0,
-            dxScore: 0,
-            rate: "",
-            fc: "",
-            fs: "",
+            achievements: parseFloat(scoreNode.textContent),
+            dxScore: parseInt(dxScoreNode.textContent.replace(",", "")),
+            rate: rateNode.getAttribute("src").match("_icon_(.*).png")[1],
+            fc: fcNode
+              .getAttribute("src")
+              .match("_icon_(.*).png")[1]
+              .replace("back", ""),
+            fs: fsNode
+              .getAttribute("src")
+              .match("_icon_(.*).png")[1]
+              .replace("back", ""),
           };
-          const docId = score.parentNode.parentNode.parentNode.getAttribute(
+          const docId = name.parentNode.parentNode.parentNode.getAttribute(
             "id"
           );
           if (docId) {
             if (docId.slice(0, 3) == "sta") record_data.type = "SD";
             else record_data.type = "DX";
           } else {
-            record_data.type = score.parentNode.parentNode.nextSibling.nextSibling
+            record_data.type = name.parentNode.parentNode.nextSibling.nextSibling
               .getAttribute("src")
               .match("_(.*).png")[1];
             if (record_data.type == "standard") record_data.type = "SD";
             else record_data.type = "DX";
           }
-          record_data.achievements = parseFloat(score.textContent);
-          let currentNode = score.previousSibling.previousSibling;
-          record_data.title = currentNode.textContent;
-          currentNode = currentNode.previousSibling.previousSibling;
-          record_data.level = currentNode.textContent;
-          currentNode = score.nextSibling.nextSibling;
-          record_data.dxScore = parseInt(
-            currentNode.textContent.replace(",", "")
-          );
-          currentNode = currentNode.nextSibling.nextSibling;
-          record_data.fs = currentNode
-            .getAttribute("src")
-            .match("_icon_(.*).png")[1]
-            .replace("back", "");
-          currentNode = currentNode.nextSibling.nextSibling;
-          record_data.fc = currentNode
-            .getAttribute("src")
-            .match("_icon_(.*).png")[1]
-            .replace("back", "");
-          currentNode = currentNode.nextSibling.nextSibling;
-          record_data.rate = currentNode
-            .getAttribute("src")
-            .match("_icon_(.*).png")[1];
           records.push(record_data);
         }
-        // console.log(records);
         return records;
       } catch (err) {
         console.log(err);
@@ -787,23 +918,25 @@ export default {
           m.ds
         },${m.achievements},${m.ra}\n`;
       }
-      const blob = new Blob([this.exportEncoding === 'GBK' ? new Uint8Array(GBK.encode(text)) : text]);
+      const blob = new Blob([
+        this.exportEncoding === "GBK" ? new Uint8Array(GBK.encode(text)) : text,
+      ]);
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = type == "sd" ? "标准乐谱.csv" : "DX 乐谱.csv";
       a.click();
     },
-    logout: function() {
-      const setCookie = function(cname, cvalue, exdays) {
-          var d = new Date();
-          d.setTime(d.getTime() + (exdays*24*60*60*1000));
-          var expires = "expires="+d.toUTCString();
-          document.cookie = cname + "=" + cvalue + "; " + expires + ";path=/";
-      }
+    logout: function () {
+      const setCookie = function (cname, cvalue, exdays) {
+        var d = new Date();
+        d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+        var expires = "expires=" + d.toUTCString();
+        document.cookie = cname + "=" + cvalue + "; " + expires + ";path=/";
+      };
       setCookie("jwt_token", "", -1);
       this.logoutVisible = false;
       window.location.reload();
-    }
+    },
   },
 };
 </script>
@@ -829,5 +962,13 @@ export default {
 }
 .difficulty0 {
   color: #22bb5b;
+}
+
+.mid {
+  justify-content: space-between;
+}
+
+.mbe-2 {
+  margin-bottom: 2em;
 }
 </style>

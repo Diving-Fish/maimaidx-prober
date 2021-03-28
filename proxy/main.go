@@ -1,5 +1,13 @@
 package main
 
+/* Notice:
+ * If you want to build this program on other platform or operating system,
+ * you need to remove code about proxy auto configuring, including:
+ * setProxyForWin()
+ * rollback()
+ */
+
+
 import (
 	"bufio"
 	"bytes"
@@ -19,8 +27,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/elazarl/goproxy"
+)
+
+const (
+	MODE_UPDATE = 0
+	MODE_EXPORT = 1 	// only for debug or other
 )
 
 
@@ -28,6 +42,7 @@ var (
 	ProxyEnable uint64 = 39
 	ProxyServer = "rollback"
 	AutoConfigURL = "rollback"
+	mode = MODE_UPDATE
 )
 
 var jwt *http.Cookie
@@ -76,7 +91,13 @@ func fetchData(url *url.URL, cookies []*http.Cookie) {
 		fmt.Printf("正在导入 %s 难度……", labels[i])
 		req, _ := http.NewRequest("GET", "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(i), nil)
 		resp, _ := client.Do(req)
-		commit(resp.Body)
+		if mode == MODE_UPDATE {
+			commit(resp.Body)
+		} else if mode == MODE_EXPORT {
+			r, _ := ioutil.ReadAll(resp.Body)
+			ioutil.WriteFile(fmt.Sprintf("diff%d.html", i), r, 0644)
+			fmt.Println("已导出到文件")
+		}
 	}
 	if ProxyEnable != 39 {
 		rollBack()
@@ -138,12 +159,16 @@ func setProxyForWin() {
 	}
 	AutoConfigURL, _, err = key.GetStringValue("AutoConfigURL")
 	if err != nil {
-		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
-		rollBack()
-		return
+		if err == syscall.ENOENT {
+			AutoConfigURL = "rollback"
+		} else {
+			fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
+			rollBack()
+			return
+		}
 	}
 	err = key.DeleteValue("AutoConfigURL")
-	if err != nil {
+	if err != nil && err != syscall.ENOENT {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
 		rollBack()
 		return
@@ -162,6 +187,9 @@ func main() {
 	}
 	obj := map[string]interface{}{}
 	json.Unmarshal(b, &obj)
+	if obj["mode"] != nil && obj["mode"].(string) == "export" {
+		mode = MODE_EXPORT
+	}
 	tryLogin(obj["username"].(string), obj["password"].(string))
 	setProxyForWin()
 	crt, _ := ioutil.ReadFile("cert.crt")
