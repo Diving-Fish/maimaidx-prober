@@ -18,7 +18,7 @@
               <v-icon>mdi-close</v-icon>
             </v-btn>
           </v-card-title>
-          <v-form style="padding: 12px 24px" ref="profile">
+          <v-form style="padding: 12px 24px" ref="profile" v-model="valid">
             <v-text-field
               label="昵称"
               v-model="nickname"
@@ -58,7 +58,7 @@
             <v-checkbox v-model="privacy" label="禁止其他人查询我的成绩" />
           </v-form>
           <v-card-actions class="pb-4">
-            <v-btn color="primary">保存</v-btn>
+            <v-btn color="primary" @click="submit">保存</v-btn>
             <v-btn @click="visible = false">取消</v-btn>
           </v-card-actions>
         </v-card>
@@ -72,8 +72,9 @@ import axios from "axios";
 export default {
   data: () => {
     return {
-      login: true,
-      username: "DF",
+      valid: false,
+      login: false,
+      username: "",
       visible: false,
       select: { label: "真传贰段", ra: 2100 },
       ratings: [
@@ -102,6 +103,7 @@ export default {
   },
   methods: {
     submit() {
+      if (!this.$refs.profile.validate()) return;
       axios.post(
         "https://www.diving-fish.com/api/maimaidxprober/player/profile",
         {
