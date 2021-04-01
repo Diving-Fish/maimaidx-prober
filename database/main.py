@@ -61,6 +61,15 @@ def music_data():
 cs_need_update = True
 cs_cache = {}
 md_cache = music_data()
+
+
+def get_ds(r: Dict):
+    for m in md_cache:
+        if m['title'] == r["title"]:
+            return m["ds"][r["level_index"]]
+    return 0
+
+
 app = Quart(__name__)
 
 with open('config.json', encoding='utf-8') as fr:
@@ -284,8 +293,11 @@ async def update_records():
         update_one(records, new)
     for r in records:
         r["player"] = g.user
-        if "id" in r:
-            del r["id"]
+        if "song_id" in r:
+            del r["song_id"]
+        # Don't know why this happen
+        if "ds" not in r:
+            r["ds"] = get_ds(r)
     Record.delete().where(Record.player == g.user.id).execute()
     Record.insert_many(records).execute()
     await compute_ra(g.user)

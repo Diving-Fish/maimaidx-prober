@@ -84,7 +84,7 @@ class Record(BaseModel):
         if md:
             for m in md:
                 if m['title'] == self.title:
-                    data["id"] = m['id']
+                    data["song_id"] = m['id']
                     break
         return data
 
