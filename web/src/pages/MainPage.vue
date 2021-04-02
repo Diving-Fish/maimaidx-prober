@@ -1,7 +1,10 @@
 <template>
   <div id="app">
     <v-container>
-      <h1>舞萌 DX 查分器</h1>
+      <div :style="$vuetify.breakpoint.mobile ? '' : 'display: flex; align-items: flex-end; justify-content: space-between'">
+        <h1>舞萌 DX 查分器</h1>
+        <profile />
+      </div>
       <v-divider class="mt-4 mb-4" />
       <p>
         <v-btn
@@ -392,6 +395,7 @@ import GBK from "../plugins/gbk";
 import FilterSlider from "../components/FilterSlider.vue";
 import Advertisement from "../components/Advertisement.vue";
 import Message from '../components/Message.vue';
+import Profile from '../components/Profile.vue';
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 export default {
@@ -401,7 +405,8 @@ export default {
     ViewBadge,
     FilterSlider,
     Advertisement,
-    Message
+    Message,
+    Profile
   },
   data: function () {
     return {
