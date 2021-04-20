@@ -49,8 +49,14 @@ func tryLogin(username string, password string) {
 		"username": username,
 		"password": password,
 	}
-	b, _ := json.Marshal(&body)
-	resp, _ := http.Post("https://www.diving-fish.com/api/maimaidxprober/login", "application/json", bytes.NewReader(b))
+	b, err := json.Marshal(&body)
+	if err != nil {
+		commandFatal("配置文件读取出错，请按照教程指示填写")
+	}
+	resp, err := http.Post("https://www.diving-fish.com/api/maimaidxprober/login", "application/json", bytes.NewReader(b))
+	if err != nil {
+		commandFatal("登录失败")
+	}
 	if resp.StatusCode != 200 {
 		commandFatal("登录凭据错误")
 	}
