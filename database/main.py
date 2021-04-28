@@ -47,7 +47,7 @@ def music_data():
             }
         c: Chart = m.chart
         dct['ds'].append(c.ds)
-        dct['level'].append(c.level)
+        dct['level'].append(c.difficulty)
         if m.type == 'SD':
             notes = [c.tap_note, c.hold_note, c.slide_note, c.break_note]
         else:
