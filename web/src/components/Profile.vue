@@ -34,7 +34,8 @@
                   <template v-slot:activator="{ on }">
                     <v-icon v-on="on"> mdi-help-circle-outline </v-icon>
                   </template>
-                  绑定 QQ 号后，您可以直接输入 b40 以在千雪 bot 查询您自己的成绩。
+                  绑定 QQ 号后，您可以直接输入 b40 以在千雪 bot
+                  查询您自己的成绩。
                 </v-tooltip>
               </template></v-text-field
             >
@@ -106,27 +107,45 @@ export default {
       ],
       bind_qq: "",
       nickname: "",
-      privacy: false
+      privacy: false,
     };
   },
   methods: {
     submit() {
       if (!this.$refs.profile.validate()) return;
-      axios.post(
-        "https://www.diving-fish.com/api/maimaidxprober/player/profile",
-        {
+      axios
+        .post("https://www.diving-fish.com/api/maimaidxprober/player/profile", {
           username: this.username,
           privacy: this.privacy,
           bind_qq: this.bind_qq,
           additional_rating: this.select.ra,
-          nickname: this.nickname
-        }
-      ).then(resp => {
-        this.visible = false;
-        this.$message.success('修改成功');
+          nickname: this.nickname,
+        })
+        .then((resp) => {
+          this.visible = false;
+          this.$message.success("修改成功");
+          this.username = resp.data.username;
+          this.privacy = resp.data.privacy;
+          this.bind_qq = resp.data.bind_qq;
+          for (let elem of this.ratings) {
+            if (elem.ra == resp.data.additional_rating) {
+              this.select = elem;
+              break;
+            }
+          }
+          this.nickname = resp.data.nickname;
+        });
+    },
+  },
+  created: function () {
+    axios
+      .get("https://www.diving-fish.com/api/maimaidxprober/player/profile")
+      .then((resp) => {
+        this.login = true;
         this.username = resp.data.username;
         this.privacy = resp.data.privacy;
         this.bind_qq = resp.data.bind_qq;
+        this.ra = resp.data.additional_rating;
         for (let elem of this.ratings) {
           if (elem.ra == resp.data.additional_rating) {
             this.select = elem;
@@ -134,21 +153,9 @@ export default {
           }
         }
         this.nickname = resp.data.nickname;
-      });
-    },
+      })
+      .catch(() => {});
   },
-  created: function() {
-    axios.get("https://www.diving-fish.com/api/maimaidxprober/player/profile").then(resp => {
-      this.login = true;
-      this.username = resp.data.username;
-      this.privacy = resp.data.privacy;
-      this.bind_qq = resp.data.bind_qq;
-      this.ra = resp.data.additional_rating;
-      this.nickname = resp.data.nickname;
-    }).catch(() => {
-
-    })
-  }
 };
 </script>
 
