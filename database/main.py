@@ -66,14 +66,21 @@ md_cache = music_data()
 
 def get_ds(r: Dict):
     for m in md_cache:
-        if m['title'] == r["title"]:
+        if m['title'] == r["title"] and m['type'] == r['type']:
             return m["ds"][r["level_index"]]
     return 0
 
 
 def is_new(r: Dict):
     for m in md_cache:
-        if m['title'] == r["title"]:
+        if m['title'] == r["title"] and m['type'] == r['type']:
+            return m["basic_info"]["is_new"]
+    return False
+
+
+def is_new_2(r: Record):
+    for m in md_cache:
+        if m['title'] == r.title and m['type'] == r.type:
             return m["basic_info"]["is_new"]
     return False
 
@@ -218,6 +225,18 @@ async def get_records():
     return resp
 
 
+def get_dx_and_sd(pid):
+    l: List = Record.select().where(Record.player == pid).order_by(Record.ra.desc())
+    l1 = []
+    l2 = []
+    for r in l:
+        if is_new_2(r):
+            l2.append(r)
+        else:
+            l1.append(r)
+    return l1[:25], l2[:15]
+
+
 @app.route("/query/player", methods=['POST'])
 async def query_player():
     obj = await request.json
@@ -242,10 +261,7 @@ async def query_player():
             return {"status": "error", "msg": "会话过期"}, 403
         if token['username'] != obj["username"]:
             return {"status": "error", "msg": "已设置隐私"}, 403
-    sd: List = Record.select().where((Record.player == p.id) & (not Record.is_new)).order_by(Record.ra.desc()).limit(
-        25)
-    dx: List = Record.select().where((Record.player == p.id) & Record.is_new).order_by(Record.ra.desc()).limit(
-        15)
+    sd, dx = get_dx_and_sd(p.id)
     nickname = p.nickname
     if nickname == "":
         nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
@@ -272,10 +288,7 @@ def update_one(records, record):
 
 async def compute_ra(player: Player):
     rating = 0
-    sd = Record.select().where((Record.player == player.id) & (not Record.is_new)).order_by(Record.ra.desc()).limit(
-        25)
-    dx = Record.select().where((Record.player == player.id) & Record.is_new).order_by(Record.ra.desc()).limit(
-        15)
+    sd, dx = get_dx_and_sd(player.id)
     for t in sd:
         rating += t.ra
     for t in dx:
