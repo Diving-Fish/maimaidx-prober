@@ -41,7 +41,8 @@ def music_data():
                     "genre": value["genre"],
                     "bpm": value["bpm"],
                     "release_date": value["release_date"],
-                    "from": value["version"]
+                    "from": value["version"],
+                    "is_new": value["is_new"]
                 }
             }
         c: Chart = m.chart
@@ -68,6 +69,13 @@ def get_ds(r: Dict):
         if m['title'] == r["title"]:
             return m["ds"][r["level_index"]]
     return 0
+
+
+def is_new(r: Dict):
+    for m in md_cache:
+        if m['title'] == r["title"]:
+            return m["basic_info"]["is_new"]
+    return False
 
 
 app = Quart(__name__)
@@ -201,7 +209,9 @@ async def get_records():
     r = Record.select().where(Record.player == g.user.id)
     records = []
     for record in r:
-        records.append(record.json(md=md_cache))
+        elem = record.json(md=md_cache)
+        elem["is_new"] = is_new(elem)
+        records.append(elem)
     resp = await make_response(
         '{"records":' + json.dumps(records, ensure_ascii=False) + ', "username": "' + g.username + '", "additional_rating": ' + str(g.user.additional_rating) + '}')
     resp.headers['content-type'] = "application/json; charset=utf-8"
@@ -232,9 +242,9 @@ async def query_player():
             return {"status": "error", "msg": "会话过期"}, 403
         if token['username'] != obj["username"]:
             return {"status": "error", "msg": "已设置隐私"}, 403
-    sd: List = Record.select().where((Record.player == p.id) & (Record.type == "SD")).order_by(Record.ra.desc()).limit(
+    sd: List = Record.select().where((Record.player == p.id) & (not Record.is_new)).order_by(Record.ra.desc()).limit(
         25)
-    dx: List = Record.select().where((Record.player == p.id) & (Record.type == "DX")).order_by(Record.ra.desc()).limit(
+    dx: List = Record.select().where((Record.player == p.id) & Record.is_new).order_by(Record.ra.desc()).limit(
         15)
     nickname = p.nickname
     if nickname == "":
@@ -262,9 +272,9 @@ def update_one(records, record):
 
 async def compute_ra(player: Player):
     rating = 0
-    sd = Record.select().where((Record.player == player.id) & (Record.type == "SD")).order_by(Record.ra.desc()).limit(
+    sd = Record.select().where((Record.player == player.id) & (not Record.is_new)).order_by(Record.ra.desc()).limit(
         25)
-    dx = Record.select().where((Record.player == player.id) & (Record.type == "DX")).order_by(Record.ra.desc()).limit(
+    dx = Record.select().where((Record.player == player.id) & Record.is_new).order_by(Record.ra.desc()).limit(
         15)
     for t in sd:
         rating += t.ra
