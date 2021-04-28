@@ -27,7 +27,7 @@ const level_label = ["Basic", "Advanced", "Expert", "Master", "Re:MASTER"]
 const computeRecord = function (record) {
   record.ds = getDS(record.title, record.level_index, record.type);
   record.level_label = level_label[record.level_index];
-  let l = 15;
+  let l = 14;
   const rate = record.achievements;
   if (rate < 50) {
     l = 0;
@@ -44,19 +44,17 @@ const computeRecord = function (record) {
   } else if (rate < 94) {
     l = 9;
   } else if (rate < 97) {
-    l = 9.4;
+    l = 10.5;
   } else if (rate < 98) {
-    l = 10;
+    l = 12.5;
   } else if (rate < 99) {
-    l = 11;
+    l = 12.75;
   } else if (rate < 99.5) {
-    l = 12;
-  } else if (rate < 99.99) {
     l = 13;
   } else if (rate < 100) {
-    l = 13.5;
+    l = 13.25;
   } else if (rate < 100.5) {
-    l = 14;
+    l = 13.5;
   }
   record.ra = Math.floor(record.ds * (Math.min(100.5, rate) / 100) * l);
   if (isNaN(record.ra)) record.ra = 0;
