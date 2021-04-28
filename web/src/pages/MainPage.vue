@@ -324,7 +324,7 @@
           <v-card-text>
             <v-tabs v-model="tab">
               <v-tab key="sd">旧乐谱</v-tab>
-              <v-tab key="dx">After DX 2021</v-tab>
+              <v-tab key="dx">DX 2021</v-tab>
             </v-tabs>
             <v-tabs-items v-model="tab">
               <v-tab-item key="sd">
