@@ -40,9 +40,9 @@ const computeRecord = function (record) {
   } else if (rate < 80) {
     l = 7.5;
   } else if (rate < 90) {
-    l = 8;
+    l = 8.5;
   } else if (rate < 94) {
-    l = 9;
+    l = 9.5;
   } else if (rate < 97) {
     l = 10.5;
   } else if (rate < 98) {
