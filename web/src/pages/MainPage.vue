@@ -693,11 +693,11 @@ export default {
       } else if (rate < 98) {
         l = 12.5;
       } else if (rate < 99) {
-        l = 12.75;
+        l = 12.7;
       } else if (rate < 99.5) {
         l = 13;
       } else if (rate < 100) {
-        l = 13.25;
+        l = 13.2;
       } else if (rate < 100.5) {
         l = 13.5;
       }
