@@ -214,6 +214,7 @@ async def get_music_data():
 @login_required
 async def get_records():
     r = Record.select().where(Record.player == g.user.id)
+    asyncio.create_task(compute_ra(g.user))
     records = []
     for record in r:
         elem = record.json(md=md_cache)
@@ -225,8 +226,8 @@ async def get_records():
     return resp
 
 
-def get_dx_and_sd(pid):
-    l: List = Record.select().where(Record.player == pid).order_by(Record.ra.desc())
+def get_dx_and_sd(player):
+    l: List = Record.select().where(Record.player == player.id).order_by(Record.ra.desc())
     l1 = []
     l2 = []
     for r in l:
@@ -261,7 +262,8 @@ async def query_player():
             return {"status": "error", "msg": "会话过期"}, 403
         if token['username'] != obj["username"]:
             return {"status": "error", "msg": "已设置隐私"}, 403
-    sd, dx = get_dx_and_sd(p.id)
+    sd, dx = get_dx_and_sd(p)
+    asyncio.create_task(compute_ra(p))
     nickname = p.nickname
     if nickname == "":
         nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
@@ -288,7 +290,7 @@ def update_one(records, record):
 
 async def compute_ra(player: Player):
     rating = 0
-    sd, dx = get_dx_and_sd(player.id)
+    sd, dx = get_dx_and_sd(player)
     for t in sd:
         rating += t.ra
     for t in dx:
