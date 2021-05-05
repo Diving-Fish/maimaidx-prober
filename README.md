@@ -116,6 +116,32 @@ chmod +x <文件名>
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/10.png)
 
+## 方法3：通过手机微信vconsole导入（未测试）
+
+注意：如舞萌DX有版本更新，请勿在本页面声明前使用该方法！！！
+另外，如您在操作时选择的不是记录-乐曲成绩-乐曲种类-歌曲类别-所有种类（即默认页面），可能会导致导入的数据混乱。说不定你一个不注意就在查分器里把白潘理论了(
+
+复制如下三个网址，并在微信中发送给任何一个人：
+
+debugmm.qq.com/?forcex5=true  
+http://debugtbs.qq.com  
+http://debugx5.qq.com
+
+从上到下依次打开各链接。打开第三个链接后，选择顶部的信息一栏，在下面勾选`打开vConsole调试功能`。
+
+之后，在用微信打开任意网页时，底部都会出现一个里面写着vConsole的绿框。觉得不好看可以在导入完之后取消上面的勾选。
+
+进入舞萌DX公众号，导航至记录-乐曲成绩，选择难度后点击页面最下方vConsole。此时页面会弹出一个窗口。将以下代码粘贴至下方command输入框，并点击OK：
+```
+z=(n,i)=>{for(j=0;j<Math.abs(i);j++)n=i<0?n.previousSibling:n.nextSibling;return n};y=(n)=>n.src.match("_icon_(.*).png")[1].replace("back","");r="";c=0;for(let n of document.getElementsByClassName("break")){d=n.parentNode.parentNode.parentNode.getAttribute("id");s=z(n,2);r+=(s.tagName.toLowerCase()=="div")?y(z(n,8))+y(z(n,6))+z(n,-2).innerText+(d?((d.slice(0,3)=="sta")?"s":"d"):((z(n.parentNode.parentNode,2).src.match("_(.*).png")[1]=="standard")?"s":"d"))+z(n,-6).src.match("diff_(.*).png")[1][0]+(c<37?"0":"")+c.toString(36)+z(n,4).innerText.replace(",","")+z(n,10).src.match("con_(.*).png")[1]+s.innerText.replace(".",""):"";c++}r;
+```
+
+之后窗口中会出现一堆代码。滑动上方窗口至最上方，选择窗口中任意文字并拖动至下面clear或hide按钮上，复制。
+
+进入查分器主页，点击导入数据，将源代码粘贴到输入框中，点击导入。
+
+至此，数据导入教程结束。
+
 ## <span id="FAQ">常见问题（FAQ）</span>
 
 > 为什么我查分器创建了账号，还是没有数据？

@@ -1,7 +1,13 @@
 <template>
   <div id="app">
     <v-container>
-      <div :style="$vuetify.breakpoint.mobile ? '' : 'display: flex; align-items: flex-end; justify-content: space-between'">
+      <div
+        :style="
+          $vuetify.breakpoint.mobile
+            ? ''
+            : 'display: flex; align-items: flex-end; justify-content: space-between'
+        "
+      >
         <h1>舞萌 DX 查分器</h1>
         <profile />
       </div>
@@ -35,7 +41,11 @@
           flex-wrap: wrap;
         "
       >
-        <v-dialog width="500px" :fullscreen="$vuetify.breakpoint.mobile" v-model="loginVisible">
+        <v-dialog
+          width="500px"
+          :fullscreen="$vuetify.breakpoint.mobile"
+          v-model="loginVisible"
+        >
           <template #activator="{ on, attrs }">
             <v-btn
               class="mt-3 mr-4"
@@ -130,7 +140,11 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog width="1000px" :fullscreen="$vuetify.breakpoint.mobile" v-model="dialogVisible">
+        <v-dialog
+          width="1000px"
+          :fullscreen="$vuetify.breakpoint.mobile"
+          v-model="dialogVisible"
+        >
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导入数据</v-btn>
           </template>
@@ -157,7 +171,11 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog width="500px" :fullscreen="$vuetify.breakpoint.mobile" v-model="feedbackVisible">
+        <v-dialog
+          width="500px"
+          :fullscreen="$vuetify.breakpoint.mobile"
+          v-model="feedbackVisible"
+        >
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">提交反馈</v-btn>
           </template>
@@ -182,7 +200,11 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog v-model="exportVisible" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
+        <v-dialog
+          v-model="exportVisible"
+          width="500px"
+          :fullscreen="$vuetify.breakpoint.mobile"
+        >
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导出为 CSV</v-btn>
           </template>
@@ -246,7 +268,11 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <v-dialog v-model="allModeVisible" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
+        <v-dialog
+          v-model="allModeVisible"
+          width="500px"
+          :fullscreen="$vuetify.breakpoint.mobile"
+        >
           <template #activator="{ on, attrs }">
             <v-btn
               class="mt-3 mr-4"
@@ -355,8 +381,19 @@
           </v-card-text>
         </v-card>
       </div>
-      <div class="mid" :style="$vuetify.breakpoint.mobile ? '' : 'display: flex'">
-        <message @resize="$refs.advertisement.resize()" :style="`flex: 1; ${$vuetify.breakpoint.mobile ? '' : 'min-width: 500px; margin-right: 16px'}`" class="mbe-2"></message>
+      <div
+        class="mid"
+        :style="$vuetify.breakpoint.mobile ? '' : 'display: flex'"
+      >
+        <message
+          @resize="$refs.advertisement.resize()"
+          :style="`flex: 1; ${
+            $vuetify.breakpoint.mobile
+              ? ''
+              : 'min-width: 500px; margin-right: 16px'
+          }`"
+          class="mbe-2"
+        ></message>
         <advertisement ref="advertisement" class="mbe-2"></advertisement>
       </div>
       <v-card>
@@ -394,8 +431,10 @@ import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
 import FilterSlider from "../components/FilterSlider.vue";
 import Advertisement from "../components/Advertisement.vue";
-import Message from '../components/Message.vue';
-import Profile from '../components/Profile.vue';
+import Message from "../components/Message.vue";
+import Profile from "../components/Profile.vue";
+import remasterData from "../data/remaster.json";
+import masterData from "../data/master.json";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 export default {
@@ -406,7 +445,7 @@ export default {
     FilterSlider,
     Advertisement,
     Message,
-    Profile
+    Profile,
   },
   data: function () {
     return {
@@ -502,7 +541,7 @@ export default {
         ret += this.dxData[i].ra;
       }
       return ret;
-    }
+    },
   },
   created: function () {
     this.fetchMusicData();
@@ -664,11 +703,11 @@ export default {
     computeRecord: function (record) {
       record.ds = this.getDS(record.title, record.level_index, record.type);
       if (record.ds) {
-        let arr = ("" + record.ds).split(".")
+        let arr = ("" + record.ds).split(".");
         if (["7", "8", "9"].indexOf(arr[1]) != -1) {
-          record.level = arr[0] + "+"
+          record.level = arr[0] + "+";
         } else {
-          record.level = arr[0]
+          record.level = arr[0];
         }
       }
       record.level_label = this.level_label[record.level_index];
@@ -826,6 +865,7 @@ export default {
     },
     flushData: function () {
       const records = this.pageToRecordList(this.textarea);
+      console.log(records);
       this.merge(records);
       this.sync();
       this.textarea = "";
@@ -839,16 +879,74 @@ export default {
       }
     },
     pageToRecordList: function (pageData) {
+      if (pageData.indexOf("maimai.wahlap.com") != -1) {
+        return this.parseHTMLData(pageData);
+      }
+      return this.parseCompressedData(pageData);
+    },
+    parseCompressedData: function (pageData) {
+      const reg = /([a-zA-Z]*?)(\d{1,2}\+?)([sd])([baemr])(\w{2})(\d+)([a-zA-Z]+)(\d{5,7})/g;
+      const labels = ["b", "a", "e", "m", "r"];
+      let records = [];
+      try {
+        //result should be ["12dm001753sss1002484", "12dm01733ssp999081", ...]
+        for (let split of pageData.split("%")) {
+          let data = reg.exec(split);
+          //data: {"original str", "fcfs", "level", "s or d", "m(aster)", "id(nth in ...List.json)", "dxscore", "rate", "achievements"}
+          if (!data) continue;
+          reg.lastIndex = 0;
+          let record_data = {
+            title: "",
+            level: data[2],
+            level_index: labels.indexOf(data[4]),
+            type: data[3] == "s" ? "SD" : "DX",
+            achievements: parseFloat(
+              data[8].slice(0, data[8].length - 4) +
+                "." +
+                data[8].slice(data[8].length - 4)
+            ),
+            dxScore: data[6],
+            rate: data[7],
+            fc: "",
+            fs: "",
+          };
+          //add title
+          if (data[4] == "r") {
+            record_data.title = remasterData[parseInt(data[5], 36)];
+          } else {
+            record_data.title = masterData[parseInt(data[5], 36)];
+          }
+          //add fc & fs
+          for (let s of ["fcp", "fc", "app", "ap"]) {
+            if (data[1].indexOf(s) != -1) {
+              record_data.fc = s;
+              break;
+            }
+          }
+          for (let s of ["fdxp", "fdx", "fsp", "fs"]) {
+            if (data[1].indexOf(s) != -1) {
+              record_data.fs = s;
+              break;
+            }
+          }
+          records.push(record_data);
+        }
+        if (records.length == 0) {
+          throw "no records found!"
+        }
+        return records;
+      } catch (err) {
+        console.log(err);
+        this.$message.error(
+          "导入页面信息出错，如您按照方法3操作，请确认数据和代码复制完整。如您没有按照方法3操作，请确认您导入的是【记录】-【乐曲成绩】-【歌曲类别】。"
+        );
+      }
+    },
+    parseHTMLData: function (pageData) {
       const getSibN = function (node, n) {
         let cur = node;
-        let f = false;
-        if (n < 0) {
-          n = -n;
-          f = true;
-        }
-        for (let i = 0; i < n; i++) {
-          if (f) cur = cur.previousSibling;
-          else cur = cur.nextSibling;
+        for (let i = 0; i < Math.abs(n); i++) {
+          cur = n < 0 ? cur.previousSibling : cur.nextSibling;
         }
         return cur;
       };
