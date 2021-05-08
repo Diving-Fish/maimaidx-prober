@@ -6,6 +6,15 @@ const { default: axios } = require('axios');
 
 const app = express();
 app.use(bodyParser.text({ limit: '4MB' }));
+app.all("*",function(req,res,next){
+  res.header("Access-Control-Allow-Origin","*");
+  res.header("Access-Control-Allow-Headers","content-type");
+  res.header("Access-Control-Allow-Methods","DELETE,PUT,POST,GET,OPTIONS");
+  if (req.method.toLowerCase() == 'options')
+    res.send(200);
+  else
+    next();
+});
 const port = 8089;
 
 music_data = []
