@@ -3,13 +3,14 @@ const bodyParser = require('body-parser')
 const xpath = require("xpath")
 const dom = require("xmldom").DOMParser;
 const { default: axios } = require('axios');
+const xmldom = require('xmldom');
 
 const app = express();
 app.use(bodyParser.text({ limit: '4MB' }));
-app.all("*",function(req,res,next){
-  res.header("Access-Control-Allow-Origin","*");
-  res.header("Access-Control-Allow-Headers","content-type");
-  res.header("Access-Control-Allow-Methods","DELETE,PUT,POST,GET,OPTIONS");
+app.all("*", function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "content-type");
+  res.header("Access-Control-Allow-Methods", "DELETE,PUT,POST,GET,OPTIONS");
   if (req.method.toLowerCase() == 'options')
     res.send(200);
   else
@@ -118,7 +119,14 @@ const pageToRecordList = function (pageData) {
   try {
     let link = false;
     let records = [];
-    let doc = new dom().parseFromString(pageData);
+    let doc = new dom({
+      locator: {},
+      errorHandler: {
+        warning: function (w) { },
+        error: function (e) { },
+        fatalError: function (e) { console.error(e) }
+      }
+    }).parseFromString(pageData);
     // this modify is about to detect two different 'Link'.
     const names = xpath.select(
       '//div[@class="music_name_block t_l f_13 break"]',
@@ -189,11 +197,42 @@ const pageToRecordList = function (pageData) {
 }
 
 app.post('/page', (req, res) => {
-  let records = pageToRecordList(req.body);
-  for (let record of records) {
-    computeRecord(record);
+  if (req.body.startsWith("<login>")) {
+    const loginCredentials = req.body.slice(7, req.body.indexOf("</login>"));
+    let xml = new dom().parseFromString(loginCredentials);
+    const u = xml.getElementsByTagName('u')[0].textContent;
+    const p = xml.getElementsByTagName('p')[0].textContent;
+    axios.post('https://www.diving-fish.com/api/maimaidxprober/login', {
+      username: u,
+      password: p
+    }).then(async resp => {
+      const token = resp.headers['set-cookie'][0];
+      const cookiePayload = token.slice(0, token.indexOf(';'));
+      let records = pageToRecordList(req.body);
+      for (let record of records) {
+        computeRecord(record);
+      }
+      await axios.post('https://www.diving-fish.com/api/maimaidxprober/player/update_records', records, {
+        headers: {
+          'cookie': cookiePayload
+        }
+      })
+      res.send({
+        'message': 'success'
+      })
+    }).catch((err) => {
+      console.log(err);
+      res.status(401).send({
+        'message': 'login failed'
+      })
+    })
+  } else {
+    let records = pageToRecordList(req.body);
+    for (let record of records) {
+      computeRecord(record);
+    }
+    res.send(records);
   }
-  res.send(records);
 })
 
 app.listen(port, () => {
