@@ -112,6 +112,36 @@ chmod +x <文件名>
 
 使用**Ctrl+A**全选获取的源代码，并复制到剪切板中。进入查分器主页，点击**导入数据**，将源代码粘贴到输入框中，点击导入。
 
+## 方法3：通过手机微信导入
+
+*该方法仅支持安卓系统*
+
+复制如下三个网址，并在微信中发送给任何一个人：
+
+debugmm.qq.com/?forcex5=true  
+http://debugtbs.qq.com  
+http://debugx5.qq.com
+
+从上到下依次打开各链接。打开第三个链接后，选择顶部的信息一栏，在下面勾选`打开vConsole调试功能`。
+
+之后，在用微信打开任意网页时，底部都会出现一个里面写着vConsole的绿框。觉得不好看可以在导入完之后取消上面的勾选。
+
+进入舞萌DX公众号，导航至记录-乐曲成绩，选择难度后点击页面最下方vConsole。此时页面会弹出一个窗口。
+
+将以下代码复制粘贴至下方command输入框，然后把`username`和`password`改为你自己的查分器用户名和密码，点击右侧OK按钮：
+
+```
+$.ajax({
+    url: 'https://www.diving-fish.com/api/pageparser/page',
+    type: 'POST',
+    data: "<login><u>username</u><p>password</p></login>" + document.getElementsByTagName('html')[0].innerHTML,
+    contentType: 'text/plain',
+    success: (res) => console.log(res)
+})
+```
+
+上方窗口显示message success即导入成功。
+
 至此，数据导入教程结束，您可以在查分器主页看到您的成绩数据。
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/10.png)
