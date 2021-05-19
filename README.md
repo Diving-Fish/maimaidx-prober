@@ -78,7 +78,7 @@ chmod +x <文件名>
 </details>
 &nbsp;
 
-*Mac OS 系统或 Linux 系统不支持自动修改代理，请自行查找代理修改方法。需要修改 HTTP/HTTPS 的代理，代理 URL 均为 127.0.0.1:8033。*
+*Linux 系统不支持自动修改代理，请自行查找代理修改方法。需要修改 HTTP/HTTPS 的代理，代理 URL 均为 127.0.0.1:8033。*
 
 打开**电脑版微信**，进入舞萌 DX 公众号，点击**我的记录**。如果您的代理设置无误，页面将如下图显示：
 
@@ -128,13 +128,13 @@ http://debugx5.qq.com
 
 进入舞萌DX公众号，导航至记录-乐曲成绩，选择难度后点击页面最下方vConsole。此时页面会弹出一个窗口。
 
-将以下代码复制粘贴至下方command输入框，然后把`username`和`password`改为你自己的查分器用户名和密码，点击右侧OK按钮：
+将以下代码复制粘贴至下方command输入框，然后把`USERNAME`和`PASSWORD`改为你自己的查分器用户名和密码，点击右侧OK按钮：
 
 ```
 $.ajax({
     url: 'https://www.diving-fish.com/api/pageparser/page',
     type: 'POST',
-    data: "<login><u>username</u><p>password</p></login>" + document.getElementsByTagName('html')[0].innerHTML,
+    data: "<login><u>USERNAME</u><p>PASSWORD</p></login>" + document.getElementsByTagName('html')[0].innerHTML,
     contentType: 'text/plain',
     success: (res) => console.log(res)
 })
