@@ -351,6 +351,18 @@ async def update_record():
     }
 
 
+@app.route("/player/delete_records", methods=['DELETE'])
+@login_required
+async def delete_records():
+    global cs_need_update
+    cs_need_update = True
+    nums = Record.delete().where(Record.player == g.user.id).execute()
+    await compute_ra(g.user)
+    return {
+        "message": nums
+    }
+
+
 @app.route("/rating_ranking", methods=['GET'])
 async def rating_ranking():
     players = Player.select()

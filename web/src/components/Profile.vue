@@ -57,6 +57,25 @@
               </v-col>
             </v-row>
             <v-checkbox v-model="privacy" label="禁止其他人查询我的成绩" />
+            <v-dialog
+              v-model="delVisible"
+              width="600"
+              :fullscreen="$vuetify.breakpoint.mobile"
+            >
+              <template #activator="{ on, attrs }">
+                <v-btn v-on="on" v-bind="attrs" color="warning"> 删除所有数据 </v-btn>
+              </template>
+              <v-card>
+                <v-card-title>删除数据</v-card-title>
+                <v-card-text>
+                  您确定要删除您的所有数据记录吗？您仍可以再次通过数据导入重新导入数据。
+                </v-card-text>
+                <v-card-actions class="pb-4">
+                  <v-btn color="warning" @click="delete_records()">确定</v-btn>
+                  <v-btn @click="visible = false">取消</v-btn>
+                </v-card-actions>
+              </v-card>
+            </v-dialog>
           </v-form>
           <v-card-actions class="pb-4">
             <v-btn color="primary" @click="submit">保存</v-btn>
@@ -77,6 +96,7 @@ export default {
       login: false,
       username: "",
       visible: false,
+      delVisible: false,
       select: { label: "真传拾段", ra: 2100 },
       ratings: [
         { label: "初学者", ra: 0 },
@@ -136,6 +156,12 @@ export default {
           this.nickname = resp.data.nickname;
         });
     },
+    delete_records() {
+      axios.delete("https://www.diving-fish.com/api/maimaidxprober/player/delete_records").then((resp) => {
+        this.$message.success("已删除" + resp.data.message + "条数据")
+        setTimeout("window.location.reload()", 1500)
+      })
+    }
   },
   created: function () {
     axios
