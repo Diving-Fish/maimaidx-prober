@@ -41,7 +41,8 @@ def music_data():
                     "genre": value["genre"],
                     "bpm": value["bpm"],
                     "release_date": value["release_date"],
-                    "from": value["version"]
+                    "from": value["version"],
+                    "is_new": value["is_new"]
                 }
             }
         c: Chart = m.chart
@@ -65,9 +66,23 @@ md_cache = music_data()
 
 def get_ds(r: Dict):
     for m in md_cache:
-        if m['title'] == r["title"]:
+        if m['title'] == r["title"] and m['type'] == r['type']:
             return m["ds"][r["level_index"]]
     return 0
+
+
+def is_new(r: Dict):
+    for m in md_cache:
+        if m['title'] == r["title"] and m['type'] == r['type']:
+            return m["basic_info"]["is_new"]
+    return False
+
+
+def is_new_2(r: Record):
+    for m in md_cache:
+        if m['title'] == r.title and m['type'] == r.type:
+            return m["basic_info"]["is_new"]
+    return False
 
 
 app = Quart(__name__)
@@ -199,13 +214,28 @@ async def get_music_data():
 @login_required
 async def get_records():
     r = Record.select().where(Record.player == g.user.id)
+    asyncio.create_task(compute_ra(g.user))
     records = []
     for record in r:
-        records.append(record.json(md=md_cache))
+        elem = record.json(md=md_cache)
+        elem["is_new"] = is_new(elem)
+        records.append(elem)
     resp = await make_response(
         '{"records":' + json.dumps(records, ensure_ascii=False) + ', "username": "' + g.username + '", "additional_rating": ' + str(g.user.additional_rating) + '}')
     resp.headers['content-type'] = "application/json; charset=utf-8"
     return resp
+
+
+def get_dx_and_sd(player):
+    l: List = Record.select().where(Record.player == player.id).order_by(Record.ra.desc())
+    l1 = []
+    l2 = []
+    for r in l:
+        if is_new_2(r):
+            l2.append(r)
+        else:
+            l1.append(r)
+    return l1[:25], l2[:15]
 
 
 @app.route("/query/player", methods=['POST'])
@@ -232,10 +262,8 @@ async def query_player():
             return {"status": "error", "msg": "会话过期"}, 403
         if token['username'] != obj["username"]:
             return {"status": "error", "msg": "已设置隐私"}, 403
-    sd: List = Record.select().where((Record.player == p.id) & (Record.type == "SD")).order_by(Record.ra.desc()).limit(
-        25)
-    dx: List = Record.select().where((Record.player == p.id) & (Record.type == "DX")).order_by(Record.ra.desc()).limit(
-        15)
+    sd, dx = get_dx_and_sd(p)
+    asyncio.create_task(compute_ra(p))
     nickname = p.nickname
     if nickname == "":
         nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
@@ -262,10 +290,7 @@ def update_one(records, record):
 
 async def compute_ra(player: Player):
     rating = 0
-    sd = Record.select().where((Record.player == player.id) & (Record.type == "SD")).order_by(Record.ra.desc()).limit(
-        25)
-    dx = Record.select().where((Record.player == player.id) & (Record.type == "DX")).order_by(Record.ra.desc()).limit(
-        15)
+    sd, dx = get_dx_and_sd(player)
     for t in sd:
         rating += t.ra
     for t in dx:
@@ -323,6 +348,18 @@ async def update_record():
     await compute_ra(g.user)
     return {
         "message": "更新成功",
+    }
+
+
+@app.route("/player/delete_records", methods=['DELETE'])
+@login_required
+async def delete_records():
+    global cs_need_update
+    cs_need_update = True
+    nums = Record.delete().where(Record.player == g.user.id).execute()
+    await compute_ra(g.user)
+    return {
+        "message": nums
     }
 
 

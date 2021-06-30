@@ -323,8 +323,8 @@
           <filter-slider ref="filterSlider"></filter-slider>
           <v-card-text>
             <v-tabs v-model="tab">
-              <v-tab key="sd">标准乐谱</v-tab>
-              <v-tab key="dx">DX 乐谱</v-tab>
+              <v-tab key="sd">旧乐谱</v-tab>
+              <v-tab key="dx">DX 2021</v-tab>
             </v-tabs>
             <v-tabs-items v-model="tab">
               <v-tab-item key="sd">
@@ -466,7 +466,7 @@ export default {
     sdData: function () {
       let data = this.records
         .filter((elem) => {
-          return elem.type == "SD";
+          return !this.is_new(elem);
         })
         .sort((a, b) => {
           return b.ra - a.ra;
@@ -479,7 +479,7 @@ export default {
     dxData: function () {
       let data = this.records
         .filter((elem) => {
-          return elem.type == "DX";
+          return this.is_new(elem);
         })
         .sort((a, b) => {
           return b.ra - a.ra;
@@ -663,8 +663,16 @@ export default {
     },
     computeRecord: function (record) {
       record.ds = this.getDS(record.title, record.level_index, record.type);
+      if (record.ds) {
+        let arr = ("" + record.ds).split(".")
+        if (["7", "8", "9"].indexOf(arr[1]) != -1) {
+          record.level = arr[0] + "+"
+        } else {
+          record.level = arr[0]
+        }
+      }
       record.level_label = this.level_label[record.level_index];
-      let l = 15;
+      let l = 14;
       const rate = record.achievements;
       if (rate < 50) {
         l = 0;
@@ -677,23 +685,21 @@ export default {
       } else if (rate < 80) {
         l = 7.5;
       } else if (rate < 90) {
-        l = 8;
+        l = 8.5;
       } else if (rate < 94) {
-        l = 9;
+        l = 9.5;
       } else if (rate < 97) {
-        l = 9.4;
+        l = 10.5;
       } else if (rate < 98) {
-        l = 10;
+        l = 12.5;
       } else if (rate < 99) {
-        l = 11;
+        l = 12.7;
       } else if (rate < 99.5) {
-        l = 12;
-      } else if (rate < 99.99) {
         l = 13;
       } else if (rate < 100) {
-        l = 13.5;
+        l = 13.2;
       } else if (rate < 100.5) {
-        l = 14;
+        l = 13.5;
       }
       record.ra = Math.floor(record.ds * (Math.min(100.5, rate) / 100) * l);
       if (isNaN(record.ra)) record.ra = 0;
@@ -781,6 +787,13 @@ export default {
       //console.log(this.records);
       for (let i = 0; i < this.records.length; i++) {
         this.computeRecord(this.records[i]);
+      }
+    },
+    is_new: function (record) {
+      for (const music of this.music_data) {
+        if (record.title == music.title && record.type == music.type) {
+          return music.basic_info.is_new;
+        }
       }
     },
     merge: function (records) {

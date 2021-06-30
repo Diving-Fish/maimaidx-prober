@@ -10,7 +10,7 @@
       thumb-label
       :value="ds"
       min="1"
-      max="14"
+      max="15"
       step="0.1"
       label="定数"
       @end="end_move_ds"
@@ -21,7 +21,7 @@
       thumb-label
       :value="level"
       min="0"
-      max="20"
+      max="22"
       label="等级"
       @end="end_move_level"
     >
@@ -46,8 +46,8 @@ export default {
   data: () => {
     return {
       useDs: false,
-      ds: [1, 14],
-      level: [0, 20],
+      ds: [1, 15],
+      level: [0, 22],
       level_item: [
         "1",
         "2",
@@ -70,6 +70,8 @@ export default {
         "13",
         "13+",
         "14",
+        "14+",
+        "15"
       ],
     };
   },

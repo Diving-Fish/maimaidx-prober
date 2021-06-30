@@ -3,9 +3,19 @@ const bodyParser = require('body-parser')
 const xpath = require("xpath")
 const dom = require("xmldom").DOMParser;
 const { default: axios } = require('axios');
+const xmldom = require('xmldom');
 
 const app = express();
 app.use(bodyParser.text({ limit: '4MB' }));
+app.all("*", function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "content-type");
+  res.header("Access-Control-Allow-Methods", "DELETE,PUT,POST,GET,OPTIONS");
+  if (req.method.toLowerCase() == 'options')
+    res.send(200);
+  else
+    next();
+});
 const port = 8089;
 
 music_data = []
@@ -27,7 +37,7 @@ const level_label = ["Basic", "Advanced", "Expert", "Master", "Re:MASTER"]
 const computeRecord = function (record) {
   record.ds = getDS(record.title, record.level_index, record.type);
   record.level_label = level_label[record.level_index];
-  let l = 15;
+  let l = 14;
   const rate = record.achievements;
   if (rate < 50) {
     l = 0;
@@ -40,23 +50,21 @@ const computeRecord = function (record) {
   } else if (rate < 80) {
     l = 7.5;
   } else if (rate < 90) {
-    l = 8;
+    l = 8.5;
   } else if (rate < 94) {
-    l = 9;
+    l = 9.5;
   } else if (rate < 97) {
-    l = 9.4;
+    l = 10.5;
   } else if (rate < 98) {
-    l = 10;
+    l = 12.5;
   } else if (rate < 99) {
-    l = 11;
+    l = 12.7;
   } else if (rate < 99.5) {
-    l = 12;
-  } else if (rate < 99.99) {
     l = 13;
   } else if (rate < 100) {
-    l = 13.5;
+    l = 13.2;
   } else if (rate < 100.5) {
-    l = 14;
+    l = 13.5;
   }
   record.ra = Math.floor(record.ds * (Math.min(100.5, rate) / 100) * l);
   if (isNaN(record.ra)) record.ra = 0;
@@ -111,7 +119,14 @@ const pageToRecordList = function (pageData) {
   try {
     let link = false;
     let records = [];
-    let doc = new dom().parseFromString(pageData);
+    let doc = new dom({
+      locator: {},
+      errorHandler: {
+        warning: function (w) { },
+        error: function (e) { },
+        fatalError: function (e) { console.error(e) }
+      }
+    }).parseFromString(pageData);
     // this modify is about to detect two different 'Link'.
     const names = xpath.select(
       '//div[@class="music_name_block t_l f_13 break"]',
@@ -182,11 +197,42 @@ const pageToRecordList = function (pageData) {
 }
 
 app.post('/page', (req, res) => {
-  let records = pageToRecordList(req.body);
-  for (let record of records) {
-    computeRecord(record);
+  if (req.body.startsWith("<login>")) {
+    const loginCredentials = req.body.slice(7, req.body.indexOf("</login>"));
+    let xml = new dom().parseFromString(loginCredentials);
+    const u = xml.getElementsByTagName('u')[0].textContent;
+    const p = xml.getElementsByTagName('p')[0].textContent;
+    axios.post('https://www.diving-fish.com/api/maimaidxprober/login', {
+      username: u,
+      password: p
+    }).then(async resp => {
+      const token = resp.headers['set-cookie'][0];
+      const cookiePayload = token.slice(0, token.indexOf(';'));
+      let records = pageToRecordList(req.body);
+      for (let record of records) {
+        computeRecord(record);
+      }
+      await axios.post('https://www.diving-fish.com/api/maimaidxprober/player/update_records', records, {
+        headers: {
+          'cookie': cookiePayload
+        }
+      })
+      res.send({
+        'message': 'success'
+      })
+    }).catch((err) => {
+      console.log(err);
+      res.status(401).send({
+        'message': 'login failed'
+      })
+    })
+  } else {
+    let records = pageToRecordList(req.body);
+    for (let record of records) {
+      computeRecord(record);
+    }
+    res.send(records);
   }
-  res.send(records);
 })
 
 app.listen(port, () => {

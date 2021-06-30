@@ -14,9 +14,7 @@
 
 #### 1. 准备工作
 
-如果您使用 Windows 操作系统，您可以访问[此链接](https://github.com/Diving-Fish/maimaidx-prober/releases)来下载最新版本的代理工具，文件名为**maimaidx-prober-proxy.exe**。
-
-如果您使用其他操作系统或处理器架构，您可以自行编译代理工具，准备好 Go 语言环境，`go get github.com/Diving-Fish/maimaidx-prober/proxy/cmd/maimaidx-prober-proxy` 即可获得可执行文件。
+您可以访问[此链接](https://github.com/Diving-Fish/maimaidx-prober/releases)来下载最新版本的代理工具，文件名为**maimaidx-prober-proxy-(os).exe**（os指您的操作系统）。
 
 请将代理工具复制到一个空文件夹中，然后点击运行。初次运行后，代理工具将在当前目录下创建 3 个文件：
 
@@ -26,9 +24,20 @@
 |`cert.crt`|可以导入的证书文件|
 |`key.pem`|私钥文件，无需进行任何操作|
 
-首先，双击 cert.crt 文件打开，点击**安装证书**，打开证书导入向导。一般情况下，只需要对当前用户安装证书即可。之后点击下一步，按照如图选择将此证书放入“受信任的根证书颁发机构”进行存储。接下来，一路选择**是**，直到提示证书导入完成。
+*在 Mac OS 或者 Linux 上运行，请打开 Shell 输入如下的命令：*
+```plain
+chmod +x <文件名>
+./<文件名>
+```
+*如果 Mac OS 提示“不受信任的开发者”，请自行百度解决办法。*
+
+双击 cert.crt 文件打开，点击**安装证书**，打开证书导入向导。一般情况下，只需要对当前用户安装证书即可。之后点击下一步，按照如图选择将此证书放入“受信任的根证书颁发机构”进行存储。接下来，一路选择**是**，直到提示证书导入完成。
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/1.png)
+
+*在 Mac OS 系统上，请将钥匙串加入"系统"中，并双击打开证书详情，在信任子菜单下调整设置，如下所示：*
+
+![](https://www.diving-fish.com/images/maimaidx-prober/9.png)
 
 之后，填写`config.json`文件。使用记事本、Notepad++或Sublime Text等文本编辑器打开`config.json`，并将您查分器的用户名（假如是`MyAccount`）和密码（假如是`MyPassword`）写入对应区域的引号中，类似这样：
 
@@ -69,6 +78,8 @@
 </details>
 &nbsp;
 
+*Linux 系统不支持自动修改代理，请自行查找代理修改方法。需要修改 HTTP/HTTPS 的代理，代理 URL 均为 127.0.0.1:8033。*
+
 打开**电脑版微信**，进入舞萌 DX 公众号，点击**我的记录**。如果您的代理设置无误，页面将如下图显示：
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/4.png)
@@ -101,6 +112,36 @@
 
 使用**Ctrl+A**全选获取的源代码，并复制到剪切板中。进入查分器主页，点击**导入数据**，将源代码粘贴到输入框中，点击导入。
 
+## 方法3：通过手机微信导入
+
+*该方法仅支持安卓系统*
+
+复制如下三个网址，并在微信中发送给任何一个人：
+
+debugmm.qq.com/?forcex5=true  
+http://debugtbs.qq.com  
+http://debugx5.qq.com
+
+从上到下依次打开各链接。打开第三个链接后，选择顶部的信息一栏，在下面勾选`打开vConsole调试功能`。
+
+之后，在用微信打开任意网页时，底部都会出现一个里面写着vConsole的绿框。觉得不好看可以在导入完之后取消上面的勾选。
+
+进入舞萌DX公众号，导航至记录-乐曲成绩，选择难度后点击页面最下方vConsole。此时页面会弹出一个窗口。
+
+将以下代码复制粘贴至下方command输入框，然后把`USERNAME`和`PASSWORD`改为你自己的查分器用户名和密码，点击右侧OK按钮：
+
+```
+$.ajax({
+    url: 'https://www.diving-fish.com/api/pageparser/page',
+    type: 'POST',
+    data: "<login><u>USERNAME</u><p>PASSWORD</p></login>" + document.getElementsByTagName('html')[0].innerHTML,
+    contentType: 'text/plain',
+    success: (res) => console.log(res)
+})
+```
+
+上方窗口显示message success即导入成功。
+
 至此，数据导入教程结束，您可以在查分器主页看到您的成绩数据。
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/10.png)
@@ -114,10 +155,6 @@
 > config.json文件应该怎么修改？
 
 用任何文本编辑器（包括记事本），替换myaccount和mypassword为您的账号密码。
-
-> 我不是windows x64的系统怎么办？
-
-亟待解决，自己编译也是可以的。
 
 > 为什么我在电脑版微信中点击“舞萌DX”公众号中的“我的记录”会自动跳转到浏览器，并显示“请在微信客户端中打开链接”？
 

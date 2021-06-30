@@ -1,13 +1,15 @@
 <template>
   <div>
     <v-carousel cycle v-if="$vuetify.breakpoint.mobile" height="auto">
-      <v-carousel-item v-for="img in img_urls" :key="img">
-        <img :src="img" style="width: 100%">
+      <v-carousel-item v-for="img in img_urls" :key="img.s">
+        <img v-if="img.l == ''" :src="img.s" style="width: 100%">
+        <a :href="img.l" v-else><img :src="img.s" style="width: 100%"></a>
       </v-carousel-item>
     </v-carousel>
     <v-carousel cycle v-else :style="`height: ${height}px; width: ${16 * height / 9}px`">
-      <v-carousel-item v-for="img in img_urls" :key="img">
-        <img :src="img" style="width: 100%">
+      <v-carousel-item v-for="img in img_urls" :key="img.s">
+        <img v-if="img.l == ''" :src="img.s" style="width: 100%">
+        <a :href="img.l" v-else><img :src="img.s" style="width: 100%"></a>
       </v-carousel-item>
     </v-carousel>
   </div>
@@ -19,8 +21,9 @@ export default {
     return {
       height: 0,
       img_urls: [
-        "https://www.diving-fish.com/maimaidx/prober/pic0.jpg",
-        "https://www.diving-fish.com/maimaidx/prober/pic1.jpg"
+        {s: "https://www.diving-fish.com/maimaidx/prober/ad1.png", l: "https://chihaya.cloud/login"},
+        {s: "https://www.diving-fish.com/maimaidx/prober/pic0.jpg", l: ""},
+        {s: "https://www.diving-fish.com/maimaidx/prober/pic1.jpg", l: ""}
       ]
     }
   },

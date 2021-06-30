@@ -25,6 +25,8 @@ class Music(BaseModel):
     bpm = IntegerField()
     release_date = CharField()
     version = CharField()
+    version_cn = CharField()
+    is_new = BooleanField()
 
 
 class Chart(BaseModel):

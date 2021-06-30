@@ -9,6 +9,7 @@
     sort-by="rank"
   >
     <template #item.title="{ item }">
+      <a v-if="item.type == 'DX'" dark color="blue" style="cursor: default">DX</a>
       {{ item.title }}
       <v-chip v-if="item.fc" :color="getFC(item.fc)" dark>{{
         getName(item.fc)
