@@ -114,7 +114,7 @@ chmod +x <文件名>
 
 ## 方法3：通过手机微信导入
 
-*该方法仅支持安卓系统*
+*该方法仅支持安卓系统。*
 
 复制如下三个网址，并在微信中发送给任何一个人：
 
@@ -126,21 +126,34 @@ http://debugx5.qq.com
 
 之后，在用微信打开任意网页时，底部都会出现一个里面写着vConsole的绿框。觉得不好看可以在导入完之后取消上面的勾选。
 
-进入舞萌DX公众号，导航至记录-乐曲成绩，选择难度后点击页面最下方vConsole。此时页面会弹出一个窗口。
+进入舞萌DX公众号，点击“我的记录”进入舞萌DX主页，再点击页面最下方vConsole。此时页面会弹出一个窗口。
 
 将以下代码复制粘贴至下方command输入框，然后把`USERNAME`和`PASSWORD`改为你自己的查分器用户名和密码，点击右侧OK按钮：
 
-```
-$.ajax({
+``` javascript
+((u,p)=>[0,1,2,3,4].forEach((diff)=>{
+ $.ajax({
+  url: 'https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff='+diff,
+  type: 'GET',
+  async: false,
+  success: (res) => {
+   console.log(res.match("错误"));
+   $.ajax({
     url: 'https://www.diving-fish.com/api/pageparser/page',
     type: 'POST',
-    data: "<login><u>USERNAME</u><p>PASSWORD</p></login>" + document.getElementsByTagName('html')[0].innerHTML,
+    data: "<login><u>"+u+"</u><p>"+p+"</p></login>" + res.match(/<html.*>([\s\S]*)<\/html>/)[1].replace(/\s+/g,' '),
     contentType: 'text/plain',
     success: (res) => console.log(res)
-})
+   });
+  }
+ });
+}))
+("USERNAME", "PASSWORD");
 ```
 
-上方窗口显示message success即导入成功。
+命令执行可能稍有卡顿，请耐心等待最多10秒。上方窗口在“undefined”后没有显示“错误”字样，并且显示5 message success等字样即导入成功。
+
+*如果命令执行未能符合预期，欢迎进群讨论。*
 
 至此，数据导入教程结束，您可以在查分器主页看到您的成绩数据。
 
