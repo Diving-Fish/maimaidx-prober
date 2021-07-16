@@ -1,5 +1,5 @@
 from collections import defaultdict
-from functools import wraps
+from functools import cmp_to_key, wraps
 from typing import Optional, Dict
 
 from quart import *
@@ -10,6 +10,7 @@ import json
 import hashlib
 import random
 import string
+import math
 
 
 def md5(v: str):
@@ -69,6 +70,36 @@ def get_ds(r: Dict):
         if m['title'] == r["title"] and m['type'] == r['type']:
             return m["ds"][r["level_index"]]
     return 0
+
+
+def get_l(rate):
+    if rate < 50:
+        l = 0
+    elif rate < 60:
+        l = 5
+    elif rate < 70:
+        l = 6
+    elif rate < 75:
+        l = 7
+    elif rate < 80:
+        l = 7.5
+    elif rate < 90:
+        l = 8.5
+    elif rate < 94:
+        l = 9.5
+    elif rate < 97:
+        l = 10.5
+    elif rate < 98:
+        l = 12.5
+    elif rate < 99:
+        l = 12.7
+    elif rate < 99.5:
+        l = 13
+    elif rate < 100:
+        l = 13.2
+    elif rate < 100.5:
+        l = 13.5
+    return l
 
 
 def is_new(r: Dict):
@@ -230,11 +261,19 @@ def get_dx_and_sd(player):
     l: List = Record.select().where(Record.player == player.id).order_by(Record.ra.desc())
     l1 = []
     l2 = []
+    sort = False
     for r in l:
+        if r.ra == 0:
+            r.ra = math.floor(get_ds({"title": r.title, "type": r.type, "level_index": r.level_index}) * get_l(r.achievements) * min(100.5, r.achievements) / 100)
+            r.save()
+            sort = True
         if is_new_2(r):
             l2.append(r)
         else:
             l1.append(r)
+    if sort:
+        l1.sort(key=lambda x: x.ra, reverse=True)
+        l2.sort(key=lambda x: x.ra, reverse=True)
     return l1[:25], l2[:15]
 
 
