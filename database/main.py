@@ -73,6 +73,7 @@ def get_ds(r: Dict):
 
 
 def get_l(rate):
+    l = 14
     if rate < 50:
         l = 0
     elif rate < 60:
