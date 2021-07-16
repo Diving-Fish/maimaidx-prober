@@ -43,8 +43,8 @@
           }}</v-chip>
         </template>
         在有数据的同难度歌曲中，<br />
-        这首歌曲的 SSS+ 比例排名为 {{ getTag(item).rank_text }}<br />
-        SSS+ 人数为：{{ getTag(item).rate_text }}({{
+        这首歌曲的 SSS 比例排名为 {{ getTag(item).rank_text }}<br />
+        SSS 人数为：{{ getTag(item).rate_text }}({{
           getTag(item).rate
         }}%)<br />
         平均达成率为：{{ getTag(item).ac }}%
@@ -66,7 +66,7 @@
             mdi-information-outline
           </v-icon>
         </template>
-        <span>相对难度是指某一张谱面的 SSS+ 比例在同等级谱面中的排名</span>
+        <span>相对难度是指某一张谱面的 SSS 比例在同等级谱面中的排名</span>
       </v-tooltip>
     </template>
     <template #item.actions="{ item }">

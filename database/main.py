@@ -422,7 +422,7 @@ async def chart_stats():
         return resp
     cursor = Record.raw(
         'select record.title, record.type, record.level_index, count(*) as cnt, avg(achievements) as `avg`, sum(case'
-        ' when achievements > 100.5 then 1 else 0 end) as sssp_count from record group by title, `type`, level_index')
+        ' when achievements > 100 then 1 else 0 end) as sssp_count from record group by title, `type`, level_index')
     data = defaultdict(lambda: [{}, {}, {}, {}, {}])
     for elem in cursor:
         data[elem.title + elem.type][elem.level_index] = {"count": elem.cnt,
