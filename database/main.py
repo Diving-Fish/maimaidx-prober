@@ -1,5 +1,6 @@
 from collections import defaultdict
 from functools import cmp_to_key, wraps
+from operator import le
 from typing import Optional, Dict
 
 from quart import *
@@ -63,6 +64,9 @@ def music_data():
 cs_need_update = True
 cs_cache = {}
 md_cache = music_data()
+md_map = {}
+for music in md_cache:
+    md_map[music['id']] = music
 
 
 def get_ds(r: Dict):
@@ -73,6 +77,7 @@ def get_ds(r: Dict):
 
 
 def get_l(rate):
+    l = 14
     if rate < 50:
         l = 0
     elif rate < 60:
@@ -349,19 +354,49 @@ async def update_records():
     for record in r:
         records.append(record.json(md=md_cache))
     j = await request.get_json()
-    for new in j:
-        if "rank" in new:
-            del new["rank"]
-        if "tag" in new:
-            del new["tag"]
-        update_one(records, new)
-    for r in records:
-        r["player"] = g.user
-        if "song_id" in r:
-            del r["song_id"]
-        # Don't know why this happen
-        if "ds" not in r:
-            r["ds"] = get_ds(r)
+    if "userId" in j:
+        try:
+            for ml in j["userMusicList"]:
+                for m in ml["userMusicDetailList"]:
+                    music = md_map[str(m["music_id"])]
+                    level = m["level"]
+                    achievement = m["achievement"]
+                    fc = ["", "fc", "fcp", "ap", "app"][m["comboStatus"]]
+                    fs = ["", "fs", "fsp", "fsd", "fsdp"][m["syncStatus"]]
+                    dxScore = m["deluxscoreMax"]
+                    update_one(records, {
+                        "title": music["title"],
+                        "level": music["level"][level],
+                        "level_index": level,
+                        "type": "DX" if m["music_id"] >= 10000 else "SD",
+                        "achievements": achievement / 10000.0,
+                        "dxScore": dxScore,
+                        "ds": music["ds"][level],
+                        "level_label": "",
+                        "rank": 0,
+                        "ra": 0,
+                        "rate": ['d', 'c', 'b', 'bb', 'bbb', 'a', 'aa', 'aaa', 's', 'sp', 'ss', 'ssp', 'sss', 'sssp'][m["scoreRank"]],
+                        "fc": fc,
+                        "fs": fs
+                    })
+        except Exception as e:
+            return {
+                "message": str(e)
+            }, 400
+    else:
+        for new in j:
+            if "rank" in new:
+                del new["rank"]
+            if "tag" in new:
+                del new["tag"]
+            update_one(records, new)
+        for r in records:
+            r["player"] = g.user
+            if "song_id" in r:
+                del r["song_id"]
+            # Don't know why this happen
+            if "ds" not in r:
+                r["ds"] = get_ds(r)
     Record.delete().where(Record.player == g.user.id).execute()
     Record.insert_many(records).execute()
     await compute_ra(g.user)
