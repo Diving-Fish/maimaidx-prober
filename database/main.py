@@ -1,6 +1,5 @@
 from collections import defaultdict
 from functools import cmp_to_key, wraps
-from operator import le
 from typing import Optional, Dict
 
 from quart import *
