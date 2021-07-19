@@ -357,7 +357,9 @@ async def update_records():
         try:
             for ml in j["userMusicList"]:
                 for m in ml["userMusicDetailList"]:
-                    music = md_map[str(m["music_id"])]
+                    if str(m["musicId"]) not in md_map:
+                        continue
+                    music = md_map[str(m["musicId"])]
                     level = m["level"]
                     achievement = m["achievement"]
                     fc = ["", "fc", "fcp", "ap", "app"][m["comboStatus"]]
@@ -367,12 +369,11 @@ async def update_records():
                         "title": music["title"],
                         "level": music["level"][level],
                         "level_index": level,
-                        "type": "DX" if m["music_id"] >= 10000 else "SD",
+                        "type": "DX" if m["musicId"] >= 10000 else "SD",
                         "achievements": achievement / 10000.0,
                         "dxScore": dxScore,
                         "ds": music["ds"][level],
                         "level_label": "",
-                        "rank": 0,
                         "ra": 0,
                         "rate": ['d', 'c', 'b', 'bb', 'bbb', 'a', 'aa', 'aaa', 's', 'sp', 'ss', 'ssp', 'sss', 'sssp'][m["scoreRank"]],
                         "fc": fc,
@@ -389,13 +390,13 @@ async def update_records():
             if "tag" in new:
                 del new["tag"]
             update_one(records, new)
-        for r in records:
-            r["player"] = g.user
-            if "song_id" in r:
-                del r["song_id"]
-            # Don't know why this happen
-            if "ds" not in r:
-                r["ds"] = get_ds(r)
+    for r in records:
+        r["player"] = g.user
+        if "song_id" in r:
+            del r["song_id"]
+        # Don't know why this happen
+        if "ds" not in r:
+            r["ds"] = get_ds(r)
     Record.delete().where(Record.player == g.user.id).execute()
     Record.insert_many(records).execute()
     await compute_ra(g.user)
