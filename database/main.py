@@ -281,6 +281,18 @@ def get_dx_and_sd(player):
     return l1[:25], l2[:15]
 
 
+def get_dx_and_sd_for50(player):
+    l: List = Record.select().where(Record.player == player.id).order_by(Record.ra.desc())
+    l1 = []
+    l2 = []
+    for r in l:
+        if is_new_2(r):
+            l2.append(r)
+        else:
+            l1.append(r)
+    return l1[:35], l2[:15]
+
+
 @app.route("/query/player", methods=['POST'])
 async def query_player():
     obj = await request.json
@@ -305,7 +317,10 @@ async def query_player():
             return {"status": "error", "msg": "会话过期"}, 403
         if token['username'] != obj["username"]:
             return {"status": "error", "msg": "已设置隐私"}, 403
-    sd, dx = get_dx_and_sd(p)
+    if "b50" in obj:
+        sd, dx = get_dx_and_sd_for50(p)
+    else:
+        sd, dx = get_dx_and_sd(p)
     asyncio.create_task(compute_ra(p))
     nickname = p.nickname
     if nickname == "":
