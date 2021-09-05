@@ -223,6 +223,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+        <plate-qualifier ref="pq" :music_data="music_data" :records="records" />
         <v-dialog
           v-model="logoutVisible"
           width="500px"
@@ -363,6 +364,8 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
+          2021/09/06
+          更新了查询牌子的功能。<br />
           2021/07/16
           更新了天界 2 的歌曲数据，以及相对难度从现在开始按照 SSS 的人数进行排名了。<br />
           2021/03/18
@@ -399,8 +402,10 @@ import FilterSlider from "../components/FilterSlider.vue";
 import Advertisement from "../components/Advertisement.vue";
 import Message from '../components/Message.vue';
 import Profile from '../components/Profile.vue';
+import PlateQualifier from '../components/PlateQualifier.vue';
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
+const DEBUG = false;
 export default {
   name: "App",
   components: {
@@ -409,7 +414,8 @@ export default {
     FilterSlider,
     Advertisement,
     Message,
-    Profile
+    Profile,
+    PlateQualifier
   },
   data: function () {
     return {
@@ -627,7 +633,7 @@ export default {
               "https://www.diving-fish.com/api/maimaidxprober/chart_stats"
             ),
             axios.get(
-              "https://www.diving-fish.com/api/maimaidxprober/player/records"
+              DEBUG ? "https://www.diving-fish.com/api/maimaidxprober/player/test_data" : "https://www.diving-fish.com/api/maimaidxprober/player/records"
             ),
           ]).then(([resp1, resp2]) => {
             that.chart_stats = resp1.value.data;
@@ -636,6 +642,7 @@ export default {
               that.username = data.username;
               that.merge(data.records);
             }
+            this.$refs.pq.init();
             that.loading = false;
           });
         });

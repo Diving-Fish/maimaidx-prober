@@ -2,6 +2,7 @@ from collections import defaultdict
 from functools import cmp_to_key, wraps
 from typing import Optional, Dict
 
+import time
 from quart import *
 from _jwt import *
 import asyncio
@@ -17,49 +18,6 @@ def md5(v: str):
     return hashlib.md5(v.encode(encoding='UTF-8')).hexdigest()
 
 
-def music_data():
-    data = []
-    dct = None
-    music = Music.select(Music, Chart).join(Chart)
-    prev_music_id = 0
-    for m in music:
-        m: Music
-        if m.id != prev_music_id:
-            if dct:
-                data.append(dct)
-            prev_music_id = m.id
-            value = vars(m)['__data__']
-            dct = {
-                "id": str(value["id"]),
-                "title": value["title"],
-                "type": value["type"],
-                "ds": [],
-                "level": [],
-                "charts": [],
-                "basic_info": {
-                    "title": value["title"],
-                    "artist": value["artist"],
-                    "genre": value["genre"],
-                    "bpm": value["bpm"],
-                    "release_date": value["release_date"],
-                    "from": value["version"],
-                    "is_new": value["is_new"]
-                }
-            }
-        c: Chart = m.chart
-        dct['ds'].append(c.ds)
-        dct['level'].append(c.difficulty)
-        if m.type == 'SD':
-            notes = [c.tap_note, c.hold_note, c.slide_note, c.break_note]
-        else:
-            notes = [c.tap_note, c.hold_note, c.slide_note, c.touch_note, c.break_note]
-        dct['charts'].append({
-            'notes': notes, "charter": c.charter
-        })
-    data.append(dct)
-    return data
-
-
 cs_need_update = True
 cs_cache = {}
 md_cache = music_data()
@@ -73,37 +31,6 @@ def get_ds(r: Dict):
         if m['title'] == r["title"] and m['type'] == r['type']:
             return m["ds"][r["level_index"]]
     return 0
-
-
-def get_l(rate):
-    l = 14
-    if rate < 50:
-        l = 0
-    elif rate < 60:
-        l = 5
-    elif rate < 70:
-        l = 6
-    elif rate < 75:
-        l = 7
-    elif rate < 80:
-        l = 7.5
-    elif rate < 90:
-        l = 8.5
-    elif rate < 94:
-        l = 9.5
-    elif rate < 97:
-        l = 10.5
-    elif rate < 98:
-        l = 12.5
-    elif rate < 99:
-        l = 12.7
-    elif rate < 99.5:
-        l = 13
-    elif rate < 100:
-        l = 13.2
-    elif rate < 100.5:
-        l = 13.5
-    return l
 
 
 def is_new(r: Dict):
@@ -248,48 +175,46 @@ async def get_music_data():
 @app.route("/player/records", methods=['GET'])
 @login_required
 async def get_records():
-    r = Record.select().where(Record.player == g.user.id)
-    asyncio.create_task(compute_ra(g.user))
+    #r = NewRecord.select().join(Chart).join(Music).where(NewRecord.player == g.user.id)
+    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', g.user.id)
+    await compute_ra(g.user)
+    #print("computed")
     records = []
     for record in r:
-        elem = record.json(md=md_cache)
-        elem["is_new"] = is_new(elem)
+        #print(time.time())
+        elem = record_json(record)
+        #elem["is_new"] = is_new(elem)
         records.append(elem)
-    resp = await make_response(
-        '{"records":' + json.dumps(records, ensure_ascii=False) + ', "username": "' + g.username + '", "additional_rating": ' + str(g.user.additional_rating) + '}')
-    resp.headers['content-type'] = "application/json; charset=utf-8"
-    return resp
+    return {"records": records, "username": g.username, "additional_rating": g.user.additional_rating}
 
 
 def get_dx_and_sd(player):
-    l: List = Record.select().where(Record.player == player.id).order_by(Record.ra.desc())
+    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
     l1 = []
     l2 = []
-    sort = False
     for r in l:
-        if r.ra == 0:
-            r.ra = math.floor(get_ds({"title": r.title, "type": r.type, "level_index": r.level_index}) * get_l(r.achievements) * min(100.5, r.achievements) / 100)
-            r.save()
-            sort = True
-        if is_new_2(r):
+        setattr(r, 'ra', r.ds * get_l(r.achievements) * min(100.5, r.achievements) / 100)
+        if r.is_new:
             l2.append(r)
         else:
             l1.append(r)
-    if sort:
-        l1.sort(key=lambda x: x.ra, reverse=True)
-        l2.sort(key=lambda x: x.ra, reverse=True)
+    l1.sort(key=lambda x: x.ra, reverse=True)
+    l2.sort(key=lambda x: x.ra, reverse=True)
     return l1[:25], l2[:15]
 
 
 def get_dx_and_sd_for50(player):
-    l: List = Record.select().where(Record.player == player.id).order_by(Record.ra.desc())
+    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
     l1 = []
     l2 = []
     for r in l:
-        if is_new_2(r):
+        setattr(r, 'ra', r.ds * get_l(r.achievements) * min(100.5, r.achievements) / 100)
+        if r.is_new:
             l2.append(r)
         else:
             l1.append(r)
+    l1.sort(key=lambda x: x.ra, reverse=True)
+    l2.sort(key=lambda x: x.ra, reverse=True)
     return l1[:35], l2[:15]
 
 
@@ -331,28 +256,19 @@ async def query_player():
         "additional_rating": p.additional_rating,
         "nickname": nickname,
         "charts": {
-            "sd": [c.json(md=md_cache) for c in sd],
-            "dx": [c.json(md=md_cache) for c in dx]
+            "sd": [record_json(c) for c in sd],
+            "dx": [record_json(c) for c in dx]
         }
     }
-
-
-def update_one(records, record):
-    for i in range(len(records)):
-        r = records[i]
-        if r['level_index'] == record['level_index'] and r['title'] == record['title'] and r['type'] == record['type']:
-            records[i] = record
-            return
-    records.append(record)
 
 
 async def compute_ra(player: Player):
     rating = 0
     sd, dx = get_dx_and_sd(player)
     for t in sd:
-        rating += t.ra
+        rating += int(t.ra)
     for t in dx:
-        rating += t.ra
+        rating += int(t.ra)
     player.rating = rating
     player.save()
     return rating
@@ -363,11 +279,8 @@ async def compute_ra(player: Player):
 async def update_records():
     global cs_need_update
     cs_need_update = True
-    r = Record.select().where(Record.player == g.user.id)
-    records = []
-    for record in r:
-        records.append(record.json(md=md_cache))
     j = await request.get_json()
+    dicts = {}
     if "userId" in j:
         try:
             for ml in j["userMusicList"]:
@@ -380,40 +293,43 @@ async def update_records():
                     fc = ["", "fc", "fcp", "ap", "app"][m["comboStatus"]]
                     fs = ["", "fs", "fsp", "fsd", "fsdp"][m["syncStatus"]]
                     dxScore = m["deluxscoreMax"]
-                    update_one(records, {
-                        "title": music["title"],
-                        "level": music["level"][level],
-                        "level_index": level,
-                        "type": "DX" if m["musicId"] >= 10000 else "SD",
-                        "achievements": achievement / 10000.0,
-                        "dxScore": dxScore,
-                        "ds": music["ds"][level],
-                        "level_label": "",
-                        "ra": 0,
-                        "rate": ['d', 'c', 'b', 'bb', 'bbb', 'a', 'aa', 'aaa', 's', 'sp', 'ss', 'ssp', 'sss', 'sssp'][m["scoreRank"]],
-                        "fc": fc,
-                        "fs": fs
-                    })
+                    cid = music["cids"][level]
+                    dicts[cid] = (achievement / 10000.0, fc, fs, dxScore)
         except Exception as e:
             return {
                 "message": str(e)
             }, 400
     else:
-        for new in j:
-            if "rank" in new:
-                del new["rank"]
-            if "tag" in new:
-                del new["tag"]
-            update_one(records, new)
-    for r in records:
-        r["player"] = g.user
-        if "song_id" in r:
-            del r["song_id"]
-        # Don't know why this happen
-        if "ds" not in r:
-            r["ds"] = get_ds(r)
-    Record.delete().where(Record.player == g.user.id).execute()
-    Record.insert_many(records).execute()
+        for record in j:
+            # print(time.time())
+            title = record['title']
+            _type = record['type']
+            level = record['level_index']
+            m = get_music_by_title(md_cache, title, _type)
+            if m is None or level >= len(m["cids"]):
+                continue
+            cid = m["cids"][level]
+            dicts[cid] = (record["achievements"], record["fc"], record["fs"], record["dxScore"])
+    rs = NewRecord.raw('select * from newrecord where player_id = %s', g.user.id)
+    updates = []
+    creates = []
+    for r in rs:
+        #print(r.chart_id)
+        if r.chart_id in dicts:
+            v = dicts[r.chart_id]
+            r.achievements = v[0]
+            r.fc = v[1]
+            r.fs = v[2]
+            r.dxScore = v[3]
+            updates.append(r)
+            del dicts[r.chart_id]
+    #print(len(dicts))
+    for k in dicts:
+        v = dicts[k]
+        creates.append({"chart": k, "player": g.user.id, "fc": v[1], "fs": v[2], "dxScore": v[3], "achievements": v[0]})
+    NewRecord.insert_many(creates).execute()
+    # print(updates)
+    NewRecord.bulk_update(updates, fields=[NewRecord.achievements, NewRecord.fc, NewRecord.fs, NewRecord.dxScore])
     await compute_ra(g.user)
     return {
         "message": "更新成功",
@@ -423,16 +339,22 @@ async def update_records():
 @app.route("/player/update_record", methods=['POST'])
 @login_required
 async def update_record():
+    # must be update.
     global cs_need_update
     cs_need_update = True
     record = await request.get_json()
-    r: Record = Record.get((Record.player == g.user.id) & (Record.level_index == record["level_index"]) &
-                           (Record.title == record["title"]) & (Record.type == record["type"]))
+    title = record['title']
+    _type = record['type']
+    level = record['level_index']
+    m = get_music_by_title(md_cache, title, _type)
+    if m is None:
+        return
+    cid = m["cids"][level]
+    r: NewRecord = NewRecord.get((NewRecord.player == g.user.id) & (NewRecord.chart == cid))
+    assert r
     r.achievements = record['achievements']
-    r.ra = record['ra']
     r.fc = record['fc']
     r.fs = record['fs']
-    r.rate = record['rate']
     r.save()
     await compute_ra(g.user)
     return {
@@ -445,7 +367,7 @@ async def update_record():
 async def delete_records():
     global cs_need_update
     cs_need_update = True
-    nums = Record.delete().where(Record.player == g.user.id).execute()
+    nums = NewRecord.delete().where(NewRecord.player == g.user.id).execute()
     await compute_ra(g.user)
     return {
         "message": nums
@@ -505,16 +427,17 @@ async def message():
 async def chart_stats():
     global cs_need_update
     global cs_cache
-    if not cs_need_update:
+    if len(cs_cache) > 0:
         resp = await make_response(json.dumps(cs_cache, ensure_ascii=False))
         resp.headers['content-type'] = "application/json; charset=utf-8"
         return resp
-    cursor = Record.raw(
-        'select record.title, record.type, record.level_index, count(*) as cnt, avg(achievements) as `avg`, sum(case'
-        ' when achievements > 100 then 1 else 0 end) as sssp_count from record group by title, `type`, level_index')
+    cursor = NewRecord.raw(
+        'select newrecord.chart_id, count(*) as cnt, avg(achievements) as `avg`,'
+        ' sum(case when achievements >= 100 then 1 else 0 end) as sssp_count from newrecord group by chart_id'
+    )
     data = defaultdict(lambda: [{}, {}, {}, {}, {}])
     for elem in cursor:
-        data[elem.title + elem.type][elem.level_index] = {"count": elem.cnt,
+        data[elem.chart.music.title + elem.chart.music.type][elem.chart.level] = {"count": elem.cnt,
                                                           "avg": elem.avg,
                                                           "sssp_count": int(elem.sssp_count)
                                                           }
@@ -567,3 +490,5 @@ async def chart_stats():
 
 
 app.run(host='0.0.0.0', port=8333, loop=asyncio.get_event_loop())
+
+

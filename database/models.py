@@ -1,4 +1,5 @@
 import json
+import time
 from typing import List, Optional, Dict
 
 from peewee import *
@@ -51,6 +52,17 @@ class Player(BaseModel):
     nickname = CharField()
     bind_qq = CharField()
     privacy = BooleanField()
+
+
+class NewRecord(BaseModel):
+    # A new, robust store strategy for record.
+    # Maybe you need query and join it with other table?
+    player = ForeignKeyField(Player)
+    chart = ForeignKeyField(Chart)
+    achievements = DoubleField()
+    dxScore = IntegerField()
+    fc = CharField()
+    fs = CharField()
 
 
 class Record(BaseModel):
@@ -119,4 +131,115 @@ class Message(BaseModel):
     ts = IntegerField()
 
 
-db.create_tables([Music, Chart, Player, Record, FeedBack, Views, Message])
+db.create_tables([Music, NewRecord, Chart, Player, Record, FeedBack, Views, Message])
+
+
+def get_idx(achievements):
+    t = (50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 200)
+    for i in range(len(t)):
+        if achievements < t[i]:
+            break
+    return i
+
+
+def get_l(rate):
+    return [0, 5, 6, 7, 7.5, 8.5, 9.5, 10.5, 12.5, 12.7, 13, 13.2, 13.5, 14][get_idx(rate)]
+
+
+def get_rate(rate):
+    return ["d", "c", "b", "bb", "bbb", "a", "aa", "aaa", "s", "sp", "ss", "ssp", "sss", "sssp"][get_idx(rate)]
+
+
+def record_json(record: NewRecord):
+    data = {
+        "title": record.title,
+        "level": record.diff,
+        "level_index": record.level,
+        "level_label": ["Basic", "Advanced", "Expert", "Master", "Re:MASTER"][record.level],
+        "type": record.type,
+        "dxScore": record.dxScore,
+        "achievements": record.achievements,
+        "rate": get_rate(record.achievements),
+        "fc": record.fc,
+        "fs": record.fs,
+        "ra": int(get_l(record.achievements) * min(record.achievements, 100.5) * record.ds / 100),
+        "ds": record.ds,
+        "song_id": record.id
+    }
+    return data
+
+def record_json_output(record: NewRecord):
+    t1 = time.time()
+    chart = record.chart
+    print(time.time() - t1)
+    music = chart.music
+    print(time.time() - t1)
+    return {
+        "title": music.title,
+        "level": chart.level,
+        "level_index": chart.level,
+        "type": music.type,
+        "dxScore": record.dxScore,
+        "achievements": record.achievements,
+        "rate": get_rate(record.achievements),
+        "fc": record.fc,
+        "fs": record.fs,
+    }
+
+
+def music_data():
+    data = []
+    dct = None
+    music = Music.select(Music, Chart).join(Chart)
+    prev_music_id = 0
+    for m in music:
+        m: Music
+        if m.id != prev_music_id:
+            if dct:
+                data.append(dct)
+            prev_music_id = m.id
+            value = vars(m)['__data__']
+            dct = {
+                "id": str(value["id"]),
+                "title": value["title"],
+                "type": value["type"],
+                "ds": [],
+                "level": [],
+                "cids": [],
+                "charts": [],
+                "basic_info": {
+                    "title": value["title"],
+                    "artist": value["artist"],
+                    "genre": value["genre"],
+                    "bpm": value["bpm"],
+                    "release_date": value["release_date"],
+                    "from": value["version"],
+                    "is_new": value["is_new"]
+                }
+            }
+        c: Chart = m.chart
+        dct['cids'].append(c.get_id())
+        dct['ds'].append(c.ds)
+        dct['level'].append(c.difficulty)
+        if m.type == 'SD':
+            notes = [c.tap_note, c.hold_note, c.slide_note, c.break_note]
+        else:
+            notes = [c.tap_note, c.hold_note, c.slide_note, c.touch_note, c.break_note]
+        dct['charts'].append({
+            'notes': notes, "charter": c.charter
+        })
+    data.append(dct)
+    return data
+
+
+def t_equal(s1, s2):
+    return s1.replace(' ', '').replace('\u3000', '') == s2.replace(' ', '').replace('\u3000', '')
+
+
+def get_music_by_title(md, t, tp):
+    for m in md:
+        if t_equal(m["title"], t) and m["type"] == tp:
+            return m
+    return None
+
+
