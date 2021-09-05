@@ -188,6 +188,20 @@ async def get_records():
     return {"records": records, "username": g.username, "additional_rating": g.user.additional_rating}
 
 
+@app.route("/player/test_data", methods=['GET'])
+async def get_test_data():
+    #r = NewRecord.select().join(Chart).join(Music).where(NewRecord.player == g.user.id)
+    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', 636)
+    #print("computed")
+    records = []
+    for record in r:
+        #print(time.time())
+        elem = record_json(record)
+        #elem["is_new"] = is_new(elem)
+        records.append(elem)
+    return {"records": records, "username": "TESTUSER", "additional_rating": "2100"}
+
+
 def get_dx_and_sd(player):
     l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
     l1 = []
