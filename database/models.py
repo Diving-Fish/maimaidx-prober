@@ -229,6 +229,7 @@ def music_data():
             'notes': notes, "charter": c.charter
         })
     data.append(dct)
+    data.sort(key=lambda x: int(x['id']))
     return data
 
 
