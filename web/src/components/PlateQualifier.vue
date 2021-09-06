@@ -29,11 +29,13 @@
           <v-icon color="green">mdi-check-bold</v-icon>=Full Combo
           <v-icon color="blue">mdi-check-bold</v-icon>=SSS
           <v-icon color="orange">mdi-check-bold</v-icon>=All Perfect
+          <v-icon color="purple">mdi-check-bold</v-icon>=Full Sync DX
         </div>
         <div class="mt-2">
           <v-icon color="green">mdi-check-bold</v-icon>{{total_1}}/{{filted.length * (masOnly ? 1 : 4)}}
           <v-icon color="blue">mdi-check-bold</v-icon>{{total_2}}/{{filted.length * (masOnly ? 1 : 4)}}
           <v-icon color="orange">mdi-check-bold</v-icon>{{total_4}}/{{filted.length * (masOnly ? 1 : 4)}}
+          <v-icon color="purple">mdi-check-bold</v-icon>{{total_8}}/{{filted.length * (masOnly ? 1 : 4)}}
         </div>
         <v-data-table
           :headers="masOnly ? headerMas : headers"
@@ -48,11 +50,17 @@
             <v-icon color="orange" v-if="item.bas_pq & 4"
               >mdi-check-bold</v-icon
             >
+            <v-icon color="purple" v-if="item.bas_pq & 8"
+              >mdi-check-bold</v-icon
+            >
           </template>
           <template #item.adv_pq="{ item }">
             <v-icon color="green" v-if="item.adv_pq & 1">mdi-check-bold</v-icon>
             <v-icon color="blue" v-if="item.adv_pq & 2">mdi-check-bold</v-icon>
             <v-icon color="orange" v-if="item.adv_pq & 4"
+              >mdi-check-bold</v-icon
+            >
+            <v-icon color="purple" v-if="item.adv_pq & 8"
               >mdi-check-bold</v-icon
             >
           </template>
@@ -62,11 +70,17 @@
             <v-icon color="orange" v-if="item.exp_pq & 4"
               >mdi-check-bold</v-icon
             >
+            <v-icon color="purple" v-if="item.exp_pq & 8"
+              >mdi-check-bold</v-icon
+            >
           </template>
           <template #item.mst_pq="{ item }">
             <v-icon color="green" v-if="item.mst_pq & 1">mdi-check-bold</v-icon>
             <v-icon color="blue" v-if="item.mst_pq & 2">mdi-check-bold</v-icon>
             <v-icon color="orange" v-if="item.mst_pq & 4"
+              >mdi-check-bold</v-icon
+            >
+            <v-icon color="purple" v-if="item.mst_pq & 8"
               >mdi-check-bold</v-icon
             >
           </template>
@@ -118,6 +132,7 @@ export default {
       let r = this.records_filter(title, type, diff);
       if (r.length == 0) return 0;
       let a = 0;
+      if (["fsd", "fsdp"].indexOf(r[0].fs) != -1) a += 8;
       if (["ap", "app"].indexOf(r[0].fc) != -1) a += 4;
       if (r[0].achievements >= 100) a += 2;
       if (["fc", "fcp", "ap", "app"].indexOf(r[0].fc) != -1) a += 1;
@@ -147,6 +162,18 @@ export default {
       return this.music_data.filter((elem) => {
         return elem.basic_info.from == this.version;
       });
+    },
+    total_8: function () {
+      let sum = 0;
+      for (const md of this.filted) {
+        if (md.mst_pq & 8) sum++;
+        if (!this.masOnly) {
+          if (md.bas_pq & 8) sum++;
+          if (md.adv_pq & 8) sum++;
+          if (md.exp_pq & 8) sum++;
+        }
+      }
+      return sum;
     },
     total_4: function () {
       let sum = 0;
