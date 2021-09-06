@@ -127,7 +127,7 @@ export default {
     init: function () {
       this.versions = Array.from(
         new Set(
-          this.music_data.map((elem) => {
+          this.music_data.sort((a, b) => (a.id - b.id)).map((elem) => {
             return elem.basic_info.from;
           })
         )
