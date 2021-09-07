@@ -218,6 +218,29 @@ def get_dx_and_sd_for50(player):
     return l1[:35], l2[:15]
 
 
+def getplatelist(player, version, version2):
+    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.version as `version`, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
+    vl = []
+    if version == "maimai mai":
+        for r in l:
+            if r.id < 1000:
+                vl.append(r)
+    elif version == "maimai でらっくす":
+        for r in l:
+            if r.version == version or r.version == version2 and not(r.is_new):
+                vl.append(r)
+    elif version == "maimai でらっくす Splash":
+        for r in l:
+            if r.version == version or r.version == version2 and r.is_new:
+                vl.append(r)
+    else:
+        for r in l:
+            if r.version == version or r.version == version2 and r.id != 70:
+                vl.append(r)
+    vl.sort(key=lambda x: x.id)
+    return vl
+
+
 @app.route("/query/player", methods=['POST'])
 async def query_player():
     obj = await request.json
@@ -259,6 +282,42 @@ async def query_player():
             "sd": [record_json(c) for c in sd],
             "dx": [record_json(c) for c in dx]
         }
+    }
+
+
+@app.route("/query/plate",methods=['POST'])
+async def query_plate():
+    obj = await request.jon
+    try:
+        if "qq" in obj:
+            p:Player = Player.get(Player.bind_qq == obj["qq"])
+        else:
+            username = obj["username"]
+            p:Player = Player.get(Player.username == username)
+    except Exception:
+        return {"message" : "user not exists"},400
+    if p.privacy and "username" in obj:
+        try:
+            token = decode(request.cookies['jwt_token'])
+        except KeyError:
+            return {"status": "error", "msg": "已设置隐私"}, 403
+        if token == {}:
+            return {"status": "error", "msg": "已设置隐私"}, 403
+        if token['exp'] < ts():
+            return {"status": "error", "msg": "会话过期"}, 403
+        if token['username'] != obj["username"]:
+            return {"status": "error", "msg": "已设置隐私"}, 403
+    v = obj["version"]
+    if v == "maimai":
+        l = getplatelist(p,v,"maimai PLUS")
+    elif v == "wmdx":
+        l = getplatelist(p,"maimai でらっくす","maimai でらっくす PLUS")
+    elif v == "wmdx2021":
+        l = getplatelist(p,"maimai でらっくす Splash","maimai でらっくす PLUS")
+    else:
+        l = getplatelist(p,v,"empty")
+    return {
+        "verlist":[record_json(c) for c in l]
     }
 
 
