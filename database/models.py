@@ -186,6 +186,18 @@ def record_json_output(record: NewRecord):
         "fs": record.fs,
     }
 
+def platerecord_json(platerecord: NewRecord):
+    data = {
+        "id" : platerecord.id,
+        "title": platerecord.title,
+        "level": platerecord.diff,
+        "level_index" : platerecord.level,
+        "type" : platerecord.type,
+        "achivements" : platerecord.achievements,
+        "fc" : platerecord.fc,
+        "fs" : platerecord.fs
+    }
+    return data
 
 def music_data():
     data = []
@@ -242,4 +254,35 @@ def get_music_by_title(md, t, tp):
             return m
     return None
 
+def in_or_equal(checker: Any, elem: Optional[Union[Any, List[Any]]]):
+        if elem is Ellipsis:
+            return True
+        if isinstance(elem, List):
+            return checker in elem
+        elif isinstance(elem, Tuple):
+            return elem[0] <= checker <= elem[1]
+        else:
+            return checker == elem
 
+class recordList(List[NewRecord]):
+    def filter(self,
+                level: Optional[Union[str, List[str]]] = ...,
+                ds: Optional[Union[float, List[float], Tuple[float, float]]] = ...,
+                genre: Optional[Union[str, List[str]]] = ...,
+                diff: Optional[List[int]] = ...,
+                version: Optional[Union[str, List[str]]] = ...,
+                ):
+        temp = recordList()
+        for chart in self:
+            if not in_or_equal(chart.level,level):
+                continue
+            if not in_or_equal(chart.ds,ds):
+                continue
+            if not in_or_equal(chart.genre,genre):
+                continue
+            if not in_or_equal(chart.diff,diff):
+                continue
+            if not in_or_equal(chart.version,version):
+                continue
+            temp.append(chart)
+        return temp
