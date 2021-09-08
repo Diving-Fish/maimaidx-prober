@@ -289,7 +289,7 @@ async def query_player():
 
 @app.route("/query/plate",methods=['POST'])
 async def query_plate():
-    obj = await request.jon
+    obj = await request.json
     try:
         if "qq" in obj:
             p:Player = Player.get(Player.bind_qq == obj["qq"])
