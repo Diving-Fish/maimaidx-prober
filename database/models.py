@@ -193,7 +193,7 @@ def platerecord_json(platerecord: NewRecord):
         "level": platerecord.diff,
         "level_index" : platerecord.level,
         "type" : platerecord.type,
-        "rate": get_rate(platerecord.achievements),
+        "achievements": platerecord.achievements,
         "fc" : platerecord.fc,
         "fs" : platerecord.fs
     }
