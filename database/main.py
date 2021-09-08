@@ -232,6 +232,17 @@ def get_dx_and_sd_for50(player):
     return l1[:35], l2[:15]
 
 
+def getplatelist(player, version:List[Dict]):
+    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs,chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.version as `version`, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
+    fl = recordList()
+    vl = []
+    for r in l:
+        fl.append(r)
+    for i in range(0,len(version)):
+        vl += fl.filter(version=version[i])
+    return vl
+
+
 @app.route("/query/player", methods=['POST'])
 async def query_player():
     obj = await request.json
@@ -275,6 +286,34 @@ async def query_player():
         }
     }
 
+
+@app.route("/query/plate",methods=['POST'])
+async def query_plate():
+    obj = await request.jon
+    try:
+        if "qq" in obj:
+            p:Player = Player.get(Player.bind_qq == obj["qq"])
+        else:
+            username = obj["username"]
+            p:Player = Player.get(Player.username == username)
+    except Exception:
+        return {"message" : "user not exists"},400
+    if p.privacy and "username" in obj:
+        try:
+            token = decode(request.cookies['jwt_token'])
+        except KeyError:
+            return {"status": "error", "msg": "已设置隐私"}, 403
+        if token == {}:
+            return {"status": "error", "msg": "已设置隐私"}, 403
+        if token['exp'] < ts():
+            return {"status": "error", "msg": "会话过期"}, 403
+        if token['username'] != obj["username"]:
+            return {"status": "error", "msg": "已设置隐私"}, 403
+    v:List[Dict] = obj["version"]
+    vl = getplatelist(p,v)
+    return {
+        "verlist":[platerecord_json(c) for c in vl]
+    }
 
 async def compute_ra(player: Player):
     rating = 0
