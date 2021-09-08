@@ -1,8 +1,8 @@
 import json
 import time
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union, Any, Tuple
 
-from peewee import *
+from peewee import Model, CharField, IntegerField, BooleanField, ForeignKeyField, DoubleField, TextField
 from playhouse.db_url import connect
 
 with open('config.json', encoding='utf-8') as fr:
@@ -287,3 +287,4 @@ class recordList(List[NewRecord]):
                 continue
             temp.append(chart)
         return temp
+
