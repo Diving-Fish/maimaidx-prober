@@ -218,26 +218,14 @@ def get_dx_and_sd_for50(player):
     return l1[:35], l2[:15]
 
 
-def getplatelist(player, version, version2):
-    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.version as `version`, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
+def getplatelist(player, version:List[Dict]):
+    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs,chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.version as `version`, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
+    fl = recordList()
     vl = []
-    if version == "maimai mai":
-        for r in l:
-            if r.id < 1000:
-                vl.append(r)
-    elif version == "maimai でらっくす":
-        for r in l:
-            if r.version == version or r.version == version2 and not(r.is_new):
-                vl.append(r)
-    elif version == "maimai でらっくす Splash":
-        for r in l:
-            if r.version == version or r.version == version2 and r.is_new:
-                vl.append(r)
-    else:
-        for r in l:
-            if r.version == version or r.version == version2 and r.id != 70:
-                vl.append(r)
-    vl.sort(key=lambda x: x.id)
+    for r in l:
+        fl.append(r)
+    for i in range(0,len(version)):
+        vl += fl.filter(version=version[i])
     return vl
 
 
@@ -307,19 +295,11 @@ async def query_plate():
             return {"status": "error", "msg": "会话过期"}, 403
         if token['username'] != obj["username"]:
             return {"status": "error", "msg": "已设置隐私"}, 403
-    v = obj["version"]
-    if v == "maimai":
-        l = getplatelist(p,v,"maimai PLUS")
-    elif v == "wmdx":
-        l = getplatelist(p,"maimai でらっくす","maimai でらっくす PLUS")
-    elif v == "wmdx2021":
-        l = getplatelist(p,"maimai でらっくす Splash","maimai でらっくす PLUS")
-    else:
-        l = getplatelist(p,v,"empty")
+    v:List[Dict] = obj["version"]
+    vl = getplatelist(p,v)
     return {
-        "verlist":[record_json(c) for c in l]
+        "verlist":[platerecord_json(c) for c in vl]
     }
-
 
 async def compute_ra(player: Player):
     rating = 0
