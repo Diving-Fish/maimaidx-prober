@@ -277,10 +277,10 @@ class recordList(List[NewRecord]):
         for chart in self:
             if not in_or_equal(chart.level,level):
                 continue
-            if not in_or_equal(chart.ds,ds):
-                continue
-            if not in_or_equal(chart.genre,genre):
-                continue
+            #if not in_or_equal(chart.ds,ds):
+                #continue
+            #if not in_or_equal(chart.genre,genre):
+                #continue
             if not in_or_equal(chart.diff,diff):
                 continue
             if not in_or_equal(chart.version,version):
