@@ -264,7 +264,7 @@ export default {
         })
         .then((resp) => {
           this.$message.success("牌子修改成功！");
-          this.plate = resp.data.plate;
+          this.plate = resp.data.plate || "无";
         })
         .catch((err) => {
           this.$message.error(err.response.data.message);
@@ -278,7 +278,7 @@ export default {
         })
         .then((resp) => {
           this.$message.success("牌子清除成功！");
-          this.plate = resp.data.plate;
+          this.plate = resp.data.plate || "无";
         })
         .catch((err) => {
           this.$message.error(err.response.data.message);
