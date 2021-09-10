@@ -3,7 +3,7 @@
     <v-container>
       <div :style="$vuetify.breakpoint.mobile ? '' : 'display: flex; align-items: flex-end; justify-content: space-between'">
         <h1>舞萌 DX 查分器</h1>
-        <profile />
+        <profile :available_plates="available_plates" />
       </div>
       <v-divider class="mt-4 mb-4" />
       <p>
@@ -405,7 +405,7 @@ import Profile from '../components/Profile.vue';
 import PlateQualifier from '../components/PlateQualifier.vue';
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
-const DEBUG = false;
+const DEBUG = true;
 export default {
   name: "App",
   components: {
@@ -965,6 +965,9 @@ export default {
       this.logoutVisible = false;
       window.location.reload();
     },
+    available_plates: function() {
+      return this.$refs.pq.available_plates();
+    }
   },
 };
 </script>
