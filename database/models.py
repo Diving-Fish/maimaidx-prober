@@ -152,7 +152,7 @@ def get_rate(rate):
     return ["d", "c", "b", "bb", "bbb", "a", "aa", "aaa", "s", "sp", "ss", "ssp", "sss", "sssp"][get_idx(rate)]
 
 
-def get_plate_name(version, plateType):
+def get_plate_name(version, plate_type):
     return {
         "maimai PLUS": "真",
         "maimai GreeN": "超",
@@ -174,7 +174,7 @@ def get_plate_name(version, plateType):
         2: "将",
         4: "舞舞",
         8: "神",
-    }[plateType]
+    }[plate_type]
 
 
 def record_json(record: NewRecord):

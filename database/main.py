@@ -135,11 +135,21 @@ async def profile():
             "nickname": u.nickname,
             "additional_rating": u.additional_rating,
             "bind_qq": u.bind_qq,
-            "privacy": u.privacy
+            "privacy": u.privacy,
+            "plate": u.plate
         }
     else:
         try:
             obj = await request.json
+            # handle plate there.
+            if "plate" in obj:
+                d = obj["plate"]
+                version = d["version"]
+                plate_type = d["plate_type"]
+                verified, plate_label = verify_plate(g.user, version, plate_type)
+                if verified:
+                    g.user.__setattr__("plate", plate_label)
+                del obj["plate"]
             for key in obj:
                 g.user.__setattr__(key, obj[key])
             g.user.save()
@@ -157,52 +167,16 @@ async def profile():
             }, 400
 
 
-def verifyplate(player, version, plateType):
+def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
     try:
-        if not version and not plateType:
-            return ""
-        plate_name = get_plate_name(version, plateType)
+        if not version and not plate_type:
+            return True, ""
+        plate_name = get_plate_name(version, plate_type)
         if plate_name == "真将":
-            return False
-        # md_filtered = [m for m in md_cache if m["basic_info"]["from"] == version]
-        # r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
-        # records = []
-        # for record in r:
-        #     elem = record_json(record)
-        #     records.append(elem)
-        return plate_name
+            return False, ""
+        return True, plate_name
     except Exception:
-        return False
-
-
-@app.route("/player/plate", methods=['GET', 'POST'])
-@login_required
-async def plate():
-    if request.method == 'GET':
-        u: Player = g.user
-        return {
-            "plate": u.plate
-        }
-    else:
-        try:
-            obj = await request.json
-            version = obj["version"]
-            plateType = obj["plateType"]
-            plate = verifyplate(g.user, version, plateType)
-            if plate == False:
-                return {
-                    "message": "invalid arguments"
-                }, 400
-            g.user.__setattr__("plate", plate)
-            g.user.save()
-            u: Player = g.user
-            return {
-                "plate": u.plate
-            }
-        except Exception:
-            return {
-                "message": "error"
-            }, 400
+        return False, ""
 
 
 @app.route("/player/change_password", methods=['POST'])
@@ -225,29 +199,21 @@ async def get_music_data():
 @app.route("/player/records", methods=['GET'])
 @login_required
 async def get_records():
-    #r = NewRecord.select().join(Chart).join(Music).where(NewRecord.player == g.user.id)
     r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', g.user.id)
     await compute_ra(g.user)
-    # print("computed")
     records = []
     for record in r:
-        # print(time.time())
         elem = record_json(record)
-        #elem["is_new"] = is_new(elem)
         records.append(elem)
     return {"records": records, "username": g.username, "additional_rating": g.user.additional_rating}
 
 
 @app.route("/player/test_data", methods=['GET'])
 async def get_test_data():
-    #r = NewRecord.select().join(Chart).join(Music).where(NewRecord.player == g.user.id)
     r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', 636)
-    # print("computed")
     records = []
     for record in r:
-        # print(time.time())
         elem = record_json(record)
-        #elem["is_new"] = is_new(elem)
         records.append(elem)
     return {"records": records, "username": "TESTUSER", "additional_rating": "2100"}
 
@@ -371,7 +337,7 @@ async def query_plate():
 
 async def compute_ra(player: Player):
     rating = 0
-    sd, dx = get_dx_and_sd(player)
+    sd, dx = get_dx_and_sd(player):
     for t in sd:
         rating += int(t.ra)
     for t in dx:
