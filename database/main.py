@@ -337,7 +337,7 @@ async def query_plate():
 
 async def compute_ra(player: Player):
     rating = 0
-    sd, dx = get_dx_and_sd(player):
+    sd, dx = get_dx_and_sd(player)
     for t in sd:
         rating += int(t.ra)
     for t in dx:
