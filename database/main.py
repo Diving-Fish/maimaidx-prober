@@ -97,14 +97,15 @@ async def login():
         user: Player = Player.get(Player.username == username)
         if md5(password + user.salt) == user.password:
             resp = await make_response({"message": "登录成功"})
-            resp.set_cookie('jwt_token', username_encode(username), max_age=30 * 86400)
+            resp.set_cookie('jwt_token', username_encode(
+                username), max_age=30 * 86400)
             return resp
     except Exception:
         pass
     return {
-               "errcode": -3,
-               "message": "用户名或密码错误",
-           }, 401
+        "errcode": -3,
+        "message": "用户名或密码错误",
+    }, 401
 
 
 @app.route("/register", methods=['POST'])
@@ -113,11 +114,12 @@ async def register():
     player = Player.select().where(Player.username == j["username"])
     if player.exists():
         return {
-                   "errcode": -1,
-                   "message": "此用户名已存在",
-               }, 400
+            "errcode": -1,
+            "message": "此用户名已存在",
+        }, 400
     salt = ''.join(random.sample(string.ascii_letters + string.digits, 16))
-    Player.create(username=j["username"], salt=salt, password=md5(j["password"] + salt))
+    Player.create(username=j["username"], salt=salt,
+                  password=md5(j["password"] + salt))
     resp = await make_response({"message": "注册成功"})
     resp.set_cookie('jwt_token', username_encode(j["username"]))
     return resp
@@ -155,6 +157,54 @@ async def profile():
             }, 400
 
 
+def verifyplate(player, version, plateType):
+    try:
+        if not version and not plateType:
+            return ""
+        plate_name = get_plate_name(version, plateType)
+        if plate_name == "真将":
+            return False
+        # md_filtered = [m for m in md_cache if m["basic_info"]["from"] == version]
+        # r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
+        # records = []
+        # for record in r:
+        #     elem = record_json(record)
+        #     records.append(elem)
+        return plate_name
+    except Exception:
+        return False
+
+
+@app.route("/player/plate", methods=['GET', 'POST'])
+@login_required
+async def plate():
+    if request.method == 'GET':
+        u: Player = g.user
+        return {
+            "plate": u.plate
+        }
+    else:
+        try:
+            obj = await request.json
+            version = obj["version"]
+            plateType = obj["plateType"]
+            plate = verifyplate(g.user, version, plateType)
+            if plate == False:
+                return {
+                    "message": "invalid arguments"
+                }, 400
+            g.user.__setattr__("plate", plate)
+            g.user.save()
+            u: Player = g.user
+            return {
+                "plate": u.plate
+            }
+        except Exception:
+            return {
+                "message": "error"
+            }, 400
+
+
 @app.route("/player/change_password", methods=['POST'])
 @login_required
 async def change_password():
@@ -178,10 +228,10 @@ async def get_records():
     #r = NewRecord.select().join(Chart).join(Music).where(NewRecord.player == g.user.id)
     r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', g.user.id)
     await compute_ra(g.user)
-    #print("computed")
+    # print("computed")
     records = []
     for record in r:
-        #print(time.time())
+        # print(time.time())
         elem = record_json(record)
         #elem["is_new"] = is_new(elem)
         records.append(elem)
@@ -192,10 +242,10 @@ async def get_records():
 async def get_test_data():
     #r = NewRecord.select().join(Chart).join(Music).where(NewRecord.player == g.user.id)
     r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', 636)
-    #print("computed")
+    # print("computed")
     records = []
     for record in r:
-        #print(time.time())
+        # print(time.time())
         elem = record_json(record)
         #elem["is_new"] = is_new(elem)
         records.append(elem)
@@ -207,7 +257,8 @@ def get_dx_and_sd(player):
     l1 = []
     l2 = []
     for r in l:
-        setattr(r, 'ra', r.ds * get_l(r.achievements) * min(100.5, r.achievements) / 100)
+        setattr(r, 'ra', r.ds * get_l(r.achievements)
+                * min(100.5, r.achievements) / 100)
         if r.is_new:
             l2.append(r)
         else:
@@ -222,7 +273,8 @@ def get_dx_and_sd_for50(player):
     l1 = []
     l2 = []
     for r in l:
-        setattr(r, 'ra', r.ds * get_l(r.achievements) * min(100.5, r.achievements) / 100)
+        setattr(r, 'ra', r.ds * get_l(r.achievements)
+                * min(100.5, r.achievements) / 100)
         if r.is_new:
             l2.append(r)
         else:
@@ -232,13 +284,13 @@ def get_dx_and_sd_for50(player):
     return l1[:35], l2[:15]
 
 
-def getplatelist(player, version:List[Dict]):
+def getplatelist(player, version: List[Dict]):
     l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs,chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.version as `version`, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
     fl = recordList()
     vl = []
     for r in l:
         fl.append(r)
-    for i in range(0,len(version)):
+    for i in range(0, len(version)):
         vl += fl.filter(version=version[i])
     return vl
 
@@ -280,6 +332,7 @@ async def query_player():
         "rating": p.rating,
         "additional_rating": p.additional_rating,
         "nickname": nickname,
+        "plate": p.plate,
         "charts": {
             "sd": [record_json(c) for c in sd],
             "dx": [record_json(c) for c in dx]
@@ -287,17 +340,17 @@ async def query_player():
     }
 
 
-@app.route("/query/plate",methods=['POST'])
+@app.route("/query/plate", methods=['POST'])
 async def query_plate():
     obj = await request.json
     try:
         if "qq" in obj:
-            p:Player = Player.get(Player.bind_qq == obj["qq"])
+            p: Player = Player.get(Player.bind_qq == obj["qq"])
         else:
             username = obj["username"]
-            p:Player = Player.get(Player.username == username)
+            p: Player = Player.get(Player.username == username)
     except Exception:
-        return {"message" : "user not exists"},400
+        return {"message": "user not exists"}, 400
     if p.privacy and "username" in obj:
         try:
             token = decode(request.cookies['jwt_token'])
@@ -309,11 +362,12 @@ async def query_plate():
             return {"status": "error", "msg": "会话过期"}, 403
         if token['username'] != obj["username"]:
             return {"status": "error", "msg": "已设置隐私"}, 403
-    v:List[Dict] = obj["version"]
-    vl = getplatelist(p,v)
+    v: List[Dict] = obj["version"]
+    vl = getplatelist(p, v)
     return {
-        "verlist":[platerecord_json(c) for c in vl]
+        "verlist": [platerecord_json(c) for c in vl]
     }
+
 
 async def compute_ra(player: Player):
     rating = 0
@@ -362,12 +416,14 @@ async def update_records():
             if m is None or level >= len(m["cids"]):
                 continue
             cid = m["cids"][level]
-            dicts[cid] = (record["achievements"], record["fc"], record["fs"], record["dxScore"])
-    rs = NewRecord.raw('select * from newrecord where player_id = %s', g.user.id)
+            dicts[cid] = (record["achievements"], record["fc"],
+                          record["fs"], record["dxScore"])
+    rs = NewRecord.raw(
+        'select * from newrecord where player_id = %s', g.user.id)
     updates = []
     creates = []
     for r in rs:
-        #print(r.chart_id)
+        # print(r.chart_id)
         if r.chart_id in dicts:
             v = dicts[r.chart_id]
             r.achievements = v[0]
@@ -376,13 +432,15 @@ async def update_records():
             r.dxScore = v[3]
             updates.append(r)
             del dicts[r.chart_id]
-    #print(len(dicts))
+    # print(len(dicts))
     for k in dicts:
         v = dicts[k]
-        creates.append({"chart": k, "player": g.user.id, "fc": v[1], "fs": v[2], "dxScore": v[3], "achievements": v[0]})
+        creates.append({"chart": k, "player": g.user.id,
+                       "fc": v[1], "fs": v[2], "dxScore": v[3], "achievements": v[0]})
     NewRecord.insert_many(creates).execute()
     # print(updates)
-    NewRecord.bulk_update(updates, fields=[NewRecord.achievements, NewRecord.fc, NewRecord.fs, NewRecord.dxScore])
+    NewRecord.bulk_update(updates, fields=[
+                          NewRecord.achievements, NewRecord.fc, NewRecord.fs, NewRecord.dxScore])
     await compute_ra(g.user)
     return {
         "message": "更新成功",
@@ -403,7 +461,8 @@ async def update_record():
     if m is None:
         return
     cid = m["cids"][level]
-    r: NewRecord = NewRecord.get((NewRecord.player == g.user.id) & (NewRecord.chart == cid))
+    r: NewRecord = NewRecord.get(
+        (NewRecord.player == g.user.id) & (NewRecord.chart == cid))
     assert r
     r.achievements = record['achievements']
     r.fc = record['fc']
@@ -448,10 +507,12 @@ async def count_view():
 
 async def message_resp():
     today_ts = int((time.time() + 8 * 3600) / 86400) * 86400 - 8 * 3600
-    results = Message.select(Message, Player).join(Player).where(Message.ts >= today_ts)
+    results = Message.select(Message, Player).join(
+        Player).where(Message.ts >= today_ts)
     l = []
     for r in results:
-        l.append({"text": r.text, "username": r.player.username, "ts": r.ts, "nickname": r.nickname})
+        l.append({"text": r.text, "username": r.player.username,
+                 "ts": r.ts, "nickname": r.nickname})
     resp = await make_response(json.dumps(l, ensure_ascii=False))
     resp.headers['content-type'] = "application/json; charset=utf-8"
     return resp
@@ -491,9 +552,9 @@ async def chart_stats():
     data = defaultdict(lambda: [{}, {}, {}, {}, {}])
     for elem in cursor:
         data[elem.chart.music.title + elem.chart.music.type][elem.chart.level] = {"count": elem.cnt,
-                                                          "avg": elem.avg,
-                                                          "sssp_count": int(elem.sssp_count)
-                                                          }
+                                                                                  "avg": elem.avg,
+                                                                                  "sssp_count": int(elem.sssp_count)
+                                                                                  }
     level_dict = defaultdict(lambda: [])
     md = md_cache
     for elem in md:
@@ -511,7 +572,8 @@ async def chart_stats():
             if elem2['count'] >= 30:
                 level_dict[elem['level'][i]].append(elem2)
     for level in level_dict:
-        level_dict[level].sort(key=lambda x: x['sssp_count'] / x['count'], reverse=True)
+        level_dict[level].sort(
+            key=lambda x: x['sssp_count'] / x['count'], reverse=True)
         ln = len(level_dict[level])
         for i in range(ln):
             elem = level_dict[level][i]
@@ -543,5 +605,3 @@ async def chart_stats():
 
 
 app.run(host='0.0.0.0', port=8333, loop=asyncio.get_event_loop())
-
-
