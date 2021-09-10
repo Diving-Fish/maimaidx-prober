@@ -172,6 +172,7 @@ export default {
         }
       }
       res["maimai PLUS"] &= res["maimai"]
+      if (res["maimai PLUS"] & 2) res["maimai PLUS"] -= 2;  // SSS plate not available in maimai PLUS version
       delete res.maimai
       return res
     }
