@@ -51,6 +51,7 @@ class Player(BaseModel):
     additional_rating = IntegerField()
     nickname = CharField()
     bind_qq = CharField()
+    plate = CharField()
     privacy = BooleanField()
 
 
@@ -131,7 +132,8 @@ class Message(BaseModel):
     ts = IntegerField()
 
 
-db.create_tables([Music, NewRecord, Chart, Player, Record, FeedBack, Views, Message])
+db.create_tables([Music, NewRecord, Chart, Player,
+                 Record, FeedBack, Views, Message])
 
 
 def get_idx(achievements):
@@ -148,6 +150,31 @@ def get_l(rate):
 
 def get_rate(rate):
     return ["d", "c", "b", "bb", "bbb", "a", "aa", "aaa", "s", "sp", "ss", "ssp", "sss", "sssp"][get_idx(rate)]
+
+
+def get_plate_name(version, plateType):
+    return {
+        "maimai PLUS": "真",
+        "maimai GreeN": "超",
+        "maimai GreeN PLUS": "檄",
+        "maimai ORANGE": "橙",
+        "maimai ORANGE PLUS": "暁",
+        "maimai PiNK": "桃",
+        "maimai PiNK PLUS": "櫻",
+        "maimai MURASAKi": "紫",
+        "maimai MURASAKi PLUS": "菫",
+        "maimai MiLK": "白",
+        "MiLK PLUS": "雪",
+        "maimai FiNALE": "輝",
+        "maimai でらっくす": "熊",
+        "maimai でらっくす PLUS": "華",
+        "maimai でらっくす Splash": "爽"
+    }[version]+{
+        1: "極",
+        2: "将",
+        4: "舞舞",
+        8: "神",
+    }[plateType]
 
 
 def record_json(record: NewRecord):
@@ -168,6 +195,7 @@ def record_json(record: NewRecord):
     }
     return data
 
+
 def record_json_output(record: NewRecord):
     t1 = time.time()
     chart = record.chart
@@ -186,18 +214,20 @@ def record_json_output(record: NewRecord):
         "fs": record.fs,
     }
 
+
 def platerecord_json(platerecord: NewRecord):
     data = {
-        "id" : platerecord.id,
+        "id": platerecord.id,
         "title": platerecord.title,
         "level": platerecord.diff,
-        "level_index" : platerecord.level,
-        "type" : platerecord.type,
-        "achivements" : platerecord.achievements,
-        "fc" : platerecord.fc,
-        "fs" : platerecord.fs
+        "level_index": platerecord.level,
+        "type": platerecord.type,
+        "achievements": platerecord.achievements,
+        "fc": platerecord.fc,
+        "fs": platerecord.fs
     }
     return data
+
 
 def music_data():
     data = []
@@ -236,7 +266,8 @@ def music_data():
         if m.type == 'SD':
             notes = [c.tap_note, c.hold_note, c.slide_note, c.break_note]
         else:
-            notes = [c.tap_note, c.hold_note, c.slide_note, c.touch_note, c.break_note]
+            notes = [c.tap_note, c.hold_note,
+                     c.slide_note, c.touch_note, c.break_note]
         dct['charts'].append({
             'notes': notes, "charter": c.charter
         })
@@ -255,35 +286,37 @@ def get_music_by_title(md, t, tp):
             return m
     return None
 
+
 def in_or_equal(checker: Any, elem: Optional[Union[Any, List[Any]]]):
-        if elem is Ellipsis:
-            return True
-        if isinstance(elem, List):
-            return checker in elem
-        elif isinstance(elem, Tuple):
-            return elem[0] <= checker <= elem[1]
-        else:
-            return checker == elem
+    if elem is Ellipsis:
+        return True
+    if isinstance(elem, List):
+        return checker in elem
+    elif isinstance(elem, Tuple):
+        return elem[0] <= checker <= elem[1]
+    else:
+        return checker == elem
+
 
 class recordList(List[NewRecord]):
     def filter(self,
-                level: Optional[Union[str, List[str]]] = ...,
-                ds: Optional[Union[float, List[float], Tuple[float, float]]] = ...,
-                genre: Optional[Union[str, List[str]]] = ...,
-                diff: Optional[List[int]] = ...,
-                version: Optional[Union[str, List[str]]] = ...,
-                ):
+               level: Optional[Union[str, List[str]]] = ...,
+               ds: Optional[Union[float, List[float], Tuple[float, float]]] = ...,
+               genre: Optional[Union[str, List[str]]] = ...,
+               diff: Optional[List[int]] = ...,
+               version: Optional[Union[str, List[str]]] = ...,
+               ):
         temp = recordList()
         for chart in self:
-            if not in_or_equal(chart.level,level):
+            if not in_or_equal(chart.level, level):
                 continue
-            if not in_or_equal(chart.ds,ds):
+            # if not in_or_equal(chart.ds,ds):
+                # continue
+            # if not in_or_equal(chart.genre,genre):
+                # continue
+            if not in_or_equal(chart.diff, diff):
                 continue
-            if not in_or_equal(chart.genre,genre):
-                continue
-            if not in_or_equal(chart.diff,diff):
-                continue
-            if not in_or_equal(chart.version,version):
+            if not in_or_equal(chart.version, version):
                 continue
             temp.append(chart)
         return temp
