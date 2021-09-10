@@ -405,7 +405,7 @@ import Profile from '../components/Profile.vue';
 import PlateQualifier from '../components/PlateQualifier.vue';
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
-const DEBUG = true;
+const DEBUG = false;
 export default {
   name: "App",
   components: {
