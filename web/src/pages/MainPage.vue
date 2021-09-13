@@ -22,7 +22,7 @@
           src="https://img.shields.io/github/stars/Diving-Fish/maimaidx-prober?style=social"
       /></a>
       <view-badge class="ml-3" />
-      <a href="https://space.bilibili.com/10322617"><img src="https://shields.io/badge/bilibili-%E6%B0%B4%E9%B1%BC%E5%96%B5%E5%96%B5%E5%96%B5-00A1D6?logo=bilibili&style=flat"></a>
+      <a class="ml-3" href="https://space.bilibili.com/10322617"><img src="https://shields.io/badge/bilibili-%E6%B0%B4%E9%B1%BC%E5%96%B5%E5%96%B5%E5%96%B5-00A1D6?logo=bilibili&style=flat"></a>
       <p class="mt-3">欢迎加入舞萌DX查分器交流群：981682758</p>
       <p>代理工具上线！使用微信客户端导入数据，请查看新版本的使用指南。</p>
       <p>想要 10 分钟搭建自己的 maimai QQ 机器人？现在就参考开源项目 <a href="https://github.com/Diving-Fish/mai-bot">mai-bot</a> 吧~</p>
