@@ -657,6 +657,7 @@ export default {
         })
         .then(() => {
           this.$message.success("登录成功，加载乐曲数据中……");
+          this.$refs.profile.fetch();
           axios
             .get(
               "https://www.diving-fish.com/api/maimaidxprober/player/records"
