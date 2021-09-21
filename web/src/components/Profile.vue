@@ -222,13 +222,18 @@ export default {
           this.username = resp.data.username;
           this.privacy = resp.data.privacy;
           this.bind_qq = resp.data.bind_qq;
+          this.plate = resp.data.plate;
+          this.nickname = resp.data.nickname;
           for (let elem of this.ratings) {
             if (elem.ra == resp.data.additional_rating) {
               this.select = elem;
               break;
             }
           }
-          this.nickname = resp.data.nickname;
+          if (this.plate) {
+            this.plate_upload.version = this.v2n[this.plate[0]];
+            this.plate_upload.plate_type = this.t2n[this.plate.substr(1)];
+          }
         });
     },
     delete_records() {

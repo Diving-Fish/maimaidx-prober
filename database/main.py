@@ -159,7 +159,8 @@ async def profile():
                 "nickname": u.nickname,
                 "additional_rating": u.additional_rating,
                 "bind_qq": u.bind_qq,
-                "privacy": u.privacy
+                "privacy": u.privacy,
+                "plate": u.plate
             }
         except Exception:
             return {
@@ -169,7 +170,7 @@ async def profile():
 
 def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
     try:
-        if not version and not plate_type:
+        if version == "无":
             return True, ""
         plate_name = get_plate_name(version, plate_type)
         if plate_name == "真将":
