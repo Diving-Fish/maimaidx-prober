@@ -401,9 +401,9 @@ import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
 import FilterSlider from "../components/FilterSlider.vue";
 import Advertisement from "../components/Advertisement.vue";
-import Message from '../components/Message.vue';
-import Profile from '../components/Profile.vue';
-import PlateQualifier from '../components/PlateQualifier.vue';
+import Message from "../components/Message.vue";
+import Profile from "../components/Profile.vue";
+import PlateQualifier from "../components/PlateQualifier.vue";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 const DEBUG = false;
@@ -416,7 +416,7 @@ export default {
     Advertisement,
     Message,
     Profile,
-    PlateQualifier
+    PlateQualifier,
   },
   data: function () {
     return {
@@ -512,7 +512,7 @@ export default {
         ret += this.dxData[i].ra;
       }
       return ret;
-    }
+    },
   },
   created: function () {
     this.fetchMusicData();
@@ -675,11 +675,11 @@ export default {
     computeRecord: function (record) {
       record.ds = this.getDS(record.title, record.level_index, record.type);
       if (record.ds) {
-        let arr = ("" + record.ds).split(".")
+        let arr = ("" + record.ds).split(".");
         if (["7", "8", "9"].indexOf(arr[1]) != -1) {
-          record.level = arr[0] + "+"
+          record.level = arr[0] + "+";
         } else {
-          record.level = arr[0]
+          record.level = arr[0];
         }
       }
       record.level_label = this.level_label[record.level_index];
@@ -966,9 +966,9 @@ export default {
       this.logoutVisible = false;
       window.location.reload();
     },
-    available_plates: function() {
+    available_plates: function () {
       return this.$refs.pq.available_plates();
-    }
+    },
   },
 };
 </script>

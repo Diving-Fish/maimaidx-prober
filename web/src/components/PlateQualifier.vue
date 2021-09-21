@@ -154,28 +154,35 @@ export default {
           // console.log(data[l[i]]);
         }
       }
-      console.log(this.available_plates())
+      // console.log(this.available_plates())
       // console.log(this.music_data);
     },
-    available_plates: function() {
+    available_plates: function () {
       // a method called by others.
       // Just verify master level.
       let res = {};
       for (const ver of this.versions) {
-        if (ver == "maimai でらっくす PLUS" || ver == "maimai でらっくす Splash") continue;
-        const d = this.music_data.filter(elem => {return elem.basic_info.from == ver}).map(elem => {return elem.mst_pq})
-        res[ver] = 15
+        if (ver == "maimai でらっくす PLUS" || ver == "maimai でらっくす Splash")
+          continue;
+        const d = this.music_data
+          .filter((elem) => {
+            return elem.basic_info.from == ver;
+          })
+          .map((elem) => {
+            return elem.mst_pq;
+          });
+        res[ver] = 15;
         for (const v of d) {
           for (const i of [1, 2, 4, 8]) {
-            if ((v & i) == 0 && (res[ver] & i)) res[ver] -= i;
+            if ((v & i) == 0 && res[ver] & i) res[ver] -= i;
           }
         }
       }
-      res["maimai PLUS"] &= res["maimai"]
-      if (res["maimai PLUS"] & 2) res["maimai PLUS"] -= 2;  // SSS plate not available in maimai PLUS version
-      delete res.maimai
-      return res
-    }
+      res["maimai PLUS"] &= res["maimai"];
+      if (res["maimai PLUS"] & 2) res["maimai PLUS"] -= 2; // SSS plate not available in maimai PLUS version
+      delete res.maimai;
+      return res;
+    },
   },
   computed: {
     filted: function () {
