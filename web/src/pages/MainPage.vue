@@ -3,7 +3,7 @@
     <v-container>
       <div :style="$vuetify.breakpoint.mobile ? '' : 'display: flex; align-items: flex-end; justify-content: space-between'">
         <h1>舞萌 DX 查分器</h1>
-        <profile />
+        <profile :available_plates="available_plates" />
       </div>
       <v-divider class="mt-4 mb-4" />
       <p>
@@ -22,6 +22,7 @@
           src="https://img.shields.io/github/stars/Diving-Fish/maimaidx-prober?style=social"
       /></a>
       <view-badge class="ml-3" />
+      <a class="ml-3" href="https://space.bilibili.com/10322617"><img src="https://shields.io/badge/bilibili-%E6%B0%B4%E9%B1%BC%E5%96%B5%E5%96%B5%E5%96%B5-00A1D6?logo=bilibili&style=flat"></a>
       <p class="mt-3">欢迎加入舞萌DX查分器交流群：981682758</p>
       <p>代理工具上线！使用微信客户端导入数据，请查看新版本的使用指南。</p>
       <p>想要 10 分钟搭建自己的 maimai QQ 机器人？现在就参考开源项目 <a href="https://github.com/Diving-Fish/mai-bot">mai-bot</a> 吧~</p>
@@ -400,9 +401,9 @@ import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
 import FilterSlider from "../components/FilterSlider.vue";
 import Advertisement from "../components/Advertisement.vue";
-import Message from '../components/Message.vue';
-import Profile from '../components/Profile.vue';
-import PlateQualifier from '../components/PlateQualifier.vue';
+import Message from "../components/Message.vue";
+import Profile from "../components/Profile.vue";
+import PlateQualifier from "../components/PlateQualifier.vue";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 const DEBUG = false;
@@ -415,7 +416,7 @@ export default {
     Advertisement,
     Message,
     Profile,
-    PlateQualifier
+    PlateQualifier,
   },
   data: function () {
     return {
@@ -511,7 +512,7 @@ export default {
         ret += this.dxData[i].ra;
       }
       return ret;
-    }
+    },
   },
   created: function () {
     this.fetchMusicData();
@@ -656,6 +657,7 @@ export default {
         })
         .then(() => {
           this.$message.success("登录成功，加载乐曲数据中……");
+          this.$refs.profile.fetch();
           axios
             .get(
               "https://www.diving-fish.com/api/maimaidxprober/player/records"
@@ -674,11 +676,11 @@ export default {
     computeRecord: function (record) {
       record.ds = this.getDS(record.title, record.level_index, record.type);
       if (record.ds) {
-        let arr = ("" + record.ds).split(".")
+        let arr = ("" + record.ds).split(".");
         if (["7", "8", "9"].indexOf(arr[1]) != -1) {
-          record.level = arr[0] + "+"
+          record.level = arr[0] + "+";
         } else {
-          record.level = arr[0]
+          record.level = arr[0];
         }
       }
       record.level_label = this.level_label[record.level_index];
@@ -743,10 +745,10 @@ export default {
       } else {
         record.rate = "sssp";
       }
-      if (!this.chart_stats[record.title + record.type]) {
+      if (!this.chart_stats[record.song_id]) {
         record.tag = 0.5;
       } else {
-        let elem = this.chart_stats[record.title + record.type][
+        let elem = this.chart_stats[record.song_id][
           record.level_index
         ];
         if (elem.t) {
@@ -964,6 +966,9 @@ export default {
       setCookie("jwt_token", "", -1);
       this.logoutVisible = false;
       window.location.reload();
+    },
+    available_plates: function () {
+      return this.$refs.pq.available_plates();
     },
   },
 };
