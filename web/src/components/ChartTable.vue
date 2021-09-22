@@ -136,14 +136,14 @@ export default {
     },
     getTag(item) {
       // console.log(this.chart_stats)
-      if (!this.chart_stats[item.title + item.type]) {
+      if (!this.chart_stats[item.song_id]) {
         return {
           exists: false,
           value: "Data Not Enough",
           color: "grey"
         }
       }
-      let elem = this.chart_stats[item.title + item.type][item.level_index];
+      let elem = this.chart_stats[item.song_id][item.level_index];
       let tag = elem.tag;
       let color = "";
       if (tag == undefined) {

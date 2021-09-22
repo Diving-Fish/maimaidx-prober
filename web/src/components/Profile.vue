@@ -222,13 +222,18 @@ export default {
           this.username = resp.data.username;
           this.privacy = resp.data.privacy;
           this.bind_qq = resp.data.bind_qq;
+          this.plate = resp.data.plate;
+          this.nickname = resp.data.nickname;
           for (let elem of this.ratings) {
             if (elem.ra == resp.data.additional_rating) {
               this.select = elem;
               break;
             }
           }
-          this.nickname = resp.data.nickname;
+          if (this.plate) {
+            this.plate_upload.version = this.v2n[this.plate[0]];
+            this.plate_upload.plate_type = this.t2n[this.plate.substr(1)];
+          }
         });
     },
     delete_records() {
@@ -240,6 +245,30 @@ export default {
           this.$message.success("已删除" + resp.data.message + "条数据");
           setTimeout("window.location.reload()", 1500);
         });
+    },
+    fetch() {
+      axios
+        .get("https://www.diving-fish.com/api/maimaidxprober/player/profile")
+        .then((resp) => {
+          this.login = true;
+          this.username = resp.data.username;
+          this.privacy = resp.data.privacy;
+          this.bind_qq = resp.data.bind_qq;
+          this.ra = resp.data.additional_rating;
+          this.plate = resp.data.plate;
+          this.nickname = resp.data.nickname;
+          for (let elem of this.ratings) {
+            if (elem.ra == resp.data.additional_rating) {
+              this.select = elem;
+              break;
+            }
+          }
+          if (this.plate) {
+            this.plate_upload.version = this.v2n[this.plate[0]];
+            this.plate_upload.plate_type = this.t2n[this.plate.substr(1)];
+          }
+        })
+        .catch(() => {});
     },
   },
   created: function () {
@@ -263,28 +292,7 @@ export default {
       this.v2n[elem[1]] = elem[0];
       this.v2n[elem[0]] = elem[1];
     }
-    axios
-      .get("https://www.diving-fish.com/api/maimaidxprober/player/profile")
-      .then((resp) => {
-        this.login = true;
-        this.username = resp.data.username;
-        this.privacy = resp.data.privacy;
-        this.bind_qq = resp.data.bind_qq;
-        this.ra = resp.data.additional_rating;
-        this.plate = resp.data.plate;
-        for (let elem of this.ratings) {
-          if (elem.ra == resp.data.additional_rating) {
-            this.select = elem;
-            break;
-          }
-        }
-        if (this.plate != "") {
-          this.plate_upload.version = this.v2n[this.plate[0]]
-          this.plate_upload.plate_type = this.t2n[this.plate.substr(1)]
-        }
-        this.nickname = resp.data.nickname;
-      })
-      .catch(() => {});
+    this.fetch();
   },
 };
 </script>
