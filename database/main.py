@@ -525,7 +525,7 @@ async def chart_stats():
     level_dict = defaultdict(lambda: [])
     md = md_cache
     for elem in md:
-        key = elem['title'] + elem['type']
+        key = elem['id']
         for i in range(len(elem['ds'])):
             elem2 = {
                 "key": key,

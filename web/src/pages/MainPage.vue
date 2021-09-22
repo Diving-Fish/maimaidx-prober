@@ -745,10 +745,10 @@ export default {
       } else {
         record.rate = "sssp";
       }
-      if (!this.chart_stats[record.title + record.type]) {
+      if (!this.chart_stats[record.song_id]) {
         record.tag = 0.5;
       } else {
-        let elem = this.chart_stats[record.title + record.type][
+        let elem = this.chart_stats[record.song_id][
           record.level_index
         ];
         if (elem.t) {
