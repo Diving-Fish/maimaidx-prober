@@ -3,7 +3,7 @@
     <v-container>
       <div :style="$vuetify.breakpoint.mobile ? '' : 'display: flex; align-items: flex-end; justify-content: space-between'">
         <h1>舞萌 DX 查分器</h1>
-        <profile :available_plates="available_plates" />
+        <profile :available_plates="available_plates" ref="profile"/>
       </div>
       <v-divider class="mt-4 mb-4" />
       <p>
@@ -57,7 +57,7 @@
               </v-btn>
             </v-card-title>
             <v-card-text>
-              <v-form ref="form" v-model="valid">
+              <v-form ref="form" v-model="valid" @keyup.enter.native="login">
                 <v-text-field
                   v-model="loginForm.username"
                   label="用户名"
