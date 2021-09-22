@@ -140,8 +140,8 @@ export default {
         return {
           exists: false,
           value: "Data Not Enough",
-          color: "grey"
-        }
+          color: "grey",
+        };
       }
       let elem = this.chart_stats[item.song_id][item.level_index];
       let tag = elem.tag;
@@ -170,11 +170,11 @@ export default {
     },
     modify(item) {
       if (item.block) {
-        this.$message.error('您无法修改此谱面的完成率');
-        return
+        this.$message.error("您无法修改此谱面的完成率");
+        return;
       }
-      this.$emit('edit', item);
-    }
+      this.$emit("edit", item);
+    },
   },
 };
 </script>
