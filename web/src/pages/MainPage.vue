@@ -801,10 +801,12 @@ export default {
     },
     mergeOnAllMode: function () {
       this.allModeVisible = false;
-      for (const music of this.music_data) {
+      for (const music_id in this.music_data) {
+        let music = this.music_data[music_id];
         //console.log(music);
         for (let j = 0; j < music.ds.length; j++) {
           const record = {
+            song_id: music_id,
             title: music.title,
             ds: music.ds[j],
             level: music.level[j],
