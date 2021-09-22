@@ -481,8 +481,6 @@ export default {
         { text: "达成率", value: "achievements" },
         { text: "DX Rating", value: "ra" },
         { text: "相对难度", value: "tag" },
-        { text: "DX分数", value: "dxScore" },
-        { text: "DX分数比例", value: "dxScore_perc" },
         { text: "编辑", value: "actions", sortable: false },
       ],
     };
@@ -692,6 +690,8 @@ export default {
         })
         .then(() => {
           this.$message.success("登录成功，加载乐曲数据中……");
+          this.loading = true;
+          this.loginVisible = false;
           this.$refs.profile.fetch();
           axios
             .get(
@@ -701,7 +701,7 @@ export default {
               const data = resp.data;
               this.username = data.username;
               this.merge(data.records);
-              this.loginVisible = false;
+              this.loading = false;
             });
         })
         .catch((err) => {

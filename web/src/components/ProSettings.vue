@@ -362,10 +362,15 @@ export default {
     },
   },
   created: function () {
+    this.darkTheme = +localStorage.darkTheme;
+  },
+  beforeCreate: function () {
     if (+localStorage.darkTheme) {
-      this.darkTheme = localStorage.darkTheme;
+      document
+        .querySelector("body")
+        .setAttribute("style", "background: #121212; color: #FFFFFF;");
     }
-    this.$vuetify.theme.dark = this.darkTheme;
+    this.$vuetify.theme.dark = +localStorage.darkTheme;
   },
 };
 </script>
