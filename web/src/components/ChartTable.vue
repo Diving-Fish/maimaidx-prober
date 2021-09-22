@@ -106,20 +106,10 @@ export default {
     loading: Boolean,
     limit: Number,
     chart_stats: Object,
+    headers: Array,
   },
   data: () => {
-    return {
-      headers: [
-        { text: "排名", value: "rank" },
-        { text: "乐曲名", value: "title" },
-        { text: "难度", value: "level", sortable: false },
-        { text: "定数", value: "ds" },
-        { text: "达成率", value: "achievements" },
-        { text: "DX Rating", value: "ra" },
-        { text: "相对难度", value: "tag" },
-        { text: "编辑", value: "actions", sortable: false },
-      ],
-    };
+    return {};
   },
   watch: {
     search(n) {

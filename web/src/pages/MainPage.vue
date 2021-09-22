@@ -311,6 +311,11 @@
           <v-card-title
             >成绩表格
             <v-spacer />
+            <v-checkbox
+              label="显示高级设置"
+              v-model="proSetting"
+              class="mr-4"
+            ></v-checkbox>
             <v-text-field
               v-model="searchKey"
               append-icon="mdi-magnify"
@@ -324,6 +329,11 @@
             >底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</v-card-subtitle
           >
           <filter-slider ref="filterSlider"></filter-slider>
+          <pro-settings
+            v-show="proSetting"
+            ref="proSettings"
+            @setHeaders="setHeaders"
+          ></pro-settings>
           <v-card-text>
             <v-tabs v-model="tab">
               <v-tab key="sd">旧乐谱</v-tab>
@@ -338,6 +348,7 @@
                   :limit="25"
                   :loading="loading"
                   :chart_stats="chart_stats"
+                  :headers="headers"
                   sort-by="achievements"
                 >
                 </chart-table>
@@ -400,6 +411,7 @@ import ChartTable from "../components/ChartTable.vue";
 import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
 import FilterSlider from "../components/FilterSlider.vue";
+import ProSettings from "../components/ProSettings.vue";
 import Advertisement from "../components/Advertisement.vue";
 import Message from "../components/Message.vue";
 import Profile from "../components/Profile.vue";
@@ -413,6 +425,7 @@ export default {
     ChartTable,
     ViewBadge,
     FilterSlider,
+    ProSettings,
     Advertisement,
     Message,
     Profile,
@@ -458,20 +471,37 @@ export default {
       exportEncodings: ["GBK", "UTF-8"],
       logoutVisible: false,
       allModeVisible: false,
+      proSetting: false,
       chart_combo: {},
+      headers: [
+        { text: "排名", value: "rank" },
+        { text: "乐曲名", value: "title" },
+        { text: "难度", value: "level", sortable: false },
+        { text: "定数", value: "ds" },
+        { text: "达成率", value: "achievements" },
+        { text: "DX Rating", value: "ra" },
+        { text: "相对难度", value: "tag" },
+        { text: "DX分数", value: "dxScore" },
+        { text: "DX分数比例", value: "dxScore_perc" },
+        { text: "编辑", value: "actions", sortable: false },
+      ],
     };
   },
   computed: {
     sdDisplay: function () {
       const that = this;
       return this.sdData.filter((elem) => {
-        return that.$refs.filterSlider.f(elem);
+        return (
+          that.$refs.filterSlider.f(elem) && that.$refs.proSettings.f(elem)
+        );
       });
     },
     dxDisplay: function () {
       const that = this;
       return this.dxData.filter((elem) => {
-        return that.$refs.filterSlider.f(elem);
+        return (
+          that.$refs.filterSlider.f(elem) && that.$refs.proSettings.f(elem)
+        );
       });
     },
     sdData: function () {
@@ -981,13 +1011,17 @@ export default {
     available_plates: function () {
       return this.$refs.pq.available_plates();
     },
+    setHeaders: function (headers) {
+      this.headers = headers;
+    },
   },
 };
 </script>
 
 <style>
 #app {
-  margin: 30px auto;
+  margin: auto;
+  padding: 30px;
 }
 #tableBody {
   margin-bottom: 2em;
