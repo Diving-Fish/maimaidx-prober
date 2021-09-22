@@ -210,7 +210,7 @@ async def get_records():
 
 @app.route("/player/test_data", methods=['GET'])
 async def get_test_data():
-    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', 636)
+    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', 293)
     records = []
     for record in r:
         elem = record_json(record)
@@ -337,7 +337,7 @@ async def query_plate():
 
 async def compute_ra(player: Player):
     rating = 0
-    sd, dx = get_dx_and_sd(player):
+    sd, dx = get_dx_and_sd(player)
     for t in sd:
         rating += int(t.ra)
     for t in dx:
