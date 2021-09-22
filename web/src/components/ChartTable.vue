@@ -69,6 +69,29 @@
         <span>相对难度是指某一张谱面的 SSS 比例在同等级谱面中的排名</span>
       </v-tooltip>
     </template>
+    <template #item.dxScore="{ item }">
+      {{ item.dxScore }}
+    </template>
+    <template #item.dxScore_perc="{ item }">
+      <v-tooltip top>
+        <template v-slot:activator="{ on, attrs }">
+          <span  v-bind="attrs" v-on="on">{{ item.dxScore_perc.toFixed(2) }}%
+          <v-chip
+            v-if="item.dxScore_perc >= 85"
+            :color="getDXScore(item).color"
+            outlined
+            class="ml-1"
+            >☆{{ getDXScore(item).star }}</v-chip
+          ></span>
+        </template>
+        DX分数比例为 {{ item.dxScore }}/{{ getDXScore(item).total }}<br/>
+        <span v-if="item.dxScore_perc < 97">
+          距离下一个星级（☆{{ getDXScore(item).star + 1 }}，{{getDXScore(item).next}}）还差{{
+            getDXScore(item).next-item.dxScore
+          }}分</span
+        >
+      </v-tooltip>
+    </template>
     <template #item.actions="{ item }">
       <v-icon small @click="modify(item)">mdi-pencil</v-icon>
     </template>
@@ -166,6 +189,22 @@ export default {
         ac: elem.avg ? elem.avg.toFixed(2) : "0.00",
         rate_text: elem.sssp_count + "/" + elem.count,
         rate: ((elem.sssp_count * 100) / elem.count).toFixed(2),
+      };
+    },
+    getDXScore(item) {
+      let star =
+        5 - [97, 95, 93, 90, 85, 0].findIndex((v) => item.dxScore_perc >= v);
+      let color = "";
+      if (star >= 5) color = "yellow";
+      else if (star >= 3) color = "orange";
+      else if (star >= 1) color = "green";
+      let total = Math.round((item.dxScore / item.dxScore_perc) * 100);
+      let next = Math.ceil(([85, 90, 93, 95, 97, 100][star] * total) / 100);
+      return {
+        star: star,
+        color: color,
+        total: total,
+        next: next,
       };
     },
     modify(item) {

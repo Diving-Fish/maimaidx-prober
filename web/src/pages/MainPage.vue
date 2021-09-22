@@ -458,6 +458,7 @@ export default {
       exportEncodings: ["GBK", "UTF-8"],
       logoutVisible: false,
       allModeVisible: false,
+      chart_combo: {},
     };
   },
   computed: {
@@ -629,6 +630,10 @@ export default {
         .get("https://www.diving-fish.com/api/maimaidxprober/music_data")
         .then((resp) => {
           this.music_data = resp.data;
+          for (let elem of this.music_data)
+            this.chart_combo[elem.id] = elem.charts.map((o) =>
+              o.notes.reduce((prev, curr) => prev + curr)
+            );
           Promise.allSettled([
             axios.get(
               "https://www.diving-fish.com/api/maimaidxprober/chart_stats"
@@ -748,14 +753,20 @@ export default {
       if (!this.chart_stats[record.song_id]) {
         record.tag = 0.5;
       } else {
-        let elem = this.chart_stats[record.song_id][
-          record.level_index
-        ];
+        let elem = this.chart_stats[record.song_id][record.level_index];
         if (elem.t) {
           record.tag = (elem.v + 0.5) / elem.t;
         } else {
           record.tag = 0.5;
         }
+      }
+      if (!this.chart_combo[record.song_id]) {
+        record.dxScore_perc = 0;
+      } else {
+        record.dxScore_perc =
+          (record.dxScore /
+            (this.chart_combo[record.song_id][record.level_index] * 3)) *
+          100;
       }
     },
     mergeOnAllMode: function () {
