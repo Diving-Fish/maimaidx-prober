@@ -518,7 +518,7 @@ async def chart_stats():
     )
     data = defaultdict(lambda: [{}, {}, {}, {}, {}])
     for elem in cursor:
-        data[elem.chart.music.title + elem.chart.music.type][elem.chart.level] = {"count": elem.cnt,
+        data[elem.chart.music.id][elem.chart.level] = {"count": elem.cnt,
                                                                                   "avg": elem.avg,
                                                                                   "sssp_count": int(elem.sssp_count)
                                                                                   }
