@@ -361,6 +361,7 @@
                   :limit="15"
                   :loading="loading"
                   :chart_stats="chart_stats"
+                  :headers="headers"
                   sort-by="achievements"
                 >
                 </chart-table>

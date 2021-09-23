@@ -1,180 +1,175 @@
 <template>
-  <div :style="'display: box; margin: 0px 16px'">
-    <v-row align="center">
-      <v-col>
-        <v-select
+  <v-sheet style="display: box; margin: 0px 16px">
+    <v-row dense>
+      <v-col cols="3" class="px-0 py-0">
+        <v-subheader style="float: right">
+          连击筛选
+          <v-icon
+            @click="
+              fc_filter.length === fc_filter_items.length
+                ? (fc_filter = [])
+                : (fc_filter = fc_filter_items.map((i) => i.value))
+            "
+            class="ml-4"
+          >
+            mdi-check-all
+          </v-icon></v-subheader
+        >
+      </v-col>
+      <v-col cols="9" class="px-0 py-0">
+        <v-slide-group
+          multiple
           v-model="fc_filter"
-          :items="fc_filter_items"
-          item-value="value"
-          label="连击筛选"
-          multiple
+          class="ml-4 py-2"
+          show-arrows
         >
-          <template v-slot:prepend-item>
-            <v-list-item
-              ripple
-              @click="
-                fc_filter.length === fc_filter_items.length
-                  ? (fc_filter = [])
-                  : (fc_filter = ['', 'fc', 'fcp', 'ap', 'app'])
-              "
+          <v-slide-item
+            v-for="(item, key) in fc_filter_items"
+            :key="key"
+            :value="item.value"
+            class="mr-2"
+            v-slot="{ active, toggle }"
+          >
+            <v-chip
+              :color="getFC(item.value)"
+              :outlined="!active"
+              dark
+              @click="toggle"
             >
-              <v-list-item-content>
-                <v-list-item-title>
-                  {{
-                    fc_filter.length === fc_filter_items.length
-                      ? "取消全选"
-                      : "全选"
-                  }}
-                </v-list-item-title>
-              </v-list-item-content>
-            </v-list-item>
-            <v-divider class="mt-2"></v-divider>
-          </template>
-          <template v-slot:selection="{ item, index }">
-            <v-chip v-if="index <= 1" :color="getFC(item.value)" dark>
               {{ item.text }}
             </v-chip>
-            <span v-if="index === 2" class="grey--text text-caption">
-              (+{{ fc_filter.length - 2 }}...)
-            </span>
-          </template></v-select
+          </v-slide-item>
+        </v-slide-group>
+      </v-col>
+    </v-row>
+    <v-row dense>
+      <v-col cols="3" class="px-0 py-0">
+        <v-subheader style="float: right">
+          同步率筛选
+          <v-icon
+            @click="
+              fs_filter.length === fs_filter_items.length
+                ? (fs_filter = [])
+                : (fs_filter = fs_filter_items.map((i) => i.value))
+            "
+            class="ml-4"
+          >
+            mdi-check-all
+          </v-icon></v-subheader
         >
       </v-col>
-      <v-col>
-        <v-select
+      <v-col cols="9" class="px-0 py-0">
+        <v-slide-group
+          multiple
           v-model="fs_filter"
-          :items="fs_filter_items"
-          item-value="value"
-          label="同步率筛选"
-          multiple
+          class="ml-4 py-2"
+          show-arrows
         >
-          <template v-slot:prepend-item>
-            <v-list-item
-              ripple
-              @click="
-                fs_filter.length === fs_filter_items.length
-                  ? (fs_filter = [])
-                  : (fs_filter = ['', 'fs', 'fsp', 'fdx', 'fdxp'])
-              "
+          <v-slide-item
+            v-for="(item, key) in fs_filter_items"
+            :key="key"
+            :value="item.value"
+            class="mr-2"
+            v-slot="{ active, toggle }"
+          >
+            <v-chip
+              :color="getFS(item.value)"
+              :outlined="!active"
+              dark
+              @click="toggle"
             >
-              <v-list-item-content>
-                <v-list-item-title>
-                  {{
-                    fs_filter.length === fs_filter_items.length
-                      ? "取消全选"
-                      : "全选"
-                  }}
-                </v-list-item-title>
-              </v-list-item-content>
-            </v-list-item>
-            <v-divider class="mt-2"></v-divider>
-          </template>
-          <template v-slot:selection="{ item, index }">
-            <v-chip v-if="index <= 1" :color="getFS(item.value)" dark>
               {{ item.text }}
             </v-chip>
-            <span v-if="index === 2" class="grey--text text-caption">
-              (+{{ fs_filter.length - 2 }}...)
-            </span>
-          </template></v-select
-        >
+          </v-slide-item>
+        </v-slide-group>
       </v-col>
     </v-row>
-    <v-row align="center">
-      <v-col>
-        <v-select
+    <v-row dense>
+      <v-col cols="3" class="px-0 py-0">
+        <v-subheader style="float: right">
+          难度筛选
+          <v-icon
+            @click="
+              diff_filter.length === diff_filter_items.length
+                ? (diff_filter = [])
+                : (diff_filter = diff_filter_items.map((i) => i.value))
+            "
+            class="ml-4"
+          >
+            mdi-check-all
+          </v-icon></v-subheader
+        >
+      </v-col>
+      <v-col cols="9" class="px-0 py-0">
+        <v-slide-group
+          multiple
           v-model="diff_filter"
-          :items="diff_filter_items"
-          item-value="value"
-          label="难度筛选"
-          multiple
+          class="ml-4 py-2"
+          show-arrows
         >
-          <template v-slot:prepend-item>
-            <v-list-item
-              ripple
-              @click="
-                diff_filter.length === diff_filter_items.length
-                  ? (diff_filter = [])
-                  : (diff_filter = [0, 1, 2, 3, 4])
-              "
+          <v-slide-item
+            v-for="(item, key) in diff_filter_items"
+            :key="key"
+            :value="item.value"
+            class="mr-2"
+            v-slot="{ active, toggle }"
+          >
+            <v-chip
+              :color="getLevel(item.value)"
+              :outlined="!active"
+              dark
+              @click="toggle"
             >
-              <v-list-item-content>
-                <v-list-item-title>
-                  {{
-                    diff_filter.length === diff_filter_items.length
-                      ? "取消全选"
-                      : "全选"
-                  }}
-                </v-list-item-title>
-              </v-list-item-content>
-            </v-list-item>
-            <v-divider class="mt-2"></v-divider>
-          </template>
-          <template v-slot:selection="{ item, index }">
-            <v-chip v-if="index <= 1" :color="getLevel(item.value)" dark>
               {{ item.text }}
             </v-chip>
-            <span v-if="index === 2" class="grey--text text-caption">
-              (+{{ diff_filter.length - 2 }}...)
-            </span>
-          </template></v-select
+          </v-slide-item>
+        </v-slide-group>
+      </v-col>
+    </v-row>
+    <v-row dense>
+      <v-col cols="3" class="px-0 py-0">
+        <v-subheader style="float: right">
+          达成率筛选
+          <v-icon
+            @click="
+              rate_filter.length === rate_filter_items.length
+                ? (rate_filter = [])
+                : (rate_filter = rate_filter_items.map((i) => i.value))
+            "
+            class="ml-4"
+          >
+            mdi-check-all
+          </v-icon></v-subheader
         >
       </v-col>
-      <v-col>
-        <v-select
-          v-model="rate_filter"
-          :items="rate_filter_items"
-          item-value="value"
-          label="达成率筛选"
+      <v-col cols="9" class="px-0 py-0">
+        <v-slide-group
           multiple
+          v-model="rate_filter"
+          class="ml-4 py-2"
+          show-arrows
         >
-          <template v-slot:prepend-item>
-            <v-list-item
-              ripple
-              @click="
-                rate_filter.length === rate_filter_items.length
-                  ? (rate_filter = [])
-                  : (rate_filter = [
-                      'sssp',
-                      'sss',
-                      'ssp',
-                      'ss',
-                      'sp',
-                      's',
-                      'aaa',
-                      'aa',
-                      'a',
-                      'b',
-                      'c',
-                      'd',
-                    ])
-              "
+          <v-slide-item
+            v-for="(item, key) in rate_filter_items"
+            :key="key"
+            :value="item.value"
+            class="mr-2"
+            v-slot="{ active, toggle }"
+          >
+            <v-chip
+              :color="getRate(item.value)"
+              :outlined="!active"
+              dark
+              @click="toggle"
             >
-              <v-list-item-content>
-                <v-list-item-title>
-                  {{
-                    rate_filter.length === rate_filter_items.length
-                      ? "取消全选"
-                      : "全选"
-                  }}
-                </v-list-item-title>
-              </v-list-item-content>
-            </v-list-item>
-            <v-divider class="mt-2"></v-divider>
-          </template>
-          <template v-slot:selection="{ item, index }">
-            <v-chip v-if="index <= 1" :color="getRate(item.value)" outlined>
               {{ item.text }}
             </v-chip>
-            <span v-if="index === 2" class="grey--text text-caption">
-              (+{{ rate_filter.length - 2 }}...)
-            </span>
-          </template></v-select
-        >
+          </v-slide-item>
+        </v-slide-group>
       </v-col>
     </v-row>
     <v-row align="center">
-      <v-col>
+      <v-col cols="6">
         <v-select
           v-model="headers"
           :items="headers_items"
@@ -200,22 +195,25 @@
               "
             >
               <v-list-item-content>
-                <v-list-item-title> "恢复默认" </v-list-item-title>
+                <v-list-item-title> 恢复默认 </v-list-item-title>
               </v-list-item-content>
             </v-list-item>
             <v-divider class="mt-2"></v-divider>
           </template>
-          <!-- <template v-slot:selection="{ item, index }">
-            <v-chip v-if="index <= 1" :color="getLevel(item.value)" dark>
-              {{ item.text }}
-            </v-chip>
-            <span v-if="index === 2" class="grey--text text-caption">
-              (+{{ diff_filter.length - 2 }}...)
-            </span>
-          </template> -->
+          <template v-slot:selection="{ item, index }">
+            {{
+              2 >= index
+                ? index === headers.length - 1
+                  ? item.text
+                  : item.text + ","
+                : index == 3
+                ? "..."
+                : ""
+            }}
+          </template>
         </v-select>
       </v-col>
-      <v-col>
+      <v-col cols="3">
         <v-checkbox
           label="使用暗色主题"
           v-model="darkTheme"
@@ -223,7 +221,7 @@
         ></v-checkbox>
       </v-col>
     </v-row>
-  </div>
+  </v-sheet>
 </template>
 
 <script>
@@ -231,8 +229,8 @@ export default {
   data: () => {
     return {
       darkTheme: false,
-      fc_filter: ["", "fc", "fcp", "ap", "app"],
-      fs_filter: ["", "fs", "fsp", "fsd", "fsdp"],
+      fc_filter: [0, "fc", "fcp", "ap", "app"],
+      fs_filter: [0, "fs", "fsp", "fsd", "fsdp"],
       diff_filter: [0, 1, 2, 3, 4],
       rate_filter: [
         "sssp",
@@ -249,14 +247,14 @@ export default {
         "d",
       ],
       fc_filter_items: [
-        { text: "空", value: "" },
+        { text: "空", value: 0 },
         { text: "FC", value: "fc" },
         { text: "FC+", value: "fcp" },
         { text: "AP", value: "ap" },
         { text: "AP+", value: "app" },
       ],
       fs_filter_items: [
-        { text: "空", value: "" },
+        { text: "空", value: 0 },
         { text: "FS", value: "fs" },
         { text: "FS+", value: "fsp" },
         { text: "FDX", value: "fsd" },
@@ -322,14 +320,13 @@ export default {
   methods: {
     f(item) {
       return (
-        this.fc_filter.indexOf(item.fc) !== -1 &&
-        this.fs_filter.indexOf(item.fs) !== -1 &&
-        this.diff_filter.indexOf(item.level_index) !== -1 &&
-        this.rate_filter.indexOf(item.rate) !== -1
+        this.fc_filter.findIndex((i) => i == item.fc) !== -1 &&
+        this.fs_filter.findIndex((i) => i == item.fs) !== -1 &&
+        this.diff_filter.findIndex((i) => i == item.level_index) !== -1 &&
+        this.rate_filter.findIndex((i) => i == item.rate) !== -1
       );
     },
     toggleDarkTheme: function (param) {
-      console.log(param);
       localStorage.darkTheme = +param;
       this.$vuetify.theme.dark = this.darkTheme;
     },
@@ -337,27 +334,27 @@ export default {
       return ["#22bb5b", "#fb9c2d", "#f64861", "#9e45e2", "#ba67f8"][index];
     },
     getFC(str) {
-      if (!str || str.startsWith("fc")) return "green";
+      if (!str) return "grey";
+      if (str.startsWith("fc")) return "green";
       return "orange";
     },
     getFS(str) {
-      if (str && str.startsWith("fsd")) return "orange";
+      if (!str) return "grey";
+      if (str.startsWith("fsd")) return "orange";
       return "blue";
     },
     getRate(str) {
       if (str.startsWith("sssp")) return "red";
       if (str.startsWith("sss")) return "blue darken-1";
       if (str.startsWith("ssp")) return "amber darken-2";
-      return "";
+      return "grey";
     },
     setHeaders() {
       this.headers.sort(
-        (a, b) => this.headers_values.indexOf(a.value) - this.headers_values.indexOf(b.value)
+        (a, b) =>
+          this.headers_values.indexOf(a.value) -
+          this.headers_values.indexOf(b.value)
       );
-      console.log(this.headers.map((h) => h.text));
-      console.log(this.headers.sort(
-        (a, b) => this.headers_values.indexOf(a.value) - this.headers_values.indexOf(b.value)
-      ));
       this.$emit("setHeaders", this.headers);
     },
   },
