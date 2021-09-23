@@ -1,8 +1,8 @@
 <template>
   <v-sheet style="display: box; margin: 0px 16px">
     <v-row dense>
-      <v-col cols="3" class="px-0 py-0">
-        <v-subheader style="float: right">
+      <v-col cols="4" class="px-0 py-0">
+        <v-subheader>
           连击筛选
           <v-icon
             @click="
@@ -10,17 +10,17 @@
                 ? (fc_filter = [])
                 : (fc_filter = fc_filter_items.map((i) => i.value))
             "
-            class="ml-4"
+            class="ml-2"
           >
             mdi-check-all
           </v-icon></v-subheader
         >
       </v-col>
-      <v-col cols="9" class="px-0 py-0">
+      <v-col cols="8" class="px-0 py-0">
         <v-slide-group
           multiple
           v-model="fc_filter"
-          class="ml-4 py-2"
+          class="ml-2 py-2"
           show-arrows
         >
           <v-slide-item
@@ -43,8 +43,8 @@
       </v-col>
     </v-row>
     <v-row dense>
-      <v-col cols="3" class="px-0 py-0">
-        <v-subheader style="float: right">
+      <v-col cols="4" class="px-0 py-0">
+        <v-subheader>
           同步率筛选
           <v-icon
             @click="
@@ -52,17 +52,17 @@
                 ? (fs_filter = [])
                 : (fs_filter = fs_filter_items.map((i) => i.value))
             "
-            class="ml-4"
+            class="ml-2"
           >
             mdi-check-all
           </v-icon></v-subheader
         >
       </v-col>
-      <v-col cols="9" class="px-0 py-0">
+      <v-col cols="8" class="px-0 py-0">
         <v-slide-group
           multiple
           v-model="fs_filter"
-          class="ml-4 py-2"
+          class="ml-2 py-2"
           show-arrows
         >
           <v-slide-item
@@ -85,8 +85,8 @@
       </v-col>
     </v-row>
     <v-row dense>
-      <v-col cols="3" class="px-0 py-0">
-        <v-subheader style="float: right">
+      <v-col cols="4" class="px-0 py-0">
+        <v-subheader>
           难度筛选
           <v-icon
             @click="
@@ -94,17 +94,17 @@
                 ? (diff_filter = [])
                 : (diff_filter = diff_filter_items.map((i) => i.value))
             "
-            class="ml-4"
+            class="ml-2"
           >
             mdi-check-all
           </v-icon></v-subheader
         >
       </v-col>
-      <v-col cols="9" class="px-0 py-0">
+      <v-col cols="8" class="px-0 py-0">
         <v-slide-group
           multiple
           v-model="diff_filter"
-          class="ml-4 py-2"
+          class="ml-2 py-2"
           show-arrows
         >
           <v-slide-item
@@ -127,8 +127,8 @@
       </v-col>
     </v-row>
     <v-row dense>
-      <v-col cols="3" class="px-0 py-0">
-        <v-subheader style="float: right">
+      <v-col cols="4" class="px-0 py-0">
+        <v-subheader>
           达成率筛选
           <v-icon
             @click="
@@ -136,17 +136,17 @@
                 ? (rate_filter = [])
                 : (rate_filter = rate_filter_items.map((i) => i.value))
             "
-            class="ml-4"
+            class="ml-2"
           >
             mdi-check-all
           </v-icon></v-subheader
         >
       </v-col>
-      <v-col cols="9" class="px-0 py-0">
+      <v-col cols="8" class="px-0 py-0">
         <v-slide-group
           multiple
           v-model="rate_filter"
-          class="ml-4 py-2"
+          class="ml-2 py-2"
           show-arrows
         >
           <v-slide-item
@@ -169,7 +169,7 @@
       </v-col>
     </v-row>
     <v-row align="center">
-      <v-col cols="6">
+      <v-col cols="7">
         <v-select
           v-model="headers"
           :items="headers_items"
@@ -202,18 +202,18 @@
           </template>
           <template v-slot:selection="{ item, index }">
             {{
-              2 >= index
+              1 >= index
                 ? index === headers.length - 1
                   ? item.text
                   : item.text + ","
-                : index == 3
+                : index == 2
                 ? "..."
                 : ""
             }}
           </template>
         </v-select>
       </v-col>
-      <v-col cols="3">
+      <v-col cols="5" class="px-0 py-0">
         <v-checkbox
           label="使用暗色主题"
           v-model="darkTheme"
@@ -229,32 +229,19 @@ export default {
   data: () => {
     return {
       darkTheme: false,
-      fc_filter: [0, "fc", "fcp", "ap", "app"],
-      fs_filter: [0, "fs", "fsp", "fsd", "fsdp"],
-      diff_filter: [0, 1, 2, 3, 4],
-      rate_filter: [
-        "sssp",
-        "sss",
-        "ssp",
-        "ss",
-        "sp",
-        "s",
-        "aaa",
-        "aa",
-        "a",
-        "b",
-        "c",
-        "d",
-      ],
+      fc_filter: [],
+      fs_filter: [],
+      diff_filter: [],
+      rate_filter: [],
       fc_filter_items: [
-        { text: "空", value: 0 },
+        { text: "空", value: 0 }, // 0 instead of "" because of vuetify jank
         { text: "FC", value: "fc" },
         { text: "FC+", value: "fcp" },
         { text: "AP", value: "ap" },
         { text: "AP+", value: "app" },
       ],
       fs_filter_items: [
-        { text: "空", value: 0 },
+        { text: "空", value: 0 }, // 0 instead of "" because of vuetify jank
         { text: "FS", value: "fs" },
         { text: "FS+", value: "fsp" },
         { text: "FDX", value: "fsd" },
@@ -281,16 +268,7 @@ export default {
         { text: "C", value: "c" },
         { text: "D", value: "d" },
       ],
-      headers: [
-        { text: "排名", value: "rank" },
-        { text: "乐曲名", value: "title" },
-        { text: "难度", value: "level", sortable: false },
-        { text: "定数", value: "ds" },
-        { text: "达成率", value: "achievements" },
-        { text: "DX Rating", value: "ra" },
-        { text: "相对难度", value: "tag" },
-        { text: "编辑", value: "actions", sortable: false },
-      ],
+      headers: [],
       headers_items: [
         { text: "排名", value: "rank" },
         { text: "乐曲名", value: "title" },
@@ -357,8 +335,38 @@ export default {
       );
       this.$emit("setHeaders", this.headers);
     },
+    reset() {
+      this.fc_filter = [0, "fc", "fcp", "ap", "app"];
+      this.fs_filter = [0, "fs", "fsp", "fsd", "fsdp"];
+      this.diff_filter = [0, 1, 2, 3, 4];
+      this.rate_filter = [
+        "sssp",
+        "sss",
+        "ssp",
+        "ss",
+        "sp",
+        "s",
+        "aaa",
+        "aa",
+        "a",
+        "b",
+        "c",
+        "d",
+      ];
+      this.headers = [
+        { text: "排名", value: "rank" },
+        { text: "乐曲名", value: "title" },
+        { text: "难度", value: "level", sortable: false },
+        { text: "定数", value: "ds" },
+        { text: "达成率", value: "achievements" },
+        { text: "DX Rating", value: "ra" },
+        { text: "相对难度", value: "tag" },
+        { text: "编辑", value: "actions", sortable: false },
+      ];
+    },
   },
   created: function () {
+    this.reset();
     this.darkTheme = +localStorage.darkTheme;
   },
   beforeCreate: function () {
@@ -371,3 +379,19 @@ export default {
   },
 };
 </script>
+
+<style>
+.v-slide-group__next,
+.v-slide-group__prev {
+  min-width: 32px !important;
+}
+</style>
+
+<style scoped>
+.v-subheader {
+  float: right;
+  min-width: 102px;
+  justify-content: right;
+  padding: 0px !important;
+}
+</style>

@@ -1,9 +1,9 @@
 <template>
-  <div id="app">
-    <v-container>
+  <div id="mainPage">
+    <v-container fluid :style="$vuetify.breakpoint.mobile ? 'padding:0px' : ''">
       <div :style="$vuetify.breakpoint.mobile ? '' : 'display: flex; align-items: flex-end; justify-content: space-between'">
         <h1>舞萌 DX 查分器</h1>
-        <profile :available_plates="available_plates" ref="profile"/>
+        <profile :available_plates="available_plates" ref="profile" />
       </div>
       <v-divider class="mt-4 mb-4" />
       <p>
@@ -306,7 +306,7 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
-      <div id="tableBody" style="margin-top: 2em">
+      <v-container id="tableBody" style="margin-top: 2em" px-0 py-0>
         <v-card>
           <v-card-title
             >成绩表格
@@ -315,6 +315,7 @@
               label="显示高级设置"
               v-model="proSetting"
               class="mr-4"
+              @click="$refs.proSettings.reset()"
             ></v-checkbox>
             <v-text-field
               v-model="searchKey"
@@ -369,7 +370,7 @@
             </v-tabs-items>
           </v-card-text>
         </v-card>
-      </div>
+      </v-container>
       <div class="mid" :style="$vuetify.breakpoint.mobile ? '' : 'display: flex'">
         <message @resize="$refs.advertisement.resize()" :style="`flex: 1; ${$vuetify.breakpoint.mobile ? '' : 'min-width: 500px; margin-right: 16px'}`" class="mbe-2"></message>
         <advertisement ref="advertisement" class="mbe-2"></advertisement>
@@ -1022,12 +1023,13 @@ export default {
 </script>
 
 <style>
-#app {
+#mainPage {
   margin: auto;
   padding: 30px;
 }
 #tableBody {
   margin-bottom: 2em;
+  max-width: calc(100vw - 60px);
 }
 .difficulty4 {
   color: #ba67f8;
