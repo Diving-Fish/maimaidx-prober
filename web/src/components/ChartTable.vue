@@ -30,10 +30,26 @@
       }}</v-chip>
     </template>
     <template #item.ra="{ item }">
-      <span style="color: #4caf50" v-if="item.rank <= limit">{{
-        item.ra
-      }}</span>
-      <span v-else>{{ item.ra }}</span>
+      <v-tooltip top>
+        <template v-slot:activator="{ on, attrs }">
+          <span
+            style="color: #4caf50"
+            v-if="item.rank <= limit"
+            v-bind="attrs"
+            v-on="on"
+            >{{ item.ra }}</span
+          >
+          <span v-else
+            v-bind="attrs"
+            v-on="on">{{ item.ra }}</span>
+        </template>
+        <span v-if="!getMoreRa(item).length">已达成本曲最高DX rating。</span>
+        <span v-else v-for="(j, key) in getMoreRa(item)" :key="key">
+          {{ j.ra }}(+{{j.ra-item.ra}})：{{ j.achievements.toFixed(4) }}(+{{
+            (j.achievements - item.achievements).toFixed(4)
+          }})<br />
+        </span>
+      </v-tooltip>
     </template>
     <template #item.tag="{ item }">
       <v-tooltip top v-if="getTag(item).exists">
@@ -84,11 +100,11 @@
             >☆{{ getDXScore(item).star }}</v-chip
           ></span>
         </template>
-        DX分数比例为 {{ item.dxScore }}/{{ getDXScore(item).total }}<br/>
+        DX分数比例为 {{ item.dxScore }}/{{ getDXScore(item).total }}<br />
         <span v-if="item.dxScore_perc < 97">
-          距离下一个星级（☆{{ getDXScore(item).star + 1 }}，{{getDXScore(item).next}}）还差{{
-            getDXScore(item).next-item.dxScore
-          }}分</span
+          距离下一个星级（☆{{ getDXScore(item).star + 1 }}，{{
+            getDXScore(item).next
+          }}）还差{{ getDXScore(item).next - item.dxScore }}分</span
         >
       </v-tooltip>
     </template>
@@ -196,6 +212,68 @@ export default {
         total: total,
         next: next,
       };
+    },
+    get_idx(ach) {
+      return [
+        50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 200,
+      ].findIndex((i) => ach < i);
+    },
+    get_l(idx) {
+      return [0, 5, 6, 7, 7.5, 8.5, 9.5, 10.5, 12.5, 12.7, 13, 13.2, 13.5, 14][
+        idx
+      ];
+    },
+    get_min_ach(idx) {
+      return [0, 50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 101][
+        idx
+      ];
+    },
+    get_ra(ds, ach) {
+      return Math.floor(
+        (ds * this.get_l(this.get_idx(ach)) * Math.min(100.5, ach)) / 100
+      );
+    },
+    getMoreRa(item) {
+      let ds = item.ds;
+      let idx = this.get_idx(item.achievements);
+      let ach4 = Math.round(item.achievements * 10000);
+      let min_idx = Math.max(idx, 7);
+      let min_ach4 = Math.round(this.get_min_ach(min_idx) * 10000);
+      let max_idx = Math.min(idx + 3, 13);
+      let max_ach4 = Math.round(this.get_min_ach(max_idx + 1) * 10000);
+      let more_ra = [];
+      for (let curr_ach4 = min_ach4; curr_ach4 < max_ach4; curr_ach4 += 2500) {
+        // console.log(curr_ach4, JSON.stringify(more_ra));
+        let curr_min_ra = this.get_ra(ds, curr_ach4 / 10000);
+        if (curr_min_ra > this.get_ra(ds, (curr_ach4 - 1) / 10000)) {
+          if (curr_ach4 > ach4)
+            more_ra.push({
+              ra: curr_min_ra,
+              achievements: curr_ach4 / 10000,
+            });
+        }
+        let curr_max_ra = this.get_ra(ds, (curr_ach4 + 2499) / 10000);
+        if (curr_max_ra > curr_min_ra) {
+          let l = curr_ach4,
+            r = curr_ach4 + 2499,
+            ans = r;
+          while (r > l) {
+            let mid = Math.floor((r + l) / 2);
+            if (this.get_ra(ds, mid / 10000) > curr_min_ra) {
+              ans = mid;
+              r = mid - 1;
+            } else {
+              l = mid + 1;
+            }
+          }
+            if (curr_ach4 > ach4)
+              more_ra.push({
+                ra: curr_max_ra,
+                achievements: ans / 10000,
+              });
+        }
+      }
+      return more_ra;
     },
     modify(item) {
       if (item.block) {
