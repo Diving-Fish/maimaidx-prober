@@ -168,6 +168,14 @@
         </v-slide-group>
       </v-col>
     </v-row>
+    <v-row>
+      <v-col cols="6">
+        <v-select v-model="version" :items="versions" label="版本" clearable />
+      </v-col>
+      <v-col cols="6">
+        <v-select v-model="genre" :items="genres" label="歌曲类别" clearable />
+      </v-col>
+    </v-row>
     <v-row align="center">
       <v-col cols="7">
         <v-select
@@ -178,27 +186,14 @@
           @change="setHeaders"
           return-object
         >
-          <template v-slot:prepend-item>
-            <v-list-item
-              ripple
-              @click="
-                headers = [
-                  { text: '排名', value: 'rank' },
-                  { text: '乐曲名', value: 'title' },
-                  { text: '难度', value: 'level', sortable: false },
-                  { text: '定数', value: 'ds' },
-                  { text: '达成率', value: 'achievements' },
-                  { text: 'DX Rating', value: 'ra' },
-                  { text: '相对难度', value: 'tag' },
-                  { text: '编辑', value: 'actions', sortable: false },
-                ]
-              "
+          <template v-slot:prepend>
+            <v-icon
+              @click="(headers = headers_default), setHeaders()"
+              :disabled="headers == headers_default"
+              aria-label="重置"
             >
-              <v-list-item-content>
-                <v-list-item-title> 恢复默认 </v-list-item-title>
-              </v-list-item-content>
-            </v-list-item>
-            <v-divider class="mt-2"></v-divider>
+              mdi-refresh
+            </v-icon>
           </template>
           <template v-slot:selection="{ item, index }">
             {{
@@ -226,6 +221,10 @@
 
 <script>
 export default {
+  props: {
+    music_data: Array,
+    music_data_dict: Object,
+  },
   data: () => {
     return {
       darkTheme: false,
@@ -268,7 +267,21 @@ export default {
         { text: "C", value: "c" },
         { text: "D", value: "d" },
       ],
+      version: null,
+      genre: null,
+      versions: [],
+      genres: [],
       headers: [],
+      headers_default: [
+        { text: "排名", value: "rank" },
+        { text: "乐曲名", value: "title" },
+        { text: "难度", value: "level", sortable: false },
+        { text: "定数", value: "ds" },
+        { text: "达成率", value: "achievements" },
+        { text: "DX Rating", value: "ra" },
+        { text: "相对难度", value: "tag" },
+        { text: "编辑", value: "actions", sortable: false },
+      ],
       headers_items: [
         { text: "排名", value: "rank" },
         { text: "乐曲名", value: "title" },
@@ -301,7 +314,13 @@ export default {
         this.fc_filter.findIndex((i) => i == item.fc) !== -1 &&
         this.fs_filter.findIndex((i) => i == item.fs) !== -1 &&
         this.diff_filter.findIndex((i) => i == item.level_index) !== -1 &&
-        this.rate_filter.findIndex((i) => i == item.rate) !== -1
+        this.rate_filter.findIndex((i) => i == item.rate) !== -1 &&
+        (!this.version ||
+          this.music_data_dict[item.song_id] &&
+          this.music_data_dict[item.song_id].basic_info.from == this.version) &&
+        (!this.genre ||
+          this.music_data_dict[item.song_id] &&
+          this.music_data_dict[item.song_id].basic_info.genre == this.genre)
       );
     },
     toggleDarkTheme: function (param) {
@@ -335,6 +354,22 @@ export default {
       );
       this.$emit("setHeaders", this.headers);
     },
+    init: function () {
+      this.versions = Array.from(
+        new Set(
+          this.music_data.map((elem) => {
+            return elem.basic_info.from;
+          })
+        )
+      );
+      this.genres = Array.from(
+        new Set(
+          this.music_data.map((elem) => {
+            return elem.basic_info.genre;
+          })
+        )
+      );
+    },
     reset() {
       this.fc_filter = [0, "fc", "fcp", "ap", "app"];
       this.fs_filter = [0, "fs", "fsp", "fsd", "fsdp"];
@@ -353,16 +388,7 @@ export default {
         "c",
         "d",
       ];
-      this.headers = [
-        { text: "排名", value: "rank" },
-        { text: "乐曲名", value: "title" },
-        { text: "难度", value: "level", sortable: false },
-        { text: "定数", value: "ds" },
-        { text: "达成率", value: "achievements" },
-        { text: "DX Rating", value: "ra" },
-        { text: "相对难度", value: "tag" },
-        { text: "编辑", value: "actions", sortable: false },
-      ];
+      this.headers = this.headers_default;
     },
   },
   created: function () {

@@ -333,6 +333,8 @@
           <pro-settings
             v-show="proSetting"
             ref="proSettings"
+            :music_data="music_data"
+            :music_data_dict="music_data_dict"
             @setHeaders="setHeaders"
           ></pro-settings>
           <v-card-text>
@@ -454,6 +456,7 @@ export default {
       searchKey: "",
       records: [],
       music_data: [],
+      music_data_dict: {},
       level_label: ["Basic", "Advanced", "Expert", "Master", "Re:MASTER"],
       feedbackText: "",
       feedbackVisible: false,
@@ -660,6 +663,10 @@ export default {
         .get("https://www.diving-fish.com/api/maimaidxprober/music_data")
         .then((resp) => {
           this.music_data = resp.data;
+          this.music_data_dict = this.music_data.reduce((acc, music) => {
+            acc[music.id] = music;
+            return acc;
+          }, {});
           for (let elem of this.music_data)
             this.chart_combo[elem.id] = elem.charts.map((o) =>
               o.notes.reduce((prev, curr) => prev + curr)
@@ -679,6 +686,7 @@ export default {
               that.merge(data.records);
             }
             this.$refs.pq.init();
+            this.$refs.proSettings.init();
             that.loading = false;
           });
         });
