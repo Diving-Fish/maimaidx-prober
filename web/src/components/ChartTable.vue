@@ -89,7 +89,7 @@
       {{ item.dxScore }}
     </template>
     <template #item.dxScore_perc="{ item }">
-      <v-tooltip top>
+      <v-tooltip top v-if="item.dxScore">
         <template v-slot:activator="{ on, attrs }">
           <span  v-bind="attrs" v-on="on">{{ item.dxScore_perc.toFixed(2) }}%
           <v-chip
@@ -107,6 +107,7 @@
           }}）还差{{ getDXScore(item).next - item.dxScore }}分</span
         >
       </v-tooltip>
+      <span v-else> {{ item.dxScore_perc.toFixed(2) }}% </span>
     </template>
     <template #item.actions="{ item }">
       <v-icon small @click="modify(item)">mdi-pencil</v-icon>
