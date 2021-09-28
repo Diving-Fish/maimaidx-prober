@@ -1,9 +1,9 @@
 <template>
-  <div id="app">
-    <v-container>
+  <div id="mainPage">
+    <v-container fluid :style="$vuetify.breakpoint.mobile ? 'padding:0px' : ''">
       <div :style="$vuetify.breakpoint.mobile ? '' : 'display: flex; align-items: flex-end; justify-content: space-between'">
         <h1>舞萌 DX 查分器</h1>
-        <profile :available_plates="available_plates" />
+        <profile :available_plates="available_plates" ref="profile" />
       </div>
       <v-divider class="mt-4 mb-4" />
       <p>
@@ -57,7 +57,7 @@
               </v-btn>
             </v-card-title>
             <v-card-text>
-              <v-form ref="form" v-model="valid">
+              <v-form ref="form" v-model="valid" @keyup.enter.native="login">
                 <v-text-field
                   v-model="loginForm.username"
                   label="用户名"
@@ -306,11 +306,17 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
-      <div id="tableBody" style="margin-top: 2em">
+      <v-container id="tableBody" style="margin-top: 2em" px-0 py-0>
         <v-card>
           <v-card-title
             >成绩表格
             <v-spacer />
+            <v-checkbox
+              label="显示高级设置"
+              v-model="proSetting"
+              class="mr-4"
+              @click="$refs.proSettings.reset()"
+            ></v-checkbox>
             <v-text-field
               v-model="searchKey"
               append-icon="mdi-magnify"
@@ -324,6 +330,13 @@
             >底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</v-card-subtitle
           >
           <filter-slider ref="filterSlider"></filter-slider>
+          <pro-settings
+            v-show="proSetting"
+            ref="proSettings"
+            :music_data="music_data"
+            :music_data_dict="music_data_dict"
+            @setHeaders="setHeaders"
+          ></pro-settings>
           <v-card-text>
             <v-tabs v-model="tab">
               <v-tab key="sd">旧乐谱</v-tab>
@@ -338,6 +351,8 @@
                   :limit="25"
                   :loading="loading"
                   :chart_stats="chart_stats"
+                  :headers="headers"
+                  :music_data_dict="music_data_dict"
                   sort-by="achievements"
                 >
                 </chart-table>
@@ -350,6 +365,8 @@
                   :limit="15"
                   :loading="loading"
                   :chart_stats="chart_stats"
+                  :headers="headers"
+                  :music_data_dict="music_data_dict"
                   sort-by="achievements"
                 >
                 </chart-table>
@@ -357,7 +374,7 @@
             </v-tabs-items>
           </v-card-text>
         </v-card>
-      </div>
+      </v-container>
       <div class="mid" :style="$vuetify.breakpoint.mobile ? '' : 'display: flex'">
         <message @resize="$refs.advertisement.resize()" :style="`flex: 1; ${$vuetify.breakpoint.mobile ? '' : 'min-width: 500px; margin-right: 16px'}`" class="mbe-2"></message>
         <advertisement ref="advertisement" class="mbe-2"></advertisement>
@@ -400,6 +417,7 @@ import ChartTable from "../components/ChartTable.vue";
 import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
 import FilterSlider from "../components/FilterSlider.vue";
+import ProSettings from "../components/ProSettings.vue";
 import Advertisement from "../components/Advertisement.vue";
 import Message from "../components/Message.vue";
 import Profile from "../components/Profile.vue";
@@ -413,6 +431,7 @@ export default {
     ChartTable,
     ViewBadge,
     FilterSlider,
+    ProSettings,
     Advertisement,
     Message,
     Profile,
@@ -439,6 +458,7 @@ export default {
       searchKey: "",
       records: [],
       music_data: [],
+      music_data_dict: {},
       level_label: ["Basic", "Advanced", "Expert", "Master", "Re:MASTER"],
       feedbackText: "",
       feedbackVisible: false,
@@ -458,19 +478,35 @@ export default {
       exportEncodings: ["GBK", "UTF-8"],
       logoutVisible: false,
       allModeVisible: false,
+      proSetting: false,
+      chart_combo: {},
+      headers: [
+        { text: "排名", value: "rank" },
+        { text: "乐曲名", value: "title" },
+        { text: "难度", value: "level", sortable: false },
+        { text: "定数", value: "ds" },
+        { text: "达成率", value: "achievements" },
+        { text: "DX Rating", value: "ra" },
+        { text: "相对难度", value: "tag" },
+        { text: "编辑", value: "actions", sortable: false },
+      ],
     };
   },
   computed: {
     sdDisplay: function () {
       const that = this;
       return this.sdData.filter((elem) => {
-        return that.$refs.filterSlider.f(elem);
+        return (
+          that.$refs.filterSlider.f(elem) && that.$refs.proSettings.f(elem)
+        );
       });
     },
     dxDisplay: function () {
       const that = this;
       return this.dxData.filter((elem) => {
-        return that.$refs.filterSlider.f(elem);
+        return (
+          that.$refs.filterSlider.f(elem) && that.$refs.proSettings.f(elem)
+        );
       });
     },
     sdData: function () {
@@ -629,6 +665,14 @@ export default {
         .get("https://www.diving-fish.com/api/maimaidxprober/music_data")
         .then((resp) => {
           this.music_data = resp.data;
+          this.music_data_dict = this.music_data.reduce((acc, music) => {
+            acc[music.id] = music;
+            return acc;
+          }, {});
+          for (let elem of this.music_data)
+            this.chart_combo[elem.id] = elem.charts.map((o) =>
+              o.notes.reduce((prev, curr) => prev + curr)
+            );
           Promise.allSettled([
             axios.get(
               "https://www.diving-fish.com/api/maimaidxprober/chart_stats"
@@ -644,6 +688,7 @@ export default {
               that.merge(data.records);
             }
             this.$refs.pq.init();
+            this.$refs.proSettings.init();
             that.loading = false;
           });
         });
@@ -657,6 +702,8 @@ export default {
         })
         .then(() => {
           this.$message.success("登录成功，加载乐曲数据中……");
+          this.loading = true;
+          this.loginVisible = false;
           this.$refs.profile.fetch();
           axios
             .get(
@@ -666,7 +713,7 @@ export default {
               const data = resp.data;
               this.username = data.username;
               this.merge(data.records);
-              this.loginVisible = false;
+              this.loading = false;
             });
         })
         .catch((err) => {
@@ -748,14 +795,20 @@ export default {
       if (!this.chart_stats[record.song_id]) {
         record.tag = 0.5;
       } else {
-        let elem = this.chart_stats[record.song_id][
-          record.level_index
-        ];
+        let elem = this.chart_stats[record.song_id][record.level_index];
         if (elem.t) {
           record.tag = (elem.v + 0.5) / elem.t;
         } else {
           record.tag = 0.5;
         }
+      }
+      if (!this.chart_combo[record.song_id]) {
+        record.dxScore_perc = 0;
+      } else {
+        record.dxScore_perc =
+          (record.dxScore /
+            (this.chart_combo[record.song_id][record.level_index] * 3)) *
+          100;
       }
     },
     mergeOnAllMode: function () {
@@ -764,6 +817,7 @@ export default {
         //console.log(music);
         for (let j = 0; j < music.ds.length; j++) {
           const record = {
+            song_id: music.id,
             title: music.title,
             ds: music.ds[j],
             level: music.level[j],
@@ -970,16 +1024,21 @@ export default {
     available_plates: function () {
       return this.$refs.pq.available_plates();
     },
+    setHeaders: function (headers) {
+      this.headers = headers;
+    },
   },
 };
 </script>
 
 <style>
-#app {
-  margin: 30px auto;
+#mainPage {
+  margin: auto;
+  padding: 30px;
 }
 #tableBody {
   margin-bottom: 2em;
+  max-width: calc(100vw - 60px);
 }
 .difficulty4 {
   color: #ba67f8;

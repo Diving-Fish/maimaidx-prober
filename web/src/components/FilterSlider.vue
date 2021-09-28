@@ -8,7 +8,6 @@
     <v-range-slider
       v-show="useDs"
       thumb-label
-      :value="ds"
       v-model="ds_model"
       min="1"
       max="15"
@@ -20,7 +19,6 @@
     <v-range-slider
       v-show="!useDs"
       thumb-label
-      :value="level"
       v-model="level_model"
       min="0"
       max="22"

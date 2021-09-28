@@ -60,13 +60,13 @@
               <v-col cols="3">
                 <v-subheader> 牌子设置 </v-subheader>
               </v-col>
-              <v-col vols="5">
+              <v-col cols="5">
                 <v-select
                   v-model="plate_upload.version"
                   :items="versions"
                 ></v-select>
               </v-col>
-              <v-col vols="4">
+              <v-col cols="4">
                 <v-select
                   v-show="plate_upload.version != '无'"
                   v-model="plate_upload.plate_type"
