@@ -119,17 +119,17 @@ export default {
     };
   },
   methods: {
-    records_filter: function (title, type, diff) {
+    records_filter: function (song_id, diff) {
       let ret = this.records.filter((elem) => {
         return (
-          elem.title == title && elem.type == type && elem.level_index == diff
+          elem.song_id == song_id && elem.level_index == diff
         );
       });
       // console.log(ret)
       return ret;
     },
-    sum_pq: function (title, type, diff) {
-      let r = this.records_filter(title, type, diff);
+    sum_pq: function (song_id, diff) {
+      let r = this.records_filter(song_id, diff);
       if (r.length == 0) return 0;
       let a = 0;
       if (["fsd", "fsdp"].indexOf(r[0].fs) != -1) a += 4;
@@ -150,7 +150,7 @@ export default {
       const l = ["bas_pq", "adv_pq", "exp_pq", "mst_pq"];
       for (let i = 0; i < 4; i++) {
         for (let data of this.music_data) {
-          data[l[i]] = this.sum_pq(data.title, data.type, i);
+          data[l[i]] = this.sum_pq(data.id, i);
           // console.log(data[l[i]]);
         }
       }

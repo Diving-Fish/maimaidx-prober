@@ -354,6 +354,7 @@
                   :headers="headers"
                   :music_data_dict="music_data_dict"
                   sort-by="achievements"
+                  :key="JSON.stringify(headers)"
                 >
                 </chart-table>
               </v-tab-item>
@@ -368,6 +369,7 @@
                   :headers="headers"
                   :music_data_dict="music_data_dict"
                   sort-by="achievements"
+                  :key="JSON.stringify(headers)"
                 >
                 </chart-table>
               </v-tab-item>
@@ -500,7 +502,8 @@ export default {
       const that = this;
       return this.sdData.filter((elem) => {
         return (
-          that.$refs.filterSlider.f(elem) && that.$refs.proSettings.f(elem)
+          that.$refs.filterSlider.f(elem) &&
+          (!that.proSetting || that.$refs.proSettings.f(elem))
         );
       });
     },
@@ -508,7 +511,8 @@ export default {
       const that = this;
       return this.dxData.filter((elem) => {
         return (
-          that.$refs.filterSlider.f(elem) && that.$refs.proSettings.f(elem)
+          that.$refs.filterSlider.f(elem) &&
+          (!that.proSetting || that.$refs.proSettings.f(elem))
         );
       });
     },
@@ -724,7 +728,8 @@ export default {
         });
     },
     computeRecord: function (record) {
-      record.ds = this.getDS(record.title, record.level_index, record.type);
+      if (this.music_data_dict[record.song_id])
+        record.ds = this.music_data_dict[record.song_id].ds[record.level_index];
       if (record.ds) {
         let arr = ("" + record.ds).split(".");
         if (["7", "8", "9"].indexOf(arr[1]) != -1) {
@@ -839,9 +844,7 @@ export default {
           for (let i = 0; i < this.records.length; i++) {
             const ex = this.records[i];
             if (
-              ex.title === record.title &&
-              ex.type === record.type &&
-              ex.level === record.level &&
+              ex.song_id === record.song_id &&
               ex.level_index == record.level_index
             ) {
               flag = false;
@@ -859,11 +862,7 @@ export default {
       }
     },
     is_new: function (record) {
-      for (const music of this.music_data) {
-        if (record.title == music.title && record.type == music.type) {
-          return music.basic_info.is_new;
-        }
-      }
+      return this.music_data_dict[record.song_id].basic_info.is_new;
     },
     merge: function (records) {
       // console.log(records);
@@ -872,9 +871,7 @@ export default {
         for (let i = 0; i < this.records.length; i++) {
           const ex = this.records[i];
           if (
-            ex.title === record.title &&
-            ex.type === record.type &&
-            ex.level === record.level &&
+            ex.song_id === record.song_id &&
             ex.level_index == record.level_index
           ) {
             flag = false;
@@ -899,13 +896,6 @@ export default {
       this.sync();
       this.textarea = "";
       this.dialogVisible = false;
-    },
-    getDS: function (title, index, type) {
-      for (const music of this.music_data) {
-        if (music.type == type && music.title == title) {
-          return music.ds[index];
-        }
-      }
     },
     pageToRecordList: function (pageData) {
       const getSibN = function (node, n) {
