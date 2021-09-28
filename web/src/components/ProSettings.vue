@@ -187,24 +187,38 @@
           return-object
         >
           <template v-slot:prepend>
+            <v-tooltip bottom>
+              <template v-slot:activator="{ on, attrs }">
             <v-icon
               @click="(headers = headers_default), setHeaders()"
               :disabled="headers == headers_default"
-              aria-label="重置"
+                  v-bind="attrs"
+                  v-on="on"
             >
               mdi-refresh
             </v-icon>
           </template>
-          <template v-slot:selection="{ item, index }">
-            {{
-              1 >= index
-                ? index === headers.length - 1
-                  ? item.text
-                  : item.text + ","
-                : index == 2
-                ? "..."
-                : ""
-            }}
+              恢复默认表列
+            </v-tooltip>
+          </template>
+          <template v-slot:append-outer>
+            <v-tooltip bottom>
+              <template v-slot:activator="{ on, attrs }">
+                <v-icon
+                  @click="setHeadersDefault(headers)"
+                  :disabled="headers == headers_default"
+                  color="orange"
+                  v-bind="attrs"
+                  v-on="on"
+                >
+                  mdi-content-save
+                </v-icon>
+              </template>
+              保存为默认表列
+            </v-tooltip>
+          </template>
+          <template v-slot:selection="{ index }">
+            <span v-if="index==0">{{headers.length}}个列已选</span>
           </template>
         </v-select>
       </v-col>
@@ -354,6 +368,10 @@ export default {
       );
       this.$emit("setHeaders", this.headers);
     },
+    setHeadersDefault(headers) {
+      localStorage.headers_default = JSON.stringify(headers);
+      this.headers_default = headers;
+    },
     init: function () {
       this.versions = Array.from(
         new Set(
@@ -389,9 +407,12 @@ export default {
         "d",
       ];
       this.headers = this.headers_default;
+      this.setHeaders();
     },
   },
   created: function () {
+    if (localStorage.headers_default)
+      this.headers_default = JSON.parse(localStorage.headers_default);
     this.reset();
     this.darkTheme = +localStorage.darkTheme;
   },
