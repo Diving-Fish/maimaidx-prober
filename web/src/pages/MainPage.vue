@@ -352,6 +352,7 @@
                   :loading="loading"
                   :chart_stats="chart_stats"
                   :headers="headers"
+                  :music_data_dict="music_data_dict"
                   sort-by="achievements"
                 >
                 </chart-table>
@@ -365,6 +366,7 @@
                   :loading="loading"
                   :chart_stats="chart_stats"
                   :headers="headers"
+                  :music_data_dict="music_data_dict"
                   sort-by="achievements"
                 >
                 </chart-table>

@@ -9,7 +9,16 @@
     sort-by="rank"
   >
     <template #item.title="{ item }">
-      <a v-if="item.type == 'DX'" dark color="blue" style="cursor: default">DX</a>
+      <v-tooltip top :disabled="!music_data_dict[item.song_id]">
+        <template v-slot:activator="{ on, attrs }">
+          <span v-bind="attrs" v-on="on">
+            <a
+              v-if="item.type == 'DX'"
+              dark
+              color="blue"
+              style="cursor: default"
+              >DX</a
+            >
       {{ item.title }}
       <v-chip v-if="item.fc" :color="getFC(item.fc)" dark>{{
         getName(item.fc)
@@ -17,11 +26,43 @@
       <v-chip v-if="item.fs" :color="getFS(item.fs)" dark>{{
         getName(item.fs)
       }}</v-chip>
+          </span>
+        </template>
+        <span v-if="music_data_dict[item.song_id]">
+          id: {{ music_data_dict[item.song_id].id }} <br />
+          Artist: {{ music_data_dict[item.song_id].basic_info.artist }} <br />
+          Version: {{ music_data_dict[item.song_id].basic_info.from }} <br />
+          Genre: {{ music_data_dict[item.song_id].basic_info.genre }} <br />
+          BPM: {{ music_data_dict[item.song_id].basic_info.bpm }} <br />
+        </span>
+      </v-tooltip>
     </template>
     <template #item.level="{ item }">
-      <v-chip :color="getLevel(item.level_index)" dark>
+      <v-tooltip top :disabled="!music_data_dict[item.song_id]">
+        <template v-slot:activator="{ on, attrs }">
+          <v-chip
+            v-bind="attrs"
+            v-on="on"
+            :color="getLevel(item.level_index)"
+            dark
+          >
         {{ item.level_label }} {{ item.level }}
       </v-chip>
+        </template>
+        <span v-if="music_data_dict[item.song_id]">
+          Charter: {{ music_data_dict[item.song_id].charts[item.level_index].charter }} <br />
+          Tap: {{ music_data_dict[item.song_id].charts[item.level_index].notes[0] }} <br />
+          Hold: {{ music_data_dict[item.song_id].charts[item.level_index].notes[1] }} <br />
+          Slide: {{ music_data_dict[item.song_id].charts[item.level_index].notes[2] }} <br />
+          <span v-if="music_data_dict[item.song_id].type=='DX'">
+            Touch: {{ music_data_dict[item.song_id].charts[item.level_index].notes[3] }} <br />
+            Break: {{ music_data_dict[item.song_id].charts[item.level_index].notes[4] }} <br />
+          </span>
+          <span v-else>
+            Break: {{ music_data_dict[item.song_id].charts[item.level_index].notes[3] }} <br />
+          </span>
+        </span>
+      </v-tooltip>
     </template>
     <template #item.achievements="{ item }">
       {{ item.achievements.toFixed(4) }}%
@@ -39,13 +80,11 @@
             v-on="on"
             >{{ item.ra }}</span
           >
-          <span v-else
-            v-bind="attrs"
-            v-on="on">{{ item.ra }}</span>
+          <span v-else v-bind="attrs" v-on="on">{{ item.ra }}</span>
         </template>
         <span v-if="!getMoreRa(item).length">已达成本曲最高DX rating。</span>
         <span v-else v-for="(j, key) in getMoreRa(item)" :key="key">
-          {{ j.ra }}(+{{j.ra-item.ra}})：{{ j.achievements.toFixed(4) }}(+{{
+          {{ j.ra }}(+{{ j.ra - item.ra }})：{{ j.achievements.toFixed(4) }}(+{{
             (j.achievements - item.achievements).toFixed(4)
           }})<br />
         </span>
@@ -91,14 +130,16 @@
     <template #item.dxScore_perc="{ item }">
       <v-tooltip top v-if="item.dxScore">
         <template v-slot:activator="{ on, attrs }">
-          <span  v-bind="attrs" v-on="on">{{ item.dxScore_perc.toFixed(2) }}%
+          <span v-bind="attrs" v-on="on"
+            >{{ item.dxScore_perc.toFixed(2) }}%
           <v-chip
             v-if="item.dxScore_perc >= 85"
             :color="getDXScore(item).color"
             outlined
             class="ml-1"
             >☆{{ getDXScore(item).star }}</v-chip
-          ></span>
+            ></span
+          >
         </template>
         DX分数比例为 {{ item.dxScore }}/{{ getDXScore(item).total }}<br />
         <span v-if="item.dxScore_perc < 97">
@@ -124,6 +165,7 @@ export default {
     limit: Number,
     chart_stats: Object,
     headers: Array,
+    music_data_dict: Object,
   },
   data: () => {
     return {};
