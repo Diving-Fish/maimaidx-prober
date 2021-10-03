@@ -821,6 +821,9 @@ export default {
     },
     mergeOnAllMode: function () {
       this.allModeVisible = false;
+      let oldRecords = new Set(
+        this.records.map((r) => Number(r.song_id) * 10 + r.level_index)
+      );
       for (const music of this.music_data) {
         //console.log(music);
         for (let j = 0; j < music.ds.length; j++) {
@@ -840,18 +843,9 @@ export default {
             level_label: this.level_label[j],
             block: true,
           };
-          let flag = true;
-          for (let i = 0; i < this.records.length; i++) {
-            const ex = this.records[i];
             if (
-              ex.song_id == record.song_id &&
-              ex.level_index == record.level_index
+            !oldRecords.has(Number(record.song_id) * 10 + record.level_index)
             ) {
-              flag = false;
-              break;
-            }
-          }
-          if (flag) {
             this.records.push(record);
           }
         }
@@ -866,22 +860,14 @@ export default {
     },
     merge: function (records) {
       // console.log(records);
+      let oldRecords = Object.fromEntries(
+        this.records.map((r, i) => [Number(r.song_id) * 10 + r.level_index, i])
+      );
       for (let record of records) {
-        let flag = true;
-        for (let i = 0; i < this.records.length; i++) {
-          const ex = this.records[i];
-          if (
-            ex.song_id == record.song_id &&
-            ex.level_index == record.level_index
-          ) {
-            flag = false;
+        let i = oldRecords[Number(record.song_id) * 10 + record.level_index];
+        if (typeof i != "undefined") {
             Vue.set(this.records, i, record);
-            // this.records[i] = record;
-            break;
-          }
-        }
-        // console.log(flag);
-        if (flag) {
+        } else {
           this.records.push(record);
         }
       }
