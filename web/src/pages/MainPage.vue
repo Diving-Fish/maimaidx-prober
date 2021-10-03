@@ -844,7 +844,7 @@ export default {
           for (let i = 0; i < this.records.length; i++) {
             const ex = this.records[i];
             if (
-              ex.song_id === record.song_id &&
+              ex.song_id == record.song_id &&
               ex.level_index == record.level_index
             ) {
               flag = false;
@@ -871,7 +871,7 @@ export default {
         for (let i = 0; i < this.records.length; i++) {
           const ex = this.records[i];
           if (
-            ex.song_id === record.song_id &&
+            ex.song_id == record.song_id &&
             ex.level_index == record.level_index
           ) {
             flag = false;
