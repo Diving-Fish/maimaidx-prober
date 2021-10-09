@@ -369,7 +369,7 @@ async def update_records():
                         continue
                     music = md_map[str(m["musicId"])]
                     level = m["level"]
-                    achievement = m["achievement"]
+                    achievement = min(101, m["achievement"])
                     fc = ["", "fc", "fcp", "ap", "app"][m["comboStatus"]]
                     fs = ["", "fs", "fsp", "fsd", "fsdp"][m["syncStatus"]]
                     dxScore = m["deluxscoreMax"]
@@ -402,7 +402,7 @@ async def update_records():
         # print(r.chart_id)
         if r.chart_id in dicts:
             v = dicts[r.chart_id]
-            r.achievements = v[0]
+            r.achievements = min(v[0], 101)
             r.fc = v[1]
             r.fs = v[2]
             r.dxScore = v[3]
@@ -412,7 +412,7 @@ async def update_records():
     for k in dicts:
         v = dicts[k]
         creates.append({"chart": k, "player": g.user.id,
-                       "fc": v[1], "fs": v[2], "dxScore": v[3], "achievements": v[0]})
+                       "fc": v[1], "fs": v[2], "dxScore": v[3], "achievements": min(v[0], 101)})
     NewRecord.insert_many(creates).execute()
     # print(updates)
     NewRecord.bulk_update(updates, fields=[
@@ -440,7 +440,7 @@ async def update_record():
     r: NewRecord = NewRecord.get(
         (NewRecord.player == g.user.id) & (NewRecord.chart == cid))
     assert r
-    r.achievements = record['achievements']
+    r.achievements = min(record['achievements'], 101)
     r.fc = record['fc']
     r.fs = record['fs']
     r.save()
