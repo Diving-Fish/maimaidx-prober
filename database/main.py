@@ -294,6 +294,10 @@ async def query_player():
     nickname = p.nickname
     if nickname == "":
         nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
+    try:
+        user_data = json.loads(p.user_data)
+    except Exception:
+        user_data = None
     return {
         "username": p.username,
         "rating": p.rating,
@@ -303,7 +307,9 @@ async def query_player():
         "charts": {
             "sd": [record_json(c) for c in sd],
             "dx": [record_json(c) for c in dx]
-        }
+        },
+        "user_id": p.user_id,
+        "user_data": user_data
     }
 
 
@@ -369,6 +375,9 @@ async def update_records():
                     dxScore = m["deluxscoreMax"]
                     cid = music["cids"][level]
                     dicts[cid] = (achievement / 10000.0, fc, fs, dxScore)
+            g.user.user_id = j["userId"]
+            g.user.user_data = json.dumps(j["userData"]) if "userData" in j else ""
+            g.user.save()
         except Exception as e:
             return {
                 "message": str(e)

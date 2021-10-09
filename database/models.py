@@ -1,6 +1,6 @@
 import json
 import time
-from typing import List, Optional, Dict, Union, Any, Tuple
+from typing import List, Optional, Dict, Text, Union, Any, Tuple
 
 from peewee import Model, CharField, IntegerField, BooleanField, ForeignKeyField, DoubleField, TextField
 from playhouse.db_url import connect
@@ -53,6 +53,8 @@ class Player(BaseModel):
     bind_qq = CharField()
     plate = CharField()
     privacy = BooleanField()
+    user_id = IntegerField()
+    user_data = TextField()
 
 
 class NewRecord(BaseModel):
