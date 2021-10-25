@@ -150,6 +150,17 @@ async def profile():
                 if verified:
                     g.user.__setattr__("plate", plate_label)
                 del obj["plate"]
+            if "bind_qq" in obj:
+                # check duplicate
+                bind_qq = obj["bind_qq"]
+                try:
+                    player = Player.get((Player.bind_qq == bind_qq) & (Player.id != g.user.id))
+                    # Not found -> except
+                    return {
+                       "message": f"此 QQ 号已经被用户名为{player.username}的用户绑定，请先解绑再进行操作~"
+                   }, 400
+                except Exception:
+                    pass
             for key in obj:
                 g.user.__setattr__(key, obj[key])
             g.user.save()
@@ -163,6 +174,7 @@ async def profile():
                 "plate": u.plate
             }
         except Exception:
+            print(e)
             return {
                 "message": "error"
             }, 400
