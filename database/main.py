@@ -381,7 +381,7 @@ async def update_records():
                         continue
                     music = md_map[str(m["musicId"])]
                     level = m["level"]
-                    achievement = min(101, m["achievement"])
+                    achievement = min(1010000, m["achievement"])
                     fc = ["", "fc", "fcp", "ap", "app"][m["comboStatus"]]
                     fs = ["", "fs", "fsp", "fsd", "fsdp"][m["syncStatus"]]
                     dxScore = m["deluxscoreMax"]
