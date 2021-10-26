@@ -154,7 +154,7 @@ async def profile():
                 # check duplicate
                 bind_qq = obj["bind_qq"]
                 try:
-                    player = Player.get((Player.bind_qq == bind_qq) & (Player.id != g.user.id)) & (bind_qq != '')
+                    player = Player.get((Player.bind_qq == bind_qq) & (Player.id != g.user.id) & (bind_qq != ''))
                     # Not found -> except
                     return {
                        "message": f"此 QQ 号已经被用户名为{player.username}的用户绑定，请先解绑再进行操作~"
