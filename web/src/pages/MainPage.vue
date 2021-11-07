@@ -7,14 +7,10 @@
       </div>
       <v-divider class="mt-4 mb-4" />
       <p>
-        <v-btn
-          ><a
-            href="/maimaidx/prober_guide"
-            style="text-decoration: none"
-            target="_blank"
-            >使用指南</a
-          ></v-btn
+        <v-btn href="/maimaidx/prober_guide" target="_blank" color="primary"
+          >数据导入指南</v-btn
         >
+        <tutorial ref="tutorial" />
       </p>
       <p class="mb-2">点个 Star 吧！</p>
       <a href="https://github.com/Diving-Fish/maimaidx-prober"
@@ -389,7 +385,7 @@
         <v-card-text>
           2021/09/28
           （By StageChan）更了一大堆，包括高级设置中的各种筛选、表列选择和暗色主题；DX分数相关；
-          鼠标浮动在曲名和难度上显示铺面信息、浮动在DX Rating上显示后续分数线等等。修了一堆bug。<br />
+          鼠标浮动在曲名和难度上显示谱面信息、浮动在DX Rating上显示后续分数线等等。修了一堆bug。<br />
           2021/09/06
           更新了查询牌子的功能。<br />
           2021/07/16
@@ -431,6 +427,7 @@ import Message from "../components/Message.vue";
 import Profile from "../components/Profile.vue";
 import PlateQualifier from "../components/PlateQualifier.vue";
 import Calculators from "../components/Calculators.vue";
+import Tutorial from "../components/Tutorial.vue";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 const DEBUG = false;
@@ -446,6 +443,7 @@ export default {
     Profile,
     PlateQualifier,
     Calculators,
+    Tutorial,
   },
   data: function () {
     return {
