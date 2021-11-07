@@ -166,7 +166,7 @@ export default {
           continue;
         const d = this.music_data
           .filter((elem) => {
-            return elem.basic_info.from == ver;
+            return (elem.basic_info.from == ver && elem.title != "ジングルベル");
           })
           .map((elem) => {
             return elem.mst_pq;
