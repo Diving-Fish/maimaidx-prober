@@ -150,6 +150,17 @@ async def profile():
                 if verified:
                     g.user.__setattr__("plate", plate_label)
                 del obj["plate"]
+            if "bind_qq" in obj:
+                # check duplicate
+                bind_qq = obj["bind_qq"]
+                try:
+                    player = Player.get((Player.bind_qq == bind_qq) & (Player.id != g.user.id)) & (bind_qq != '')
+                    # Not found -> except
+                    return {
+                       "message": f"此 QQ 号已经被用户名为{player.username}的用户绑定，请先解绑再进行操作~"
+                   }, 400
+                except Exception:
+                    pass
             for key in obj:
                 g.user.__setattr__(key, obj[key])
             g.user.save()
@@ -162,7 +173,8 @@ async def profile():
                 "privacy": u.privacy,
                 "plate": u.plate
             }
-        except Exception:
+        except Exception as e:
+            print(e)
             return {
                 "message": "error"
             }, 400
@@ -294,6 +306,10 @@ async def query_player():
     nickname = p.nickname
     if nickname == "":
         nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
+    try:
+        user_data = json.loads(p.user_data)
+    except Exception:
+        user_data = None
     return {
         "username": p.username,
         "rating": p.rating,
@@ -303,7 +319,9 @@ async def query_player():
         "charts": {
             "sd": [record_json(c) for c in sd],
             "dx": [record_json(c) for c in dx]
-        }
+        },
+        "user_id": p.user_id,
+        "user_data": user_data
     }
 
 
@@ -363,12 +381,15 @@ async def update_records():
                         continue
                     music = md_map[str(m["musicId"])]
                     level = m["level"]
-                    achievement = m["achievement"]
+                    achievement = min(1010000, m["achievement"])
                     fc = ["", "fc", "fcp", "ap", "app"][m["comboStatus"]]
                     fs = ["", "fs", "fsp", "fsd", "fsdp"][m["syncStatus"]]
                     dxScore = m["deluxscoreMax"]
                     cid = music["cids"][level]
                     dicts[cid] = (achievement / 10000.0, fc, fs, dxScore)
+            g.user.user_id = j["userId"]
+            g.user.user_data = json.dumps(j["userData"]) if "userData" in j else ""
+            g.user.save()
         except Exception as e:
             return {
                 "message": str(e)
@@ -393,7 +414,7 @@ async def update_records():
         # print(r.chart_id)
         if r.chart_id in dicts:
             v = dicts[r.chart_id]
-            r.achievements = v[0]
+            r.achievements = min(v[0], 101)
             r.fc = v[1]
             r.fs = v[2]
             r.dxScore = v[3]
@@ -403,7 +424,7 @@ async def update_records():
     for k in dicts:
         v = dicts[k]
         creates.append({"chart": k, "player": g.user.id,
-                       "fc": v[1], "fs": v[2], "dxScore": v[3], "achievements": v[0]})
+                       "fc": v[1], "fs": v[2], "dxScore": v[3], "achievements": min(v[0], 101)})
     NewRecord.insert_many(creates).execute()
     # print(updates)
     NewRecord.bulk_update(updates, fields=[
@@ -431,7 +452,7 @@ async def update_record():
     r: NewRecord = NewRecord.get(
         (NewRecord.player == g.user.id) & (NewRecord.chart == cid))
     assert r
-    r.achievements = record['achievements']
+    r.achievements = min(record['achievements'], 101)
     r.fc = record['fc']
     r.fs = record['fs']
     r.save()
