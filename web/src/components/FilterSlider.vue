@@ -8,6 +8,7 @@
     <v-range-slider
       v-show="useDs"
       thumb-label
+      :hide-details="!$vuetify.breakpoint.mobile"
       v-model="ds_model"
       min="1"
       max="15"
@@ -19,6 +20,7 @@
     <v-range-slider
       v-show="!useDs"
       thumb-label
+      :hide-details="!$vuetify.breakpoint.mobile"
       v-model="level_model"
       min="0"
       max="22"
@@ -32,6 +34,7 @@
     <v-checkbox
       label="使用定数筛选"
       v-model="useDs"
+      hide-details
       :style="
         $vuetify.breakpoint.mobile
           ? 'margin: -12px 0px'

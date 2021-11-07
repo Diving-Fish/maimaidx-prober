@@ -312,7 +312,7 @@
             >成绩表格
             <v-spacer />
             <v-checkbox
-              label="显示高级设置"
+              label="使用高级设置"
               v-model="proSetting"
               class="mr-4"
               @click="$refs.proSettings.reset()"
@@ -588,10 +588,6 @@ export default {
     },
   },
   methods: {
-    test: function () {
-      this.$refs.filterSlider.f(1);
-      return false;
-    },
     rawToString: function (text) {
       if (text[text.length - 1] == "p" && text != "ap") {
         return text.substring(0, text.length - 1).toUpperCase() + "+";
