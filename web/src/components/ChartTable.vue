@@ -156,6 +156,7 @@
     </template>
     <template #item.actions="{ item }">
       <v-icon small @click="modify(item)">mdi-pencil</v-icon>
+      <v-icon class="ml-2" @click="calculator(item)">mdi-calculator-variant-outline</v-icon>
     </template>
   </v-data-table>
 </template>
@@ -328,6 +329,9 @@ export default {
         return;
       }
       this.$emit("edit", item);
+    },
+    calculator(item) {
+      this.$emit("calculator", item);
     },
     chartFilter(value, search, item) {
       return (

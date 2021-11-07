@@ -225,6 +225,7 @@
           </v-card>
         </v-dialog>
         <plate-qualifier ref="pq" :music_data="music_data" :records="records" />
+        <calculators ref="calcs" />
         <v-dialog
           v-model="logoutVisible"
           width="500px"
@@ -346,6 +347,7 @@
               <v-tab-item key="sd">
                 <chart-table
                   @edit="editRow"
+                  @calculator="calculatorRow"
                   :search="searchKey"
                   :items="sdDisplay"
                   :limit="25"
@@ -361,6 +363,7 @@
               <v-tab-item key="dx">
                 <chart-table
                   @edit="editRow"
+                  @calculator="calculatorRow"
                   :search="searchKey"
                   :items="dxDisplay"
                   :limit="15"
@@ -427,6 +430,7 @@ import Advertisement from "../components/Advertisement.vue";
 import Message from "../components/Message.vue";
 import Profile from "../components/Profile.vue";
 import PlateQualifier from "../components/PlateQualifier.vue";
+import Calculators from "../components/Calculators.vue";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 const DEBUG = false;
@@ -441,6 +445,7 @@ export default {
     Message,
     Profile,
     PlateQualifier,
+    Calculators,
   },
   data: function () {
     return {
@@ -620,6 +625,37 @@ export default {
         this.$message.success("修改成功");
       }
       this.modifyAchivementVisible = false;
+    },
+    calculatorRow: function (item) {
+      let note_total = {
+        Tap: this.music_data_dict[item.song_id].charts[item.level_index]
+          .notes[0],
+        Hold: this.music_data_dict[item.song_id].charts[item.level_index]
+          .notes[1],
+        Slide:
+          this.music_data_dict[item.song_id].charts[item.level_index].notes[2],
+        Touch: 0,
+        Break:
+          this.music_data_dict[item.song_id].charts[item.level_index].notes[3],
+      };
+      if (this.music_data_dict[item.song_id].type == "DX") {
+        Object.assign(note_total, {
+          Touch:
+            this.music_data_dict[item.song_id].charts[item.level_index]
+              .notes[3],
+          Break:
+            this.music_data_dict[item.song_id].charts[item.level_index]
+              .notes[4],
+        });
+      }
+      this.$refs.calcs.fill({
+        note_total: note_total,
+        current_song: (item.type == "DX" ? "[DX] " : "") + item.title + " " + item.level_label,
+        ds_input: item.ds,
+        rating_input: item.ra,
+        achievements_input: item.achievements,
+        visible: true,
+      });
     },
     register: function () {
       if (!this.$refs.regForm.validate()) return;
