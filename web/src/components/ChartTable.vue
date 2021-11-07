@@ -7,6 +7,10 @@
     :items="items"
     :search="search"
     sort-by="rank"
+    :custom-filter="chartFilter"
+    no-data-text="没有数据"
+    loading-text="加载中……"
+    no-results-text="没有符合条件的条目"
   >
     <template #item.title="{ item }">
       <v-tooltip top :disabled="!music_data_dict[item.song_id]">
@@ -282,7 +286,7 @@ export default {
       let ach4 = Math.round(item.achievements * 10000);
       let min_idx = Math.max(idx, 7);
       let min_ach4 = Math.round(this.get_min_ach(min_idx) * 10000);
-      let max_idx = Math.min(idx + 3, 13);
+      let max_idx = Math.min(min_idx + 3, 13);
       let max_ach4 = Math.round(this.get_min_ach(max_idx + 1) * 10000);
       let more_ra = [];
       for (let curr_ach4 = min_ach4; curr_ach4 < max_ach4; curr_ach4 += 2500) {
@@ -300,7 +304,7 @@ export default {
           let l = curr_ach4,
             r = curr_ach4 + 2499,
             ans = r;
-          while (r > l) {
+          while (r >= l) {
             let mid = Math.floor((r + l) / 2);
             if (this.get_ra(ds, mid / 10000) > curr_min_ra) {
               ans = mid;
@@ -324,6 +328,22 @@ export default {
         return;
       }
       this.$emit("edit", item);
+    },
+    chartFilter(value, search, item) {
+      return (
+        search != null &&
+        [
+          "^"+item.title+"$",
+          "^"+this.music_data_dict[item.song_id].id+"$",
+          "id"+this.music_data_dict[item.song_id].id+"$",
+          "^"+this.music_data_dict[item.song_id].basic_info.artist+"$",
+          "bpm"+this.music_data_dict[item.song_id].basic_info.bpm+"$",
+          "^"+this.music_data_dict[item.song_id].basic_info.bpm+"$",
+          "^"+this.music_data_dict[item.song_id].charts[item.level_index].charter+"$",
+          "^"+item.ra+"$",
+          "^"+item.ds+"$",
+        ].some((info) => info.toString().toLocaleLowerCase().indexOf(search.toLocaleLowerCase()) !== -1)
+      );
     },
   },
 };
