@@ -334,19 +334,23 @@ export default {
       this.$emit("calculator", item);
     },
     chartFilter(value, search, item) {
+      if (!item.search_index)
+        item.search_index = [
+          "^" + item.title + "$",
+          "^" + this.music_data_dict[item.song_id].id + "$",
+          "id" + this.music_data_dict[item.song_id].id + "$",
+          "^" + this.music_data_dict[item.song_id].basic_info.artist + "$",
+          "bpm" + this.music_data_dict[item.song_id].basic_info.bpm + "$",
+          "^" + this.music_data_dict[item.song_id].basic_info.bpm + "$",
+          "^" + this.music_data_dict[item.song_id].charts[item.level_index].charter + "$",
+          "^" + item.ra + "$",
+          "^" + item.ds + "$",
+        ].map((info) => info.toLocaleLowerCase());
       return (
         search != null &&
-        [
-          "^"+item.title+"$",
-          "^"+this.music_data_dict[item.song_id].id+"$",
-          "id"+this.music_data_dict[item.song_id].id+"$",
-          "^"+this.music_data_dict[item.song_id].basic_info.artist+"$",
-          "bpm"+this.music_data_dict[item.song_id].basic_info.bpm+"$",
-          "^"+this.music_data_dict[item.song_id].basic_info.bpm+"$",
-          "^"+this.music_data_dict[item.song_id].charts[item.level_index].charter+"$",
-          "^"+item.ra+"$",
-          "^"+item.ds+"$",
-        ].some((info) => info.toString().toLocaleLowerCase().indexOf(search.toLocaleLowerCase()) !== -1)
+        item.search_index.some(
+          (info) => info.indexOf(search.toLocaleLowerCase()) !== -1
+        )
       );
     },
   },
