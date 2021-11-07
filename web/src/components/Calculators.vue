@@ -668,6 +668,7 @@ export default {
     },
     rating_list: function () {
       if (this.rating_mode == "from_ds") {
+        if (this.ds_input === "") return [];
         let ds = +this.ds_input;
         let min_idx = 5;
         let min_ach4 = Math.round(this.get_min_ach(min_idx) * 10000);
@@ -712,6 +713,7 @@ export default {
         more_ra.sort((a, b) => b.achievements - a.achievements);
         return more_ra;
       } else if (this.rating_mode == "from_rating") {
+        if (this.rating_input === "") return [];
         let rating = +this.rating_input;
         let more_ra = [];
         for (let ds1 = 10; ds1 <= 150; ds1++) {
@@ -742,6 +744,7 @@ export default {
         more_ra.sort((a, b) => b.achievements - a.achievements);
         return more_ra;
       } else if (this.rating_mode == "from_achievements") {
+        if (this.achievements_input === "") return [];
         let more_ra = [];
         for (let ds1 = 10; ds1 <= 150; ds1++) {
           let ds = ds1 / 10;
