@@ -383,6 +383,8 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
+          2021/11/7
+          （By StageChan）更了一些网页计算器工具以及网页使用指南。<br />
           2021/09/28
           （By StageChan）更了一大堆，包括高级设置中的各种筛选、表列选择和暗色主题；DX分数相关；
           鼠标浮动在曲名和难度上显示谱面信息、浮动在DX Rating上显示后续分数线等等。修了一堆bug。<br />
