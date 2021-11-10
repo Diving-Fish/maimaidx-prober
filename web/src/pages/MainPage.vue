@@ -7,14 +7,10 @@
       </div>
       <v-divider class="mt-4 mb-4" />
       <p>
-        <v-btn
-          ><a
-            href="/maimaidx/prober_guide"
-            style="text-decoration: none"
-            target="_blank"
-            >使用指南</a
-          ></v-btn
+        <v-btn href="/maimaidx/prober_guide" target="_blank" color="primary"
+          >数据导入指南</v-btn
         >
+        <tutorial ref="tutorial" />
       </p>
       <p class="mb-2">点个 Star 吧！</p>
       <a href="https://github.com/Diving-Fish/maimaidx-prober"
@@ -225,6 +221,7 @@
           </v-card>
         </v-dialog>
         <plate-qualifier ref="pq" :music_data="music_data" :records="records" />
+        <calculators ref="calcs" />
         <v-dialog
           v-model="logoutVisible"
           width="500px"
@@ -312,7 +309,7 @@
             >成绩表格
             <v-spacer />
             <v-checkbox
-              label="显示高级设置"
+              label="使用高级设置"
               v-model="proSetting"
               class="mr-4"
               @click="$refs.proSettings.reset()"
@@ -346,6 +343,7 @@
               <v-tab-item key="sd">
                 <chart-table
                   @edit="editRow"
+                  @calculator="calculatorRow"
                   :search="searchKey"
                   :items="sdDisplay"
                   :limit="25"
@@ -361,6 +359,7 @@
               <v-tab-item key="dx">
                 <chart-table
                   @edit="editRow"
+                  @calculator="calculatorRow"
                   :search="searchKey"
                   :items="dxDisplay"
                   :limit="15"
@@ -384,9 +383,11 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
+          2021/11/7
+          （By StageChan）更了一些网页计算器工具以及网页使用指南。<br />
           2021/09/28
           （By StageChan）更了一大堆，包括高级设置中的各种筛选、表列选择和暗色主题；DX分数相关；
-          鼠标浮动在曲名和难度上显示铺面信息、浮动在DX Rating上显示后续分数线等等。修了一堆bug。<br />
+          鼠标浮动在曲名和难度上显示谱面信息、浮动在DX Rating上显示后续分数线等等。修了一堆bug。<br />
           2021/09/06
           更新了查询牌子的功能。<br />
           2021/07/16
@@ -427,6 +428,8 @@ import Advertisement from "../components/Advertisement.vue";
 import Message from "../components/Message.vue";
 import Profile from "../components/Profile.vue";
 import PlateQualifier from "../components/PlateQualifier.vue";
+import Calculators from "../components/Calculators.vue";
+import Tutorial from "../components/Tutorial.vue";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 const DEBUG = false;
@@ -441,6 +444,8 @@ export default {
     Message,
     Profile,
     PlateQualifier,
+    Calculators,
+    Tutorial,
   },
   data: function () {
     return {
@@ -588,10 +593,6 @@ export default {
     },
   },
   methods: {
-    test: function () {
-      this.$refs.filterSlider.f(1);
-      return false;
-    },
     rawToString: function (text) {
       if (text[text.length - 1] == "p" && text != "ap") {
         return text.substring(0, text.length - 1).toUpperCase() + "+";
@@ -624,6 +625,37 @@ export default {
         this.$message.success("修改成功");
       }
       this.modifyAchivementVisible = false;
+    },
+    calculatorRow: function (item) {
+      let note_total = {
+        Tap: this.music_data_dict[item.song_id].charts[item.level_index]
+          .notes[0],
+        Hold: this.music_data_dict[item.song_id].charts[item.level_index]
+          .notes[1],
+        Slide:
+          this.music_data_dict[item.song_id].charts[item.level_index].notes[2],
+        Touch: 0,
+        Break:
+          this.music_data_dict[item.song_id].charts[item.level_index].notes[3],
+      };
+      if (this.music_data_dict[item.song_id].type == "DX") {
+        Object.assign(note_total, {
+          Touch:
+            this.music_data_dict[item.song_id].charts[item.level_index]
+              .notes[3],
+          Break:
+            this.music_data_dict[item.song_id].charts[item.level_index]
+              .notes[4],
+        });
+      }
+      this.$refs.calcs.fill({
+        note_total: note_total,
+        current_song: (item.type == "DX" ? "[DX] " : "") + item.title + " " + item.level_label,
+        ds_input: item.ds,
+        rating_input: item.ra,
+        achievements_input: item.achievements,
+        visible: true,
+      });
     },
     register: function () {
       if (!this.$refs.regForm.validate()) return;

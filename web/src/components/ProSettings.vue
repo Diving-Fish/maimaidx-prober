@@ -170,10 +170,22 @@
     </v-row>
     <v-row>
       <v-col cols="6">
-        <v-select v-model="version" :items="versions" label="版本" clearable />
+        <v-select
+          v-model="version"
+          :items="versions"
+          label="版本"
+          clearable
+          hide-details
+        />
       </v-col>
       <v-col cols="6">
-        <v-select v-model="genre" :items="genres" label="歌曲类别" clearable />
+        <v-select
+          v-model="genre"
+          :items="genres"
+          label="歌曲类别"
+          clearable
+          hide-details
+        />
       </v-col>
     </v-row>
     <v-row align="center">
@@ -185,6 +197,7 @@
           multiple
           @change="setHeaders"
           return-object
+          hide-details
         >
           <template v-slot:prepend>
             <v-tooltip bottom>
@@ -218,7 +231,7 @@
             </v-tooltip>
           </template>
           <template v-slot:selection="{ index }">
-            <span v-if="index==0">{{headers.length}}个列已选</span>
+            <span v-if="index == 0">{{ headers.length }}个列已选</span>
           </template>
         </v-select>
       </v-col>
@@ -226,6 +239,7 @@
         <v-checkbox
           label="使用暗色主题"
           v-model="darkTheme"
+          hide-details
           @change="toggleDarkTheme"
         ></v-checkbox>
       </v-col>
