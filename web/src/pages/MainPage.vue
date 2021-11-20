@@ -280,13 +280,13 @@
       <v-dialog
         width="500px"
         :fullscreen="$vuetify.breakpoint.mobile"
-        v-model="modifyAchivementVisible"
+        v-model="modifyAchievementVisible"
       >
         <v-card>
           <v-card-title>
             修改完成率
             <v-spacer />
-            <v-btn icon @click="modifyAchivementVisible = false">
+            <v-btn icon @click="modifyAchievementVisible = false">
               <v-icon>mdi-close</v-icon>
             </v-btn>
           </v-card-title>
@@ -475,7 +475,7 @@ export default {
       loginVisible: false,
       registerVisible: false,
       dialogVisible: false,
-      modifyAchivementVisible: false,
+      modifyAchievementVisible: false,
       qrDialogVisible: false,
       qrcode: "",
       qrcodePrompt: "",
@@ -607,7 +607,7 @@ export default {
     editRow: function (record) {
       this.currentUpdate = record;
       this.currentAchievements = this.currentUpdate.achievements;
-      this.modifyAchivementVisible = true;
+      this.modifyAchievementVisible = true;
     },
     finishEditRow: function () {
       this.currentUpdate.achievements = this.currentAchievements;
@@ -624,7 +624,7 @@ export default {
       } else {
         this.$message.success("修改成功");
       }
-      this.modifyAchivementVisible = false;
+      this.modifyAchievementVisible = false;
     },
     calculatorRow: function (item) {
       let note_total = {
