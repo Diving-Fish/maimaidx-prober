@@ -113,6 +113,7 @@
 
 <script>
 import axios from "axios";
+import watchVisible from '../plugins/watchVisible';
 export default {
   props: {
     available_plates: Function,
@@ -182,15 +183,17 @@ export default {
     };
   },
   watch: {
-    visible: function () {
+    visible: function (visible) {
       this.plates_info = this.available_plates();
-      this.versions = ["无"].concat(this.versions_src.filter(elem => {return this.plates_info[elem] > 0}))
+      this.versions = ["无"].concat(this.versions_src.filter(elem => this.plates_info[elem] > 0));
+      return watchVisible("visible", "Profile", this)(visible);
     },
-    'plate_upload.version': function(to) {
+    delVisible: watchVisible("delVisible", "ProfileDelete"),
+    "plate_upload.version": function (to) {
       if (!(to in this.plates_info)) return;
       if ((this.plates_info[to] & this.plate_upload.plate_type) == 0)
         this.plate_upload.plate_type = 0;
-    }
+    },
   },
   computed: {
     current_item() {

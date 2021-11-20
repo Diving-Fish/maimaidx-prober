@@ -430,6 +430,7 @@ import Profile from "../components/Profile.vue";
 import PlateQualifier from "../components/PlateQualifier.vue";
 import Calculators from "../components/Calculators.vue";
 import Tutorial from "../components/Tutorial.vue";
+import watchVisible from '../plugins/watchVisible';
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 const DEBUG = false;
@@ -566,6 +567,14 @@ export default {
     this.fetchMusicData();
   },
   watch: {
+    loginVisible: watchVisible("loginVisible", "Login"),
+    registerVisible: watchVisible("registerVisible", "Register"),
+    dialogVisible: watchVisible("dialogVisible", "Import"),
+    feedbackVisible: watchVisible("feedbackVisible", "Feedback"),
+    exportVisible: watchVisible("exportVisible", "Export"),
+    logoutVisible:  watchVisible("logoutVisible", "Logout"),
+    allModeVisible: watchVisible("allModeVisible", "AllMode"),
+    modifyAchievementVisible: watchVisible("modifyAchievementVisible", "ModifyAchievement"),
     currentAchievements: function (to) {
       if (to == "") return;
       let flag = true;

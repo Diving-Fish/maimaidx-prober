@@ -91,6 +91,7 @@
 </template>
 
 <script>
+import watchVisible from '../plugins/watchVisible';
 export default {
   props: {
     music_data: Array,
@@ -183,6 +184,9 @@ export default {
       delete res.maimai;
       return res;
     },
+  },
+  watch:{
+    visible: watchVisible("visible", "PlateQualifier"),
   },
   computed: {
     filted: function () {

@@ -201,9 +201,13 @@
 </template>
 
 <script>
+import watchVisible from '../plugins/watchVisible';
 export default {
   data: () => {
     return { visible: false };
+  },
+  watch: {
+    visible: watchVisible("visible", "Tutorial"),
   },
 };
 </script>

@@ -363,6 +363,7 @@
 </template>
 
 <script>
+import watchVisible from '../plugins/watchVisible';
 export default {
   data: () => {
     return {
@@ -594,6 +595,7 @@ export default {
     },
   },
   watch: {
+    visible: watchVisible("visible", "Calculators"),
     note_total: {
       handler() {
         if (!this.manual_input) this.update_judge_input();
