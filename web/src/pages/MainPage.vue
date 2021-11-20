@@ -650,12 +650,13 @@ export default {
       }
       this.$refs.calcs.fill({
         note_total: note_total,
-        current_song: (item.type == "DX" ? "[DX] " : "") + item.title + " " + item.level_label,
+        current_song: `${item.type == "DX" ? "[DX] " : ""}${item.title} [${item.level_label}]`,
         ds_input: item.ds,
         rating_input: item.ra,
         achievements_input: item.achievements,
         visible: true,
       });
+      this.$message.success(`已填入${this.$refs.calcs.current_song}的数据`);
     },
     register: function () {
       if (!this.$refs.regForm.validate()) return;

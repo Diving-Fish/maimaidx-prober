@@ -385,6 +385,7 @@ export default {
     setHeadersDefault(headers) {
       localStorage.headers_default = JSON.stringify(headers);
       this.headers_default = headers;
+      this.$message.success(`已保存表列设置`);
     },
     init: function () {
       this.versions = Array.from(
