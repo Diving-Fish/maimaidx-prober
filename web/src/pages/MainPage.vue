@@ -291,14 +291,30 @@
             </v-btn>
           </v-card-title>
           <v-card-subtitle>
-            修改{{ currentUpdate.title }}（{{
+            修改
+            <i
+              >{{ currentUpdate.type == "DX" ? "[DX] " : ""
+              }}<b>{{ currentUpdate.title }}</b> [{{
               currentUpdate.level_label
-            }}）的完成率为
+              }}]</i
+            >
+            的完成率为
           </v-card-subtitle>
           <v-card-text>
-            <v-text-field v-model="currentAchievements" />
+            <v-form ref="modifyAchievementForm" @keydown.enter.native="finishEditRow">
+              <v-text-field
+                label="达成率"
+                v-model="currentAchievements"
+                :rules="[
+                  (u) =>
+                    (isFinite(+u) && +u >= 0 && +u <= 101) ||
+                    '请输入合法达成率',
+                ]"
+              />
+            </v-form>
           </v-card-text>
           <v-card-actions>
+            <v-spacer />
             <v-btn color="primary" @click="finishEditRow()">确定</v-btn>
           </v-card-actions>
         </v-card>
@@ -689,13 +705,14 @@ export default {
       }
       this.$refs.calcs.fill({
         note_total: note_total,
-        current_song: `${item.type == "DX" ? "[DX] " : ""}${item.title} [${item.level_label}]`,
-        ds_input: item.ds,
-        rating_input: item.ra,
-        achievements_input: item.achievements,
+        current_song: item,
         visible: true,
       });
-      this.$message.success(`已填入${this.$refs.calcs.current_song}的数据`);
+      this.$message.success(
+        `已填入 ${item.type == "DX" ? "[DX] " : ""}${item.title} [${
+          item.level_label
+        }] 的数据`
+      );
     },
     register: function () {
       if (!this.$refs.regForm.validate()) return;
