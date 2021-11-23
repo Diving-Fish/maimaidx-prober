@@ -499,7 +499,7 @@ export default {
         { text: "达成率", value: "achievements" },
         { text: "DX Rating", value: "ra" },
         { text: "相对难度", value: "tag" },
-        { text: "编辑", value: "actions", sortable: false },
+        { text: "操作", value: "actions", sortable: false },
       ],
     };
   },

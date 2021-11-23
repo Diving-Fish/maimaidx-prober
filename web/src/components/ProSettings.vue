@@ -308,7 +308,7 @@ export default {
         { text: "达成率", value: "achievements" },
         { text: "DX Rating", value: "ra" },
         { text: "相对难度", value: "tag" },
-        { text: "编辑", value: "actions", sortable: false },
+        { text: "操作", value: "actions", sortable: false },
       ],
       headers_items: [
         { text: "排名", value: "rank" },
@@ -320,7 +320,7 @@ export default {
         { text: "相对难度", value: "tag" },
         { text: "DX分数", value: "dxScore" },
         { text: "DX分数比例", value: "dxScore_perc" },
-        { text: "编辑", value: "actions", sortable: false },
+        { text: "操作", value: "actions", sortable: false },
       ],
       headers_values: [
         "rank",
@@ -444,7 +444,7 @@ export default {
           { text: "达成率", value: "achievements" },
           { text: "DX Rating", value: "ra" },
           { text: "相对难度", value: "tag" },
-          { text: "编辑", value: "actions", sortable: false },
+          { text: "操作", value: "actions", sortable: false },
         ];
       }
     }
