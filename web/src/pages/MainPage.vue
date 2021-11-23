@@ -609,7 +609,7 @@ export default {
     dialogVisible: watchVisible("dialogVisible", "Import"),
     feedbackVisible: watchVisible("feedbackVisible", "Feedback"),
     exportVisible: watchVisible("exportVisible", "Export"),
-    logoutVisible:  watchVisible("logoutVisible", "Logout"),
+    logoutVisible: watchVisible("logoutVisible", "Logout"),
     allModeVisible: watchVisible("allModeVisible", "AllMode"),
     modifyAchievementVisible: watchVisible("modifyAchievementVisible", "ModifyAchievement"),
     coverVisible: watchVisible("coverVisible", "Cover"),
@@ -645,6 +645,7 @@ export default {
       this.modifyAchievementVisible = true;
     },
     finishEditRow: function () {
+      if (!this.$refs.modifyAchievementForm.validate()) return;
       this.currentUpdate.achievements = this.currentAchievements;
       this.computeRecord(this.currentUpdate);
       if (this.username != "未登录") {
@@ -655,6 +656,9 @@ export default {
           )
           .then(() => {
             this.$message.success("修改已同步");
+          })
+          .catch(() => {
+            this.$message.error("修改失败！");
           });
       } else {
         this.$message.success("修改成功");
@@ -707,6 +711,7 @@ export default {
           this.registerVisible = false;
         })
         .catch((err) => {
+          this.$message.error("注册失败！");
           this.$message.error(err.response.data.message);
         });
     },
@@ -721,6 +726,9 @@ export default {
         )
         .then(() => {
           this.$message.success("数据已同步完成");
+        })
+        .catch(() => {
+          this.$message.error("数据同步失败！");
         });
     },
     sendFeedback: function () {
@@ -731,6 +739,9 @@ export default {
         .then(() => {
           this.$message.success("您的反馈我们已收到，谢谢！");
           this.feedbackVisible = false;
+        })
+        .catch(() => {
+          this.$message.error("反馈发送失败！");
         });
     },
     fetchMusicData: function () {
@@ -792,6 +803,7 @@ export default {
             });
         })
         .catch((err) => {
+          this.$message.error("登录失败！");
           this.$message.error(err.response.data.message);
         });
     },
