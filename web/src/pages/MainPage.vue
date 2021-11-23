@@ -53,7 +53,7 @@
               </v-btn>
             </v-card-title>
             <v-card-text>
-              <v-form ref="form" v-model="valid" @keyup.enter.native="login">
+              <v-form ref="form" v-model="valid" @keydown.enter.native="login">
                 <v-text-field
                   v-model="loginForm.username"
                   label="用户名"
@@ -90,7 +90,7 @@
                     注册后会自动同步当前已导入的乐曲数据
                   </v-card-subtitle>
                   <v-card-text>
-                    <v-form ref="regForm" v-model="valid2">
+                    <v-form ref="regForm" v-model="valid2" @keydown.enter.native="register">
                       <v-text-field
                         v-model="registerForm.username"
                         label="用户名"
@@ -303,6 +303,37 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+      <v-dialog
+        width="500px"
+        :fullscreen="$vuetify.breakpoint.mobile"
+        v-model="coverVisible"
+      >
+        <v-card>
+          <v-card-title>
+            查看封面
+            <v-spacer />
+            <v-btn icon @click="coverVisible = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+          <v-card-subtitle>
+            <i><b>{{ coverItem.title }}</b></i>
+          </v-card-subtitle>
+          <v-row class="ma-0" align="center" justify="center" v-if="coverLoading">
+            <v-progress-circular color="grey"
+              indeterminate
+            ></v-progress-circular>
+          </v-row>
+          <v-card-text>
+            <v-img
+              :src="`https://www.diving-fish.com/covers/${coverItem.song_id}.jpg`"
+              contain
+              :height="coverLoading ? 0 : undefined"
+              @load="coverLoading=false"
+            ></v-img>
+          </v-card-text>
+        </v-card>
+      </v-dialog>
       <v-container id="tableBody" style="margin-top: 2em" px-0 py-0>
         <v-card>
           <v-card-title
@@ -342,6 +373,7 @@
             <v-tabs-items v-model="tab">
               <v-tab-item key="sd">
                 <chart-table
+                  @cover="coverRow"
                   @edit="editRow"
                   @calculator="calculatorRow"
                   :search="searchKey"
@@ -358,6 +390,7 @@
               </v-tab-item>
               <v-tab-item key="dx">
                 <chart-table
+                  @cover="coverRow"
                   @edit="editRow"
                   @calculator="calculatorRow"
                   :search="searchKey"
@@ -430,7 +463,7 @@ import Profile from "../components/Profile.vue";
 import PlateQualifier from "../components/PlateQualifier.vue";
 import Calculators from "../components/Calculators.vue";
 import Tutorial from "../components/Tutorial.vue";
-import watchVisible from '../plugins/watchVisible';
+import watchVisible from "../plugins/watchVisible";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 const DEBUG = false;
@@ -477,6 +510,9 @@ export default {
       registerVisible: false,
       dialogVisible: false,
       modifyAchievementVisible: false,
+      coverVisible: false,
+      coverLoading: true,
+      coverItem: {},
       qrDialogVisible: false,
       qrcode: "",
       qrcodePrompt: "",
@@ -564,6 +600,7 @@ export default {
     },
   },
   created: function () {
+    history.replaceState("", "", window.location.pathname);
     this.fetchMusicData();
   },
   watch: {
@@ -575,23 +612,7 @@ export default {
     logoutVisible:  watchVisible("logoutVisible", "Logout"),
     allModeVisible: watchVisible("allModeVisible", "AllMode"),
     modifyAchievementVisible: watchVisible("modifyAchievementVisible", "ModifyAchievement"),
-    currentAchievements: function (to) {
-      if (to == "") return;
-      let flag = true;
-      if (to.toString().match(/\.0*$/)) flag = false;
-      const r = parseFloat(to);
-      if (isNaN(r)) {
-        this.currentAchievements = 0;
-      } else {
-        if (r < 0) {
-          this.currentAchievements = 0;
-        } else if (r > 101) {
-          this.currentAchievements = 101;
-        } else {
-          if (flag) this.currentAchievements = r;
-        }
-      }
-    },
+    coverVisible: watchVisible("coverVisible", "Cover"),
     qrDialogVisible: function (to) {
       if (!to) {
         console.log("cancelled by user.");
@@ -612,6 +633,11 @@ export default {
     invokeRegister: function () {
       this.loginVisible = false;
       this.registerVisible = true;
+    },
+    coverRow: function (record) {
+      this.coverVisible = true;
+      this.coverItem = record;
+      this.coverLoading = true;
     },
     editRow: function (record) {
       this.currentUpdate = record;

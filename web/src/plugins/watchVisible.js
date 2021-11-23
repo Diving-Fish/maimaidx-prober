@@ -1,25 +1,31 @@
+let manualPopstate = false;
+let listenerList = []
+function popstateListener() {
+    let listener = listenerList.shift();
+    if (!manualPopstate) {
+        listener.that[listener.property] = false;
+    }
+    if (!listenerList.length)
+        window.removeEventListener("popstate", popstateListener);
+}
 export default function watchVisible(property, title, that) {
     return function (visible) {
         if (!that) that = this;
-        let state;
-        function popstateListener() {
-            if (window.history.state == state ||
-                (window.history.state && state && window.history.state.title === state.title)) {
-                that[property] = false;
-                window.removeEventListener("popstate", popstateListener);
-            }
-        }
         if (visible) {
-            state = window.history.state;
             window.history.pushState(
                 { title: title, url: `#${title}` },
                 title,
                 `#${title}`
             );
-            window.addEventListener("popstate", popstateListener);
+            if (!listenerList.length)
+                window.addEventListener("popstate", popstateListener);
+            listenerList.unshift({that: that, property: property});
         } else {
-            if (window.history.state && window.history.state.title === title)
+            if (window.history.state && window.history.state.title === title) {
+                manualPopstate = true;
                 window.history.back();
+                manualPopstate = false;
+            }
         }
     };
 }

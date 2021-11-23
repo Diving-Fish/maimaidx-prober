@@ -96,7 +96,7 @@
                 </v-card-text>
                 <v-card-actions class="pb-4">
                   <v-btn color="warning" @click="delete_records()">确定</v-btn>
-                  <v-btn @click="visible = false">取消</v-btn>
+                  <v-btn @click="delVisible = false">取消</v-btn>
                 </v-card-actions>
               </v-card>
             </v-dialog>

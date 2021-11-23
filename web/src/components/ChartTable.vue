@@ -176,30 +176,10 @@
         </v-tooltip>
       </template>
     </v-data-table>
-    <v-dialog
-      width="500px"
-      :fullscreen="$vuetify.breakpoint.mobile"
-      v-model="coverVisible"
-    >
-      <v-card>
-        <v-card-title>
-          查看封面
-          <v-spacer />
-          <v-btn icon @click="coverVisible = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
-        <v-card-text> <v-img
-          :src="`https://www.diving-fish.com/covers/${coverItem.song_id}.jpg`"
-          contain
-        ></v-img> </v-card-text>
-      </v-card>
-    </v-dialog>
   </div>
 </template>
 
 <script>
-import watchVisible from "../plugins/watchVisible";
 export default {
   props: {
     items: Array,
@@ -211,10 +191,11 @@ export default {
     music_data_dict: Object,
   },
   data: () => {
-    return { coverVisible: false, coverItem: {} };
+    return {
+      currentUpdate: { achievements: 0 },
+    };
   },
   watch: {
-    coverVisible: watchVisible("coverVisible", "Cover"),
     search(n) {
       this.search = n;
     },
@@ -370,8 +351,7 @@ export default {
       this.$emit("edit", item);
     },
     cover(item) {
-      this.coverVisible = true;
-      this.coverItem = item;
+      this.$emit("cover", item);
     },
     calculator(item) {
       this.$emit("calculator", item);
