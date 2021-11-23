@@ -652,8 +652,9 @@ export default {
     },
     coverRow: function (record) {
       this.coverVisible = true;
+      if (record.song_id != this.coverItem.song_id)
+        this.coverLoading = true;
       this.coverItem = record;
-      this.coverLoading = true;
     },
     editRow: function (record) {
       this.currentUpdate = record;
