@@ -383,7 +383,7 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
-          2021/11/7
+          2021/11/07
           （By StageChan）更了一些网页计算器工具以及网页使用指南。<br />
           2021/09/28
           （By StageChan）更了一大堆，包括高级设置中的各种筛选、表列选择和暗色主题；DX分数相关；
@@ -864,7 +864,7 @@ export default {
     mergeOnAllMode: function () {
       this.allModeVisible = false;
       let oldRecords = new Set(
-        this.records.map((r) => Number(r.song_id) * 10 + r.level_index)
+        this.records.map((r) => +r.song_id * 10 + r.level_index)
       );
       for (const music of this.music_data) {
         //console.log(music);
@@ -903,10 +903,10 @@ export default {
     merge: function (records) {
       // console.log(records);
       let oldRecords = Object.fromEntries(
-        this.records.map((r, i) => [Number(r.song_id) * 10 + r.level_index, i])
+        this.records.map((r, i) => [+r.song_id * 10 + r.level_index, i])
       );
       for (let record of records) {
-        let i = oldRecords[Number(record.song_id) * 10 + record.level_index];
+        let i = oldRecords[+record.song_id * 10 + record.level_index];
         if (typeof i != "undefined") {
             Vue.set(this.records, i, record);
         } else {

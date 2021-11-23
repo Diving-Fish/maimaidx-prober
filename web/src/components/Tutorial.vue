@@ -192,7 +192,7 @@
           按钮编辑。
         </p>
         <p>
-          计算器<v-icon small>mdi-calculator-variant-outline</v-icon>
+          计算器<v-icon>mdi-calculator-variant-outline</v-icon>
           按钮可以将当前条目的信息导入“计算工具”按钮中的计算器，并立即打开计算工具页面。具体请查看“计算工具”按钮的说明。
         </p>
       </v-card-text>

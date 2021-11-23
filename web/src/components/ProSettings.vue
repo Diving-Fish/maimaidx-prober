@@ -426,8 +426,28 @@ export default {
     },
   },
   created: function () {
-    if (localStorage.headers_default)
+    if (localStorage.headers_default) {
+      try {
       this.headers_default = JSON.parse(localStorage.headers_default);
+        let headers_items_stringified = this.headers_items.map((o) =>
+          JSON.stringify(o)
+        );
+        this.headers_default = this.headers_default.filter(
+          (o) => headers_items_stringified.indexOf(JSON.stringify(o)) != -1
+        );
+      } catch (e) {
+        this.headers_default = [
+          { text: "排名", value: "rank" },
+          { text: "乐曲名", value: "title" },
+          { text: "难度", value: "level", sortable: false },
+          { text: "定数", value: "ds" },
+          { text: "达成率", value: "achievements" },
+          { text: "DX Rating", value: "ra" },
+          { text: "相对难度", value: "tag" },
+          { text: "编辑", value: "actions", sortable: false },
+        ];
+      }
+    }
     this.reset();
     this.darkTheme = +localStorage.darkTheme;
   },
