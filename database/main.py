@@ -20,7 +20,9 @@ def md5(v: str):
 
 cs_need_update = True
 cs_cache = {}
+cs_cache_eTag = md5(json.dumps(cs_cache, ensure_ascii=False))
 md_cache = music_data()
+md_cache_eTag = md5(json.dumps(md_cache))
 md_map = {}
 for music in md_cache:
     md_map[music['id']] = music
@@ -204,8 +206,14 @@ async def change_password():
 
 @app.route("/music_data", methods=['GET'])
 async def get_music_data():
+    if request.headers.get('If-None-Match') == '"' + md_cache_eTag + '"':
+        resp = await make_response("", 304)
+        resp.headers['cache-control'] = "private, max_age=86400"
+        return resp
     resp = await make_response(json.dumps(md_cache))
+    resp.headers['ETag'] = '"' + md_cache_eTag + '"';
     resp.headers['content-type'] = "application/json; charset=utf-8"
+    resp.headers['cache-control'] = "private, max_age=86400"
     return resp
 
 
@@ -529,9 +537,16 @@ async def message():
 async def chart_stats():
     global cs_need_update
     global cs_cache
+    global cs_cache_eTag
     if len(cs_cache) > 0:
+        if request.headers.get('If-None-Match') == '"' + cs_cache_eTag + '"':
+            resp = await make_response("", 304)
+            resp.headers['cache-control'] = "private, max_age=86400"
+            return resp
         resp = await make_response(json.dumps(cs_cache, ensure_ascii=False))
+        resp.headers['ETag'] = '"' + cs_cache_eTag + '"';
         resp.headers['content-type'] = "application/json; charset=utf-8"
+        resp.headers['cache-control'] = "private, max_age=86400"
         return resp
     cursor = NewRecord.raw(
         'select newrecord.chart_id, count(*) as cnt, avg(achievements) as `avg`,'
@@ -586,6 +601,7 @@ async def chart_stats():
             del elem['level_index']
             data[key][level_index] = elem
     cs_cache = data
+    cs_cache_eTag = md5(json.dumps(cs_cache, ensure_ascii=False))
     cs_need_update = False
     resp = await make_response(json.dumps(data, ensure_ascii=False))
     resp.headers['content-type'] = "application/json; charset=utf-8"
