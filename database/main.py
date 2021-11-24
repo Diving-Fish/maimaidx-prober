@@ -198,8 +198,8 @@ def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
 @login_required
 async def change_password():
     password = (await request.json)["password"]
-    if len(password) >= 30:
-        return {"message": "密码不能大于30位"}, 400
+    # if len(password) >= 30:
+    #     return {"message": "密码不能大于30位"}, 400
     g.user.password = md5(password + g.user.salt)
     g.user.save()
     return {"message": "success"}

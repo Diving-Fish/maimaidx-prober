@@ -732,6 +732,7 @@ export default {
           this.$message.success("注册成功，数据已同步完成");
           this.username = this.registerForm.username;
           this.registerVisible = false;
+          setTimeout("window.location.reload()", 1000);
         })
         .catch((err) => {
           this.$message.error("注册失败！");
@@ -783,6 +784,7 @@ export default {
             this.chart_combo[elem.id] = elem.charts.map((o) =>
               o.notes.reduce((prev, curr) => prev + curr)
             );
+          this.$refs.proSettings.init();
           this.$message.success("乐曲信息获取完成，正在获取用户分数及相对难度信息……");
           Promise.allSettled([
             axios.get(
@@ -807,7 +809,6 @@ export default {
               this.$message.warning("未获取用户分数");
             }
             this.$refs.pq.init();
-            this.$refs.proSettings.init();
             that.loading = false;
           });
         })
@@ -835,6 +836,7 @@ export default {
               const data = resp.data;
               this.username = data.username;
               this.merge(data.records);
+              this.$refs.pq.init();
               this.loading = false;
             })
             .catch(() => {
