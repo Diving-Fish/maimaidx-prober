@@ -153,14 +153,15 @@ async def profile():
             if "bind_qq" in obj:
                 # check duplicate
                 bind_qq = obj["bind_qq"]
-                try:
-                    player = Player.get((Player.bind_qq == bind_qq) & (Player.id != g.user.id)) & (bind_qq != '')
-                    # Not found -> except
-                    return {
-                       "message": f"此 QQ 号已经被用户名为{player.username}的用户绑定，请先解绑再进行操作~"
-                   }, 400
-                except Exception:
-                    pass
+                if bind_qq != "":
+                    try:
+                        player = Player.get((Player.bind_qq == bind_qq) & (Player.id != g.user.id))
+                        # Not found -> except
+                        return {
+                        "message": f"此 QQ 号已经被用户名为{player.username}的用户绑定，请先解绑再进行操作~"
+                        }, 400
+                    except Exception:
+                        pass
             for key in obj:
                 g.user.__setattr__(key, obj[key])
             g.user.save()
@@ -476,7 +477,7 @@ async def delete_records():
 
 @app.route("/rating_ranking", methods=['GET'])
 async def rating_ranking():
-    players = Player.select()
+    players = Player.select().where((Player.rating != 0) & (Player.privacy == False))
     data = []
     for player in players:
         data.append({"username": player.username, "ra": player.rating})
