@@ -79,6 +79,49 @@
               </v-col>
             </v-row>
             <v-checkbox v-model="privacy" label="禁止其他人查询我的成绩" />
+          </v-form>
+          <v-card-actions class="pb-4">
+            <v-dialog
+              v-model="changePasswordVisible"
+              width="600"
+              :fullscreen="$vuetify.breakpoint.mobile"
+            >
+              <template #activator="{ on, attrs }">
+                <v-btn v-on="on" v-bind="attrs" class="mr-2">
+                  更改密码
+                </v-btn>
+              </template>
+              <v-card>
+                <v-card-title>更改密码</v-card-title>
+                <v-card-text>
+                  <v-form ref="changePasswordForm" @keydown.enter.native="change_password">
+                    <v-text-field
+                      v-model="changePasswordForm.password"
+                      label="密码"
+                      type="password"
+                      autocomplete="new-password"
+                      :rules="[(u) => !!u || '密码不能为空']"
+                    >
+                    </v-text-field>
+                    <v-text-field
+                      v-model="changePasswordForm.passwordConfirm"
+                      label="确认密码"
+                      type="password"
+                      autocomplete="new-password"
+                      :rules="[
+                        (u) => !!u || '密码不能为空',
+                        (u) => changePasswordForm.password == u || '密码不一致',
+                      ]"
+                    >
+                    </v-text-field>
+                  </v-form>
+                </v-card-text>
+                <v-card-actions class="pb-4">
+                  <v-btn color="warning" @click="change_password">确定</v-btn>
+                  <v-btn @click="changePasswordVisible = false">取消</v-btn>
+                </v-card-actions>
+              </v-card>
+            </v-dialog>
             <v-dialog
               v-model="delVisible"
               width="600"
@@ -95,13 +138,12 @@
                   您确定要删除您的所有数据记录吗？您仍可以再次通过数据导入重新导入数据。
                 </v-card-text>
                 <v-card-actions class="pb-4">
-                  <v-btn color="warning" @click="delete_records()">确定</v-btn>
+                  <v-btn color="warning" @click="delete_records">确定</v-btn>
                   <v-btn @click="delVisible = false">取消</v-btn>
                 </v-card-actions>
               </v-card>
             </v-dialog>
-          </v-form>
-          <v-card-actions class="pb-4">
+            <v-spacer />
             <v-btn color="primary" @click="submit">保存</v-btn>
             <v-btn @click="visible = false">取消</v-btn>
           </v-card-actions>
@@ -179,7 +221,12 @@ export default {
         "maimai でらっくす",
       ],
       t2n: { 1: "極", 2: "将", 4: "舞舞", 8: "神", "神": 8, "舞舞": 4, "将": 2, "極": 1},
-      versions: []
+      versions: [],
+      changePasswordVisible: false,
+      changePasswordForm: {
+        password: "",
+        passwordConfirm: "",
+      },
     };
   },
   watch: {
@@ -189,6 +236,7 @@ export default {
       return watchVisible("visible", "Profile", this)(visible);
     },
     delVisible: watchVisible("delVisible", "ProfileDelete"),
+    changePasswordVisible: watchVisible("changePasswordVisible", "ChangePassword"),
     "plate_upload.version": function (to) {
       if (!(to in this.plates_info)) return;
       if ((this.plates_info[to] & this.plate_upload.plate_type) == 0)
@@ -247,6 +295,21 @@ export default {
         .then((resp) => {
           this.$message.success("已删除" + resp.data.message + "条数据");
           setTimeout("window.location.reload()", 1500);
+        });
+    },
+    change_password() {
+      if (!this.$refs.changePasswordForm.validate()) return;
+      axios
+        .post("https://www.diving-fish.com/api/maimaidxprober/player/change_password", {
+          password: this.changePasswordForm.password
+        })
+        .then(() => {
+          this.$message.success("已修改密码");
+          this.changePasswordVisible = false;
+        })
+        .catch((err) => {
+          this.$message.error("密码修改失败！");
+          this.$message.error(err.response.data.message);
         });
     },
     fetch() {

@@ -433,7 +433,7 @@ export default {
         { name: "100-", score: 1, ex_score: 0 },
         { name: "101-", score: 1, ex_score: 1 },
       ],
-      score_input: "101.0000",
+      score_input: "",
       judge_input: {
         Tap: { CRITICAL_PERFECT: 0, PERFECT: 0, GREAT: 0, GOOD: 0, MISS: 0 },
         Hold: { CRITICAL_PERFECT: 0, PERFECT: 0, GREAT: 0, GOOD: 0, MISS: 0 },

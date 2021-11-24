@@ -201,6 +201,7 @@ async def change_password():
     if len(password) >= 30:
         return {"message": "密码不能大于30位"}, 400
     g.user.password = md5(password + g.user.salt)
+    g.user.save()
     return {"message": "success"}
 
 

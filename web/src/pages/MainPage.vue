@@ -57,6 +57,7 @@
                 <v-text-field
                   v-model="loginForm.username"
                   label="用户名"
+                  autocomplete="username"
                   :rules="[(u) => !!u || '用户名不能为空']"
                 >
                 </v-text-field>
@@ -65,6 +66,7 @@
                   label="密码"
                   :rules="[(u) => !!u || '密码不能为空']"
                   type="password"
+                  autocomplete="current-password"
                 >
                 </v-text-field>
               </v-form>
@@ -94,6 +96,7 @@
                       <v-text-field
                         v-model="registerForm.username"
                         label="用户名"
+                        autocomplete="username"
                         :rules="[
                           (u) => !!u || '用户名不能为空',
                           (u) => u.length >= 4 || '用户名至少长 4 个字符',
@@ -104,6 +107,7 @@
                         v-model="registerForm.password"
                         label="密码"
                         type="password"
+                        autocomplete="new-password"
                         :rules="[(u) => !!u || '密码不能为空']"
                       >
                       </v-text-field>
@@ -111,6 +115,7 @@
                         v-model="registerForm.passwordConfirm"
                         label="确认密码"
                         type="password"
+                        autocomplete="new-password"
                         :rules="[
                           (u) => !!u || '密码不能为空',
                           (u) => registerForm.password == u || '密码不一致',
@@ -1112,7 +1117,8 @@ export default {
       };
       setCookie("jwt_token", "", -1);
       this.logoutVisible = false;
-      window.location.reload();
+      this.$message.success("已登出");
+      setTimeout("window.location.reload()", 1000);
     },
     available_plates: function () {
       return this.$refs.pq.available_plates();
