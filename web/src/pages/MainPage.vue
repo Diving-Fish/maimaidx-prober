@@ -621,7 +621,7 @@ export default {
   },
   watch: {
     loginVisible: watchVisible("loginVisible", "Login"),
-    registerVisible: watchVisible("registerVisible", "Register"),
+    // registerVisible: watchVisible("registerVisible", "Register"),
     dialogVisible: watchVisible("dialogVisible", "Import"),
     feedbackVisible: watchVisible("feedbackVisible", "Feedback"),
     exportVisible: watchVisible("exportVisible", "Export"),
@@ -765,6 +765,7 @@ export default {
     fetchMusicData: function () {
       const that = this;
       that.loading = true;
+      this.$message.info("正在获取乐曲信息……");
       axios
         .get("https://www.diving-fish.com/api/maimaidxprober/music_data")
         .then((resp) => {
@@ -777,6 +778,7 @@ export default {
             this.chart_combo[elem.id] = elem.charts.map((o) =>
               o.notes.reduce((prev, curr) => prev + curr)
             );
+          this.$message.success("乐曲信息获取完成，正在获取用户分数及相对难度信息……");
           Promise.allSettled([
             axios.get(
               "https://www.diving-fish.com/api/maimaidxprober/chart_stats"
@@ -785,16 +787,27 @@ export default {
               DEBUG ? "https://www.diving-fish.com/api/maimaidxprober/player/test_data" : "https://www.diving-fish.com/api/maimaidxprober/player/records"
             ),
           ]).then(([resp1, resp2]) => {
+            if (resp1.status === "rejected") {
+              this.$message.error("相对难度信息获取失败，请重新加载！");
+              that.loading = false;
+              return;
+            }
             that.chart_stats = resp1.value.data;
             if (resp2.status !== "rejected") {
               const data = resp2.value.data;
               that.username = data.username;
               that.merge(data.records);
+              this.$message.success("用户分数及相对难度信息获取完成");
+            } else {
+              this.$message.warning("未获取用户分数");
             }
             this.$refs.pq.init();
             this.$refs.proSettings.init();
             that.loading = false;
           });
+        })
+        .catch(() => {
+          this.$message.error("乐曲信息获取失败，请重新加载！");
         });
     },
     login: function () {
@@ -818,6 +831,9 @@ export default {
               this.username = data.username;
               this.merge(data.records);
               this.loading = false;
+            })
+            .catch(() => {
+              this.$message.error("加载乐曲失败！");
             });
         })
         .catch((err) => {

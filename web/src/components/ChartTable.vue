@@ -189,9 +189,7 @@ export default {
     music_data_dict: Object,
   },
   data: () => {
-    return {
-      currentUpdate: { achievements: 0 },
-    };
+    return {};
   },
   watch: {
     search(n) {
