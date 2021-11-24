@@ -91,7 +91,7 @@ def login_required(f):
 def developer_required(f):
     @wraps(f)
     async def func(*args, **kwargs):
-        token = request.headers.get("developer_token", default="")
+        token = request.headers.get("developer-token", default="")
         if token == "":
             return {"status": "error", "msg": "请先联系水鱼申请开发者token"}, 400
         try:
