@@ -78,11 +78,11 @@ def login_required(f):
         try:
             token = decode(request.cookies['jwt_token'])
         except KeyError:
-            return {"status": "error", "msg": "尚未登录"}, 403
+            return {"status": "error", "message": "尚未登录"}, 403
         if token == {}:
-            return {"status": "error", "msg": "尚未登录"}, 403
+            return {"status": "error", "message": "尚未登录"}, 403
         if token['exp'] < ts():
-            return {"status": "error", "msg": "会话过期"}, 403
+            return {"status": "error", "message": "会话过期"}, 403
         g.username = token['username']
         g.user = Player.get(Player.username == g.username)
         return await f(*args, **kwargs)
@@ -300,13 +300,13 @@ async def query_player():
         try:
             token = decode(request.cookies['jwt_token'])
         except KeyError:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
         if token == {}:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
         if token['exp'] < ts():
-            return {"status": "error", "msg": "会话过期"}, 403
+            return {"status": "error", "message": "会话过期"}, 403
         if token['username'] != obj["username"]:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
     if "b50" in obj:
         sd, dx = get_dx_and_sd_for50(p)
     else:
@@ -349,13 +349,13 @@ async def query_plate():
         try:
             token = decode(request.cookies['jwt_token'])
         except KeyError:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
         if token == {}:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
         if token['exp'] < ts():
-            return {"status": "error", "msg": "会话过期"}, 403
+            return {"status": "error", "message": "会话过期"}, 403
         if token['username'] != obj["username"]:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
     v: List[Dict] = obj["version"]
     vl = getplatelist(p, v)
     return {
