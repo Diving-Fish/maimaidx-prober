@@ -184,7 +184,8 @@ async def profile():
                     except Exception:
                         pass
             for key in obj:
-                g.user.__setattr__(key, obj[key])
+                if key in ("nickname", "bind_qq", "additional_rating", "privacy"):
+                    g.user.__setattr__(key, obj[key])
             g.user.save()
             u: Player = g.user
             return {
