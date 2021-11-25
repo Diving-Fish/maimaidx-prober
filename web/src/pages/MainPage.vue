@@ -437,6 +437,8 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
+          2021/11/25
+          （By StageChan）又更了一大堆，包括查看封面按钮，修改密码功能，优化移动端网页体验等。<br />
           2021/11/07
           （By StageChan）更了一些网页计算器工具以及网页使用指南。<br />
           2021/09/28
