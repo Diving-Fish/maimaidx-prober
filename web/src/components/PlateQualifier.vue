@@ -32,14 +32,14 @@
           <v-icon color="orange">mdi-check-bold</v-icon>=All Perfect
         </div>
         <div class="mt-2">
-          <v-icon color="green">mdi-check-bold</v-icon>{{total_1}}/{{filted.length * (masOnly ? 1 : 4)}}
-          <v-icon color="blue">mdi-check-bold</v-icon>{{total_2}}/{{filted.length * (masOnly ? 1 : 4)}}
-          <v-icon color="purple">mdi-check-bold</v-icon>{{total_4}}/{{filted.length * (masOnly ? 1 : 4)}}
-          <v-icon color="orange">mdi-check-bold</v-icon>{{total_8}}/{{filted.length * (masOnly ? 1 : 4)}}
+          <v-icon color="green">mdi-check-bold</v-icon>{{total_1}}/{{filtered.length * (masOnly ? 1 : 4)}}
+          <v-icon color="blue">mdi-check-bold</v-icon>{{total_2}}/{{filtered.length * (masOnly ? 1 : 4)}}
+          <v-icon color="purple">mdi-check-bold</v-icon>{{total_4}}/{{filtered.length * (masOnly ? 1 : 4)}}
+          <v-icon color="orange">mdi-check-bold</v-icon>{{total_8}}/{{filtered.length * (masOnly ? 1 : 4)}}
         </div>
         <v-data-table
           :headers="masOnly ? headerMas : headers"
-          :items="filted"
+          :items="filtered"
           sort-by="mst_pq"
           sort-desc=""
           :mobile-breakpoint="masOnly ? 0 : 600"
@@ -91,6 +91,7 @@
 </template>
 
 <script>
+import watchVisible from '../plugins/watchVisible';
 export default {
   props: {
     music_data: Array,
@@ -184,15 +185,18 @@ export default {
       return res;
     },
   },
+  watch:{
+    visible: watchVisible("visible", "PlateQualifier"),
+  },
   computed: {
-    filted: function () {
+    filtered: function () {
       return this.music_data.filter((elem) => {
         return elem.basic_info.from == this.version;
       });
     },
     total_8: function () {
       let sum = 0;
-      for (const md of this.filted) {
+      for (const md of this.filtered) {
         if (md.mst_pq & 8) sum++;
         if (!this.masOnly) {
           if (md.bas_pq & 8) sum++;
@@ -204,7 +208,7 @@ export default {
     },
     total_4: function () {
       let sum = 0;
-      for (const md of this.filted) {
+      for (const md of this.filtered) {
         if (md.mst_pq & 4) sum++;
         if (!this.masOnly) {
           if (md.bas_pq & 4) sum++;
@@ -216,7 +220,7 @@ export default {
     },
     total_2: function () {
       let sum = 0;
-      for (const md of this.filted) {
+      for (const md of this.filtered) {
         if (md.mst_pq & 2) sum++;
         if (!this.masOnly) {
           if (md.bas_pq & 2) sum++;
@@ -228,7 +232,7 @@ export default {
     },
     total_1: function () {
       let sum = 0;
-      for (const md of this.filted) {
+      for (const md of this.filtered) {
         if (md.mst_pq & 1) sum++;
         if (!this.masOnly) {
           if (md.bas_pq & 1) sum++;

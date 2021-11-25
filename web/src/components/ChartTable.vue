@@ -155,8 +155,24 @@
       <span v-else> {{ item.dxScore_perc.toFixed(2) }}% </span>
     </template>
     <template #item.actions="{ item }">
-      <v-icon small @click="modify(item)">mdi-pencil</v-icon>
-      <v-icon class="ml-2" @click="calculator(item)">mdi-calculator-variant-outline</v-icon>
+      <v-tooltip top>
+        <template v-slot:activator="{ on, attrs }">
+          <v-icon v-bind="attrs" v-on="on" @click="cover(item)">mdi-image-outline</v-icon>
+        </template>
+        查看封面
+      </v-tooltip>
+      <v-tooltip top>
+        <template v-slot:activator="{ on, attrs }">
+          <v-icon v-bind="attrs" v-on="on" @click="modify(item)">mdi-pencil-box-outline</v-icon>
+        </template>
+        编辑分数
+      </v-tooltip>
+      <v-tooltip top>
+        <template v-slot:activator="{ on, attrs }">
+          <v-icon v-bind="attrs" v-on="on" @click="calculator(item)">mdi-calculator-variant-outline</v-icon>
+        </template>
+        填入计算器
+      </v-tooltip>
     </template>
   </v-data-table>
 </template>
@@ -329,6 +345,9 @@ export default {
         return;
       }
       this.$emit("edit", item);
+    },
+    cover(item) {
+      this.$emit("cover", item);
     },
     calculator(item) {
       this.$emit("calculator", item);

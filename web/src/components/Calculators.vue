@@ -15,6 +15,16 @@
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-card-title>
+      <v-card-subtitle v-show="current_song">
+        当前为
+        <i
+          >{{ current_song.type == "DX" ? "[DX] " : ""
+          }}<b>{{ current_song.title }}</b> [{{
+            current_song.level_label
+          }}]</i
+        >
+        的数据
+      </v-card-subtitle>
       <v-card-text>
         <v-tabs v-model="tab">
           <v-tab key="score">分数线/绝赞分布计算</v-tab>
@@ -197,7 +207,7 @@
                     :rules="[
                       (u) =>
                         (isFinite(+u) && +u >= 0 && +u <= 101) ||
-                        '请输入合法成绩',
+                        '请输入合法达成率',
                     ]"
                   ></v-text-field>
                 </v-col>
@@ -355,7 +365,14 @@
       </v-card-text>
       <v-footer v-if="current_song">
         <v-card-subtitle class="pa-1">
-          当前为 <i>{{ current_song }}</i> 的数据
+          当前为
+          <i
+            >{{ current_song.type == "DX" ? "[DX] " : ""
+            }}<b>{{ current_song.title }}</b> [{{
+              current_song.level_label
+            }}]</i
+          >
+          的数据
         </v-card-subtitle>
       </v-footer>
     </v-card>
@@ -363,12 +380,13 @@
 </template>
 
 <script>
+import watchVisible from '../plugins/watchVisible';
 export default {
   data: () => {
     return {
       visible: false,
       tab: "",
-      current_song: "",
+      current_song: false,
       manual_input: false,
       note_total: {
         Tap: 0,
@@ -415,7 +433,7 @@ export default {
         { name: "100-", score: 1, ex_score: 0 },
         { name: "101-", score: 1, ex_score: 1 },
       ],
-      score_input: "101.0000",
+      score_input: "",
       judge_input: {
         Tap: { CRITICAL_PERFECT: 0, PERFECT: 0, GREAT: 0, GOOD: 0, MISS: 0 },
         Hold: { CRITICAL_PERFECT: 0, PERFECT: 0, GREAT: 0, GOOD: 0, MISS: 0 },
@@ -446,7 +464,7 @@ export default {
   },
   methods: {
     clear_current_song: function () {
-      this.current_song = "";
+      this.current_song = false;
     },
     update_judge_input: function () {
       if (!this.manual_input) {
@@ -582,9 +600,9 @@ export default {
     fill(item) {
       Object.assign(this.note_total, item.note_total);
       this.current_song = item.current_song;
-      this.ds_input = item.ds_input;
-      this.rating_input = item.rating_input;
-      this.achievements_input = item.achievements_input;
+      this.ds_input = item.current_song.ds;
+      this.rating_input = item.current_song.ra;
+      this.achievements_input = item.current_song.achievements;
       this.visible = item.visible;
       this.manual_input = false;
       for (let note in this.notes)
@@ -594,6 +612,7 @@ export default {
     },
   },
   watch: {
+    visible: watchVisible("visible", "Calculators"),
     note_total: {
       handler() {
         if (!this.manual_input) this.update_judge_input();

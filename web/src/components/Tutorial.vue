@@ -173,26 +173,28 @@
         <p>
           该表列显示当前条目的DX分数占该谱面总DX分数的比例。如果能够达成DX+中的至少一个四角星（即DX分数比例在85%以上），DX分数比例数字右侧将显示达成的四角星数。鼠标浮动在DX分数比例数字或色块上（移动端需要点击一下对应位置）可以显示更多详细信息。
         </p>
-        <h3 class="text--primary">“编辑”表列</h3>
+        <h3 class="text--primary">“操作”表列</h3>
         <p>
-          该表列包含两个按钮：编辑<v-icon small>mdi-pencil</v-icon>
+          该表列包含三个按钮：封面<v-icon>mdi-image-outline</v-icon>按钮、编辑<v-icon>mdi-pencil-box-outline</v-icon>
           按钮及计算器<v-icon>mdi-calculator-variant-outline</v-icon>
           按钮。
         </p>
         <p>
-          点击编辑<v-icon small>mdi-pencil</v-icon>
+          点击封面<v-icon>mdi-image-outline</v-icon>
+          按钮可以查看当前曲目的封面。
+        </p>
+        <p>
+          点击编辑<v-icon>mdi-pencil-box-outline</v-icon>
           按钮可以在弹窗中手动修改单个条目的成绩（如出勤时刷分后可以通过编辑<v-icon
-            small
-            >mdi-pencil</v-icon
+            >mdi-pencil-box-outline</v-icon
           >
           按钮更改到最新分数），但FC/AP图标、FS/FDX图标和DX分数等其他信息均不会更改。注意通过“解锁全曲”按钮接锁的曲目不能通过编辑<v-icon
-            small
-            >mdi-pencil</v-icon
+            >mdi-pencil-box-outline</v-icon
           >
           按钮编辑。
         </p>
         <p>
-          计算器<v-icon small>mdi-calculator-variant-outline</v-icon>
+          计算器<v-icon>mdi-calculator-variant-outline</v-icon>
           按钮可以将当前条目的信息导入“计算工具”按钮中的计算器，并立即打开计算工具页面。具体请查看“计算工具”按钮的说明。
         </p>
       </v-card-text>
@@ -201,9 +203,13 @@
 </template>
 
 <script>
+import watchVisible from '../plugins/watchVisible';
 export default {
   data: () => {
     return { visible: false };
+  },
+  watch: {
+    visible: watchVisible("visible", "Tutorial"),
   },
 };
 </script>

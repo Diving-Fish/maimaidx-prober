@@ -20,7 +20,9 @@ def md5(v: str):
 
 cs_need_update = True
 cs_cache = {}
+cs_cache_eTag = md5(json.dumps(cs_cache, ensure_ascii=False))
 md_cache = music_data()
+md_cache_eTag = md5(json.dumps(md_cache))
 md_map = {}
 for music in md_cache:
     md_map[music['id']] = music
@@ -76,11 +78,11 @@ def login_required(f):
         try:
             token = decode(request.cookies['jwt_token'])
         except KeyError:
-            return {"status": "error", "msg": "尚未登录"}, 403
+            return {"status": "error", "message": "尚未登录"}, 403
         if token == {}:
-            return {"status": "error", "msg": "尚未登录"}, 403
+            return {"status": "error", "message": "尚未登录"}, 403
         if token['exp'] < ts():
-            return {"status": "error", "msg": "会话过期"}, 403
+            return {"status": "error", "message": "会话过期"}, 403
         g.username = token['username']
         g.user = Player.get(Player.username == g.username)
         return await f(*args, **kwargs)
@@ -219,16 +221,23 @@ def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
 @login_required
 async def change_password():
     password = (await request.json)["password"]
-    if len(password) >= 30:
-        return {"message": "密码不能大于30位"}, 400
+    # if len(password) >= 30:
+    #     return {"message": "密码不能大于30位"}, 400
     g.user.password = md5(password + g.user.salt)
+    g.user.save()
     return {"message": "success"}
 
 
 @app.route("/music_data", methods=['GET'])
 async def get_music_data():
+    if request.headers.get('If-None-Match') == '"' + md_cache_eTag + '"':
+        resp = await make_response("", 304)
+        resp.headers['cache-control'] = "private, max_age=86400"
+        return resp
     resp = await make_response(json.dumps(md_cache))
+    resp.headers['ETag'] = '"' + md_cache_eTag + '"';
     resp.headers['content-type'] = "application/json; charset=utf-8"
+    resp.headers['cache-control'] = "private, max_age=86400"
     return resp
 
 
@@ -333,13 +342,13 @@ async def query_player():
         try:
             token = decode(request.cookies['jwt_token'])
         except KeyError:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
         if token == {}:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
         if token['exp'] < ts():
-            return {"status": "error", "msg": "会话过期"}, 403
+            return {"status": "error", "message": "会话过期"}, 403
         if token['username'] != obj["username"]:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
     if "b50" in obj:
         sd, dx = get_dx_and_sd_for50(p)
     else:
@@ -382,13 +391,13 @@ async def query_plate():
         try:
             token = decode(request.cookies['jwt_token'])
         except KeyError:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
         if token == {}:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
         if token['exp'] < ts():
-            return {"status": "error", "msg": "会话过期"}, 403
+            return {"status": "error", "message": "会话过期"}, 403
         if token['username'] != obj["username"]:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
     v: List[Dict] = obj["version"]
     vl = getplatelist(p, v)
     return {
@@ -571,9 +580,16 @@ async def message():
 async def chart_stats():
     global cs_need_update
     global cs_cache
+    global cs_cache_eTag
     if len(cs_cache) > 0:
+        if request.headers.get('If-None-Match') == '"' + cs_cache_eTag + '"':
+            resp = await make_response("", 304)
+            resp.headers['cache-control'] = "private, max_age=86400"
+            return resp
         resp = await make_response(json.dumps(cs_cache, ensure_ascii=False))
+        resp.headers['ETag'] = '"' + cs_cache_eTag + '"';
         resp.headers['content-type'] = "application/json; charset=utf-8"
+        resp.headers['cache-control'] = "private, max_age=86400"
         return resp
     cursor = NewRecord.raw(
         'select newrecord.chart_id, count(*) as cnt, avg(achievements) as `avg`,'
@@ -628,6 +644,7 @@ async def chart_stats():
             del elem['level_index']
             data[key][level_index] = elem
     cs_cache = data
+    cs_cache_eTag = md5(json.dumps(cs_cache, ensure_ascii=False))
     cs_need_update = False
     resp = await make_response(json.dumps(data, ensure_ascii=False))
     resp.headers['content-type'] = "application/json; charset=utf-8"
