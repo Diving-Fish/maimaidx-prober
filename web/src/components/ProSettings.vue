@@ -297,8 +297,6 @@ export default {
       ],
       version: null,
       genre: null,
-      versions: [],
-      genres: [],
       headers: [],
       headers_default: [
         { text: "排名", value: "rank" },
@@ -335,6 +333,26 @@ export default {
         "actions",
       ],
     };
+  },
+  computed: {
+    versions: function () {
+      return Array.from(
+        new Set(
+          this.music_data.map((elem) => {
+            return elem.basic_info.from;
+          })
+        )
+      );
+    },
+    genres: function () {
+      return Array.from(
+        new Set(
+          this.music_data.map((elem) => {
+            return elem.basic_info.genre;
+          })
+        )
+      );
+    },
   },
   methods: {
     f(item) {
@@ -387,22 +405,6 @@ export default {
       this.headers_default = headers;
       this.$message.success(`已保存表列设置`);
     },
-    init: function () {
-      this.versions = Array.from(
-        new Set(
-          this.music_data.map((elem) => {
-            return elem.basic_info.from;
-          })
-        )
-      );
-      this.genres = Array.from(
-        new Set(
-          this.music_data.map((elem) => {
-            return elem.basic_info.genre;
-          })
-        )
-      );
-    },
     reset() {
       this.fc_filter = [0, "fc", "fcp", "ap", "app"];
       this.fs_filter = [0, "fs", "fsp", "fsd", "fsdp"];
@@ -428,7 +430,7 @@ export default {
   created: function () {
     if (localStorage.headers_default) {
       try {
-      this.headers_default = JSON.parse(localStorage.headers_default);
+        this.headers_default = JSON.parse(localStorage.headers_default);
         let headers_items_stringified = this.headers_items.map((o) =>
           JSON.stringify(o)
         );

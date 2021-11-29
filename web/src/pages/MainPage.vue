@@ -786,7 +786,6 @@ export default {
             this.chart_combo[elem.id] = elem.charts.map((o) =>
               o.notes.reduce((prev, curr) => prev + curr)
             );
-          this.$refs.proSettings.init();
           this.$message.success("乐曲信息获取完成，正在获取用户分数及相对难度信息……");
           Promise.allSettled([
             axios.get(
