@@ -17,6 +17,20 @@ class BaseModel(Model):
         database = db
 
 
+class Developer(BaseModel):
+    nickname = CharField()
+    token = CharField()
+    reason = TextField()
+    available = BooleanField()
+
+
+class DeveloperLog(BaseModel):
+    developer = ForeignKeyField(Developer)
+    function = CharField()
+    remote_addr = CharField()
+    timestamp = DoubleField()
+
+
 class Music(BaseModel):
     id = CharField(primary_key=True)
     title = CharField()
@@ -135,7 +149,7 @@ class Message(BaseModel):
 
 
 db.create_tables([Music, NewRecord, Chart, Player,
-                 Record, FeedBack, Views, Message])
+                 Record, FeedBack, Views, Message, Developer, DeveloperLog])
 
 
 def get_idx(achievements):

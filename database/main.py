@@ -90,6 +90,27 @@ def login_required(f):
     return func
 
 
+def developer_required(f):
+    @wraps(f)
+    async def func(*args, **kwargs):
+        token = request.headers.get("developer-token", default="")
+        if token == "":
+            return {"status": "error", "msg": "请先联系水鱼申请开发者token"}, 400
+        try:
+            dev: Developer = Developer.get(Developer.token == token)
+        except Exception:
+            return {"status": "error", "msg": "开发者token有误"}, 400
+        if not dev.available:
+            return {"status": "error", "msg": "开发者token被禁用"}, 400
+        remote_addr = request.remote_addr
+        xip = request.headers.get("X-Real-IP", default="")
+        if xip != "":
+            remote_addr = xip
+        DeveloperLog.create(developer=dev, function=f.__name__, remote_addr=remote_addr, timestamp=time.time_ns())
+        return await f(*args, **kwargs)
+
+    return func
+
 @app.route("/login", methods=['POST'])
 async def login():
     j = await request.get_json()
@@ -155,16 +176,18 @@ async def profile():
             if "bind_qq" in obj:
                 # check duplicate
                 bind_qq = obj["bind_qq"]
-                try:
-                    player = Player.get((Player.bind_qq == bind_qq) & (Player.id != g.user.id)) & (bind_qq != '')
-                    # Not found -> except
-                    return {
-                       "message": f"此 QQ 号已经被用户名为{player.username}的用户绑定，请先解绑再进行操作~"
-                   }, 400
-                except Exception:
-                    pass
+                if bind_qq != "":
+                    try:
+                        player = Player.get((Player.bind_qq == bind_qq) & (Player.id != g.user.id))
+                        # Not found -> except
+                        return {
+                        "message": f"此 QQ 号已经被用户名为{player.username}的用户绑定，请先解绑再进行操作~"
+                        }, 400
+                    except Exception:
+                        pass
             for key in obj:
-                g.user.__setattr__(key, obj[key])
+                if key in ("nickname", "bind_qq", "additional_rating", "privacy"):
+                    g.user.__setattr__(key, obj[key])
             g.user.save()
             u: Player = g.user
             return {
@@ -228,6 +251,25 @@ async def get_records():
         elem = record_json(record)
         records.append(elem)
     return {"records": records, "username": g.username, "additional_rating": g.user.additional_rating}
+
+
+@app.route("/dev/player/records", methods=['GET'])
+@developer_required
+async def dev_get_records():
+    username = request.args.get("username", type=str, default="")
+    if username == "":
+        return {"message": "no such user"}, 400
+    try:
+        player: Player = Player.get(Player.username == username)
+    except Exception:
+        return {"message": "no such user"}, 400
+    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
+    await compute_ra(player)
+    records = []
+    for record in r:
+        elem = record_json(record)
+        records.append(elem)
+    return {"records": records, "username": player.username, "additional_rating": player.additional_rating}
 
 
 @app.route("/player/test_data", methods=['GET'])
@@ -485,7 +527,7 @@ async def delete_records():
 
 @app.route("/rating_ranking", methods=['GET'])
 async def rating_ranking():
-    players = Player.select()
+    players = Player.select().where((Player.rating != 0) & (Player.privacy == False))
     data = []
     for player in players:
         data.append({"username": player.username, "ra": player.rating})
