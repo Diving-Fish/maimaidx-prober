@@ -670,7 +670,7 @@ export default {
     },
     finishEditRow: function () {
       if (!this.$refs.modifyAchievementForm.validate()) return;
-      this.currentUpdate.achievements = this.currentAchievements;
+      this.currentUpdate.achievements = parseFloat(this.currentAchievements);
       this.computeRecord(this.currentUpdate);
       if (this.username != "未登录") {
         axios
