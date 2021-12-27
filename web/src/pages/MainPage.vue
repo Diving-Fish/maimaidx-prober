@@ -1,362 +1,8 @@
 <template>
   <div id="mainPage">
     <v-container fluid :style="$vuetify.breakpoint.mobile ? 'padding:0px' : ''">
-      <div :style="$vuetify.breakpoint.mobile ? '' : 'display: flex; align-items: flex-end; justify-content: space-between'">
-        <h1>舞萌 DX 查分器</h1>
-        <profile :available_plates="available_plates" ref="profile" />
-      </div>
-      <v-divider class="mt-4 mb-4" />
-      <p>
-        <v-btn href="/maimaidx/prober_guide" target="_blank" color="primary"
-          >数据导入指南</v-btn
-        >
-        <tutorial ref="tutorial" />
-      </p>
-      <p class="mb-2">点个 Star 吧！</p>
-      <a href="https://github.com/Diving-Fish/maimaidx-prober"
-        ><img
-          src="https://img.shields.io/github/stars/Diving-Fish/maimaidx-prober?style=social"
-      /></a>
-      <view-badge class="ml-3" />
-      <a class="ml-3" href="https://space.bilibili.com/10322617"><img src="https://shields.io/badge/bilibili-%E6%B0%B4%E9%B1%BC%E5%96%B5%E5%96%B5%E5%96%B5-00A1D6?logo=bilibili&style=flat"></a>
-      <p class="mt-3">欢迎加入舞萌DX查分器交流群：981682758</p>
-      <p>代理工具上线！使用微信客户端导入数据，请查看新版本的使用指南。</p>
-      <p>想要 10 分钟搭建自己的 maimai QQ 机器人？现在就参考开源项目 <a href="https://github.com/Diving-Fish/mai-bot">mai-bot</a> 吧~</p>
-      <p style="color: #f44336">
-        迁移了数据库以加快网站的响应速度及后续开发。如遇任何无法导入成绩或出错的情况，请及时添加讨论群进行反馈。
-      </p>
-      <div
-        style="
-          display: flex;
-          line-height: 64px;
-          justify-content: center;
-          flex-wrap: wrap;
-        "
-      >
-        <v-dialog width="500px" :fullscreen="$vuetify.breakpoint.mobile" v-model="loginVisible">
-          <template #activator="{ on, attrs }">
-            <v-btn
-              class="mt-3 mr-4"
-              v-if="username == '未登录'"
-              v-bind="attrs"
-              v-on="on"
-              color="primary"
-              >登录并同步数据</v-btn
-            >
-          </template>
-          <v-card>
-            <v-card-title>
-              登录
-              <v-spacer />
-              <v-btn icon @click="loginVisible = false">
-                <v-icon>mdi-close</v-icon>
-              </v-btn>
-            </v-card-title>
-            <v-card-text>
-              <v-form ref="form" v-model="valid" @keydown.enter.native="login">
-                <v-text-field
-                  v-model="loginForm.username"
-                  label="用户名"
-                  autocomplete="username"
-                  :rules="[(u) => !!u || '用户名不能为空']"
-                >
-                </v-text-field>
-                <v-text-field
-                  v-model="loginForm.password"
-                  label="密码"
-                  :rules="[(u) => !!u || '密码不能为空']"
-                  type="password"
-                  autocomplete="current-password"
-                >
-                </v-text-field>
-              </v-form>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer />
-              <v-btn class="mr-4" color="primary" @click="login">登录</v-btn>
-              <v-btn @click="invokeRegister">立即注册</v-btn>
-              <v-dialog
-                width="500"
-                :fullscreen="$vuetify.breakpoint.mobile"
-                v-model="registerVisible"
-              >
-                <v-card>
-                  <v-card-title>
-                    注册
-                    <v-spacer />
-                    <v-btn icon @click="registerVisible = false">
-                      <v-icon>mdi-close</v-icon>
-                    </v-btn>
-                  </v-card-title>
-                  <v-card-subtitle>
-                    注册后会自动同步当前已导入的乐曲数据
-                  </v-card-subtitle>
-                  <v-card-text>
-                    <v-form ref="regForm" v-model="valid2" @keydown.enter.native="register">
-                      <v-text-field
-                        v-model="registerForm.username"
-                        label="用户名"
-                        autocomplete="username"
-                        :rules="[
-                          (u) => !!u || '用户名不能为空',
-                          (u) => u.length >= 4 || '用户名至少长 4 个字符',
-                        ]"
-                      >
-                      </v-text-field>
-                      <v-text-field
-                        v-model="registerForm.password"
-                        label="密码"
-                        type="password"
-                        autocomplete="new-password"
-                        :rules="[(u) => !!u || '密码不能为空']"
-                      >
-                      </v-text-field>
-                      <v-text-field
-                        v-model="registerForm.passwordConfirm"
-                        label="确认密码"
-                        type="password"
-                        autocomplete="new-password"
-                        :rules="[
-                          (u) => !!u || '密码不能为空',
-                          (u) => registerForm.password == u || '密码不一致',
-                        ]"
-                      >
-                      </v-text-field>
-                    </v-form>
-                  </v-card-text>
-                  <v-card-actions>
-                    <v-spacer />
-                    <v-btn color="primary" @click="register">注册</v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-dialog>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
-        <v-dialog width="1000px" :fullscreen="$vuetify.breakpoint.mobile" v-model="dialogVisible">
-          <template #activator="{ on, attrs }">
-            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导入数据</v-btn>
-          </template>
-          <v-card>
-            <v-card-title>
-              导入数据
-              <v-spacer />
-              <v-btn icon @click="dialogVisible = false">
-                <v-icon>mdi-close</v-icon>
-              </v-btn>
-            </v-card-title>
-            <v-card-text>
-              <v-textarea
-                type="textarea"
-                label="请将乐曲数据的源代码粘贴到这里"
-                v-model="textarea"
-                :rows="15"
-                outlined
-              ></v-textarea>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer />
-              <v-btn color="primary" @click="flushData()">确定</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
-        <v-dialog width="500px" :fullscreen="$vuetify.breakpoint.mobile" v-model="feedbackVisible">
-          <template #activator="{ on, attrs }">
-            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">提交反馈</v-btn>
-          </template>
-          <v-card>
-            <v-card-title>
-              反馈
-              <v-spacer />
-              <v-btn icon @click="feedbackVisible = false">
-                <v-icon>mdi-close</v-icon>
-              </v-btn>
-            </v-card-title>
-            <v-card-text>
-              <v-textarea
-                rows="5"
-                placeholder="补充乐曲定数或者对查分器有什么意见和建议都可以写在这里"
-                v-model="feedbackText"
-              ></v-textarea>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer />
-              <v-btn color="primary" @click="sendFeedback()">确定</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
-        <v-dialog v-model="exportVisible" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
-          <template #activator="{ on, attrs }">
-            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导出为 CSV</v-btn>
-          </template>
-          <v-card>
-            <v-card-title>
-              导出为 CSV
-              <v-spacer />
-              <v-btn icon @click="exportVisible = false">
-                <v-icon>mdi-close</v-icon>
-              </v-btn>
-            </v-card-title>
-            <v-card-text>
-              <div style="display: flex">
-                <v-select
-                  v-model="exportEncoding"
-                  label="选择编码"
-                  :items="exportEncodings"
-                >
-                </v-select>
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" class="ml-4">
-                      mdi-help-circle
-                    </v-icon>
-                  </template>
-                  <span
-                    >GBK编码一般用于Excel打开，UTF-8编码则可以供部分其他编辑器直接显示。</span
-                  >
-                </v-tooltip>
-              </div>
-            </v-card-text>
-            <v-card-actions>
-              <v-btn class="mr-4" @click="exportToCSV('sd')"
-                >导出标准乐谱</v-btn
-              >
-              <v-btn @click="exportToCSV('dx')">导出 DX 乐谱</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
-        <plate-qualifier ref="pq" :music_data="music_data" :records="records" />
-        <calculators ref="calcs" />
-        <v-dialog
-          v-model="logoutVisible"
-          width="500px"
-          v-if="username !== '未登录'"
-          :fullscreen="$vuetify.breakpoint.mobile"
-        >
-          <template #activator="{ on, attrs }">
-            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">登出</v-btn>
-          </template>
-          <v-card>
-            <v-card-title>
-              确认
-              <v-spacer />
-              <v-btn icon @click="logoutVisible = false">
-                <v-icon>mdi-close</v-icon>
-              </v-btn>
-            </v-card-title>
-            <v-card-text> 您确定要登出吗？ </v-card-text>
-            <v-card-actions>
-              <v-btn class="mr-4" @click="logout" color="primary">登出</v-btn>
-              <v-btn @click="logoutVisible = false">取消</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
-        <v-dialog v-model="allModeVisible" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
-          <template #activator="{ on, attrs }">
-            <v-btn
-              class="mt-3 mr-4"
-              v-bind="attrs"
-              v-on="on"
-              color="deep-orange"
-              dark
-              >解锁全曲</v-btn
-            >
-          </template>
-          <v-card>
-            <v-card-title>
-              确认
-              <v-spacer />
-              <v-btn icon @click="allModeVisible = false">
-                <v-icon>mdi-close</v-icon>
-              </v-btn>
-            </v-card-title>
-            <v-card-text
-              >解锁全曲可以让您看到所有谱面的定数数据和相对难度，但您无法对这些谱面进行修改。确定解锁全曲？
-            </v-card-text>
-            <v-card-actions>
-              <v-btn class="mr-4" @click="mergeOnAllMode" color="primary"
-                >解锁</v-btn
-              >
-              <v-btn @click="allModeVisible = false">取消</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
-      </div>
-      <v-dialog
-        width="500px"
-        :fullscreen="$vuetify.breakpoint.mobile"
-        v-model="modifyAchievementVisible"
-      >
-        <v-card>
-          <v-card-title>
-            修改完成率
-            <v-spacer />
-            <v-btn icon @click="modifyAchievementVisible = false">
-              <v-icon>mdi-close</v-icon>
-            </v-btn>
-          </v-card-title>
-          <v-card-subtitle>
-            修改
-            <i
-              >{{ currentUpdate.type == "DX" ? "[DX] " : ""
-              }}<b>{{ currentUpdate.title }}</b> [{{
-              currentUpdate.level_label
-              }}]</i
-            >
-            的完成率为
-          </v-card-subtitle>
-          <v-card-text>
-            <v-form ref="modifyAchievementForm" @keydown.enter.native="finishEditRow">
-              <v-text-field
-                label="达成率"
-                v-model="currentAchievements"
-                :rules="[
-                  (u) =>
-                    (isFinite(+u) && +u >= 0 && +u <= 101) ||
-                    '请输入合法达成率',
-                ]"
-              />
-            </v-form>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer />
-            <v-btn color="primary" @click="finishEditRow()">确定</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-      <v-dialog
-        width="500px"
-        :fullscreen="$vuetify.breakpoint.mobile"
-        v-model="coverVisible"
-      >
-        <v-card>
-          <v-card-title>
-            查看封面
-            <v-spacer />
-            <v-btn icon @click="coverVisible = false">
-              <v-icon>mdi-close</v-icon>
-            </v-btn>
-          </v-card-title>
-          <v-card-subtitle>
-            <i><b>{{ coverItem.title }}</b></i>
-          </v-card-subtitle>
-          <v-row class="ma-0" align="center" justify="center" v-if="coverLoading">
-            <v-progress-circular color="grey"
-              indeterminate
-            ></v-progress-circular>
-          </v-row>
-          <v-card-text>
-            <v-img
-              :src="`https://www.diving-fish.com/covers/${coverItem.song_id}.jpg`"
-              contain
-              :height="coverLoading ? 0 : undefined"
-              @load="coverLoading=false"
-            ></v-img>
-          </v-card-text>
-        </v-card>
-      </v-dialog>
-      <v-container id="tableBody" style="margin-top: 2em" px-0 py-0>
-        <v-card>
+      <v-container id="tableBody" style="" px-0 py-0>
+        <v-card elevation="0">
           <v-card-title
             >成绩表格
             <v-spacer />
@@ -430,44 +76,281 @@
           </v-card-text>
         </v-card>
       </v-container>
-      <div class="mid" :style="$vuetify.breakpoint.mobile ? '' : 'display: flex'">
-        <message @resize="$refs.advertisement.resize()" :style="`flex: 1; ${$vuetify.breakpoint.mobile ? '' : 'min-width: 500px; margin-right: 16px'}`" class="mbe-2"></message>
-        <advertisement ref="advertisement" class="mbe-2"></advertisement>
+      <v-divider class="mb-4" />
+      <div
+        style="
+          display: flex;
+          line-height: 64px;
+          justify-content: center;
+          flex-wrap: wrap;
+        "
+      >
+        <v-btn class="mt-3 mr-4" href="/maimaidx/prober_guide" target="_blank" color="primary"
+          >数据导入指南</v-btn
+        >
+        <v-dialog
+          width="1000px"
+          :fullscreen="$vuetify.breakpoint.mobile"
+          v-model="dialogVisible"
+        >
+          <template #activator="{ on, attrs }">
+            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导入数据</v-btn>
+          </template>
+          <v-card>
+            <v-card-title>
+              导入数据
+              <v-spacer />
+              <v-btn icon @click="dialogVisible = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-card-title>
+            <v-card-text>
+              <v-textarea
+                type="textarea"
+                label="请将乐曲数据的源代码粘贴到这里"
+                v-model="textarea"
+                :rows="15"
+                outlined
+              ></v-textarea>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn color="primary" @click="flushData()">确定</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <v-dialog
+          width="500px"
+          :fullscreen="$vuetify.breakpoint.mobile"
+          v-model="feedbackVisible"
+        >
+          <template #activator="{ on, attrs }">
+            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">提交反馈</v-btn>
+          </template>
+          <v-card>
+            <v-card-title>
+              反馈
+              <v-spacer />
+              <v-btn icon @click="feedbackVisible = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-card-title>
+            <v-card-text>
+              <v-textarea
+                rows="5"
+                placeholder="补充乐曲定数或者对查分器有什么意见和建议都可以写在这里"
+                v-model="feedbackText"
+              ></v-textarea>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn color="primary" @click="sendFeedback()">确定</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <v-dialog
+          v-model="exportVisible"
+          width="500px"
+          :fullscreen="$vuetify.breakpoint.mobile"
+        >
+          <template #activator="{ on, attrs }">
+            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导出为 CSV</v-btn>
+          </template>
+          <v-card>
+            <v-card-title>
+              导出为 CSV
+              <v-spacer />
+              <v-btn icon @click="exportVisible = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-card-title>
+            <v-card-text>
+              <div style="display: flex">
+                <v-select
+                  v-model="exportEncoding"
+                  label="选择编码"
+                  :items="exportEncodings"
+                >
+                </v-select>
+                <v-tooltip bottom>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-icon v-bind="attrs" v-on="on" class="ml-4">
+                      mdi-help-circle
+                    </v-icon>
+                  </template>
+                  <span
+                    >GBK编码一般用于Excel打开，UTF-8编码则可以供部分其他编辑器直接显示。</span
+                  >
+                </v-tooltip>
+              </div>
+            </v-card-text>
+            <v-card-actions>
+              <v-btn class="mr-4" @click="exportToCSV('sd')"
+                >导出标准乐谱</v-btn
+              >
+              <v-btn @click="exportToCSV('dx')">导出 DX 乐谱</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <v-dialog
+          v-model="logoutVisible"
+          width="500px"
+          v-if="username !== '未登录'"
+          :fullscreen="$vuetify.breakpoint.mobile"
+        >
+          <template #activator="{ on, attrs }">
+            <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">登出</v-btn>
+          </template>
+          <v-card>
+            <v-card-title>
+              确认
+              <v-spacer />
+              <v-btn icon @click="logoutVisible = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-card-title>
+            <v-card-text> 您确定要登出吗？ </v-card-text>
+            <v-card-actions>
+              <v-btn class="mr-4" @click="logout" color="primary">登出</v-btn>
+              <v-btn @click="logoutVisible = false">取消</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <v-dialog
+          v-model="allModeVisible"
+          width="500px"
+          :fullscreen="$vuetify.breakpoint.mobile"
+        >
+          <template #activator="{ on, attrs }">
+            <v-btn
+              class="mt-3 mr-4"
+              v-bind="attrs"
+              v-on="on"
+              color="deep-orange"
+              dark
+              >解锁全曲</v-btn
+            >
+          </template>
+          <v-card>
+            <v-card-title>
+              确认
+              <v-spacer />
+              <v-btn icon @click="allModeVisible = false">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </v-card-title>
+            <v-card-text
+              >解锁全曲可以让您看到所有谱面的定数数据和相对难度，但您无法对这些谱面进行修改。确定解锁全曲？
+            </v-card-text>
+            <v-card-actions>
+              <v-btn class="mr-4" @click="mergeOnAllMode" color="primary"
+                >解锁</v-btn
+              >
+              <v-btn @click="allModeVisible = false">取消</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
       </div>
-      <v-card>
-        <v-card-title>更新记录</v-card-title>
-        <v-card-text>
-          2021/11/25
-          （By StageChan）又更了一大堆，包括查看封面按钮，修改密码功能，优化移动端网页体验等。<br />
-          2021/11/07
-          （By StageChan）更了一些网页计算器工具以及网页使用指南。<br />
-          2021/09/28
-          （By StageChan）更了一大堆，包括高级设置中的各种筛选、表列选择和暗色主题；DX分数相关；
-          鼠标浮动在曲名和难度上显示谱面信息、浮动在DX Rating上显示后续分数线等等。修了一堆bug。<br />
-          2021/09/06
-          更新了查询牌子的功能。<br />
-          2021/07/16
-          更新了天界 2 的歌曲数据，以及相对难度从现在开始按照 SSS 的人数进行排名了。<br />
-          2021/03/18
-          加载动画和按难度/定数筛选，你们要的筛选来了。顺便加了个可以看全曲的功能。<br />
-          2021/02/26 发布 1.0
-          版本，添加了登出按钮，并优化了一些成绩导入方式。提供了代理服务器供便捷导入成绩。<br />
-          2021/02/17 废弃了目前在使用的移动端（Vuetify さいこう！），导出为 csv
-          增加了一个二次确认窗口。以及优化了所有的对话框。<br />
-          2021/02/15 添加了导出为 csv
-          的功能。在导入的页面源代码有问题时新增了报错提示。<br />
-          2021/02/10 更改了UI。废弃了微信扫码登录的功能和导出为截图的功能。<br />
-          2020/12/12
-          大家都在买东西，我在加功能。增加了使用微信扫码导入数据的功能。<br />
-          2020/09/26 修正了ENENGY SYNERGY MATRIX的乐曲定数，补充了セイクリッド
-          ルイン的定数。增加了评级标签和FC/FS标签<br />
-          2020/09/10
-          教师节快乐！增加了登录、注册和数据同步的功能，增加了修改单曲完成率的功能，不需要再反复导入数据了<br />
-          2020/09/02 增加了导出为截图的功能，增加了Session High⤴ 和
-          バーチャルダム ネーション 的 Master 难度乐曲定数<br />
-          2020/08/31 发布初版
-        </v-card-text>
-      </v-card>
+      <v-dialog
+        width="500px"
+        :fullscreen="$vuetify.breakpoint.mobile"
+        v-model="modifyAchievementVisible"
+      >
+        <v-card>
+          <v-card-title>
+            修改完成率
+            <v-spacer />
+            <v-btn icon @click="modifyAchievementVisible = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+          <v-card-subtitle>
+            修改
+            <i
+              >{{ currentUpdate.type == "DX" ? "[DX] " : ""
+              }}<b>{{ currentUpdate.title }}</b> [{{
+                currentUpdate.level_label
+              }}]</i
+            >
+            的完成率为
+          </v-card-subtitle>
+          <v-card-text>
+            <v-form
+              ref="modifyAchievementForm"
+              @keydown.enter.native="finishEditRow"
+            >
+              <v-text-field
+                label="达成率"
+                v-model="currentAchievements"
+                :rules="[
+                  (u) =>
+                    (isFinite(+u) && +u >= 0 && +u <= 101) ||
+                    '请输入合法达成率',
+                ]"
+              />
+            </v-form>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn color="primary" @click="finishEditRow()">确定</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+      <v-dialog
+        width="500px"
+        :fullscreen="$vuetify.breakpoint.mobile"
+        v-model="coverVisible"
+      >
+        <v-card>
+          <v-card-title>
+            查看封面
+            <v-spacer />
+            <v-btn icon @click="coverVisible = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+          <v-card-subtitle>
+            <i
+              ><b>{{ coverItem.title }}</b></i
+            >
+          </v-card-subtitle>
+          <v-row
+            class="ma-0"
+            align="center"
+            justify="center"
+            v-if="coverLoading"
+          >
+            <v-progress-circular
+              color="grey"
+              indeterminate
+            ></v-progress-circular>
+          </v-row>
+          <v-card-text>
+            <v-img
+              :src="`https://www.diving-fish.com/covers/${coverItem.song_id}.jpg`"
+              contain
+              :height="coverLoading ? 0 : undefined"
+              @load="coverLoading = false"
+            ></v-img>
+          </v-card-text>
+        </v-card>
+      </v-dialog>
+      
+      <!-- <div
+        class="mid"
+        :style="$vuetify.breakpoint.mobile ? '' : 'display: flex'"
+      >
+        <message
+          @resize="$refs.advertisement.resize()"
+          :style="`flex: 1; ${
+            $vuetify.breakpoint.mobile
+              ? ''
+              : 'min-width: 500px; margin-right: 16px'
+          }`"
+          class="mbe-2"
+        ></message>
+        <advertisement ref="advertisement" class="mbe-2"></advertisement>
+      </div> -->
     </v-container>
   </div>
 </template>
@@ -476,16 +359,11 @@
 import axios from "axios";
 import Vue from "vue";
 import ChartTable from "../components/ChartTable.vue";
-import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
 import FilterSlider from "../components/FilterSlider.vue";
 import ProSettings from "../components/ProSettings.vue";
-import Advertisement from "../components/Advertisement.vue";
-import Message from "../components/Message.vue";
-import Profile from "../components/Profile.vue";
-import PlateQualifier from "../components/PlateQualifier.vue";
-import Calculators from "../components/Calculators.vue";
-import Tutorial from "../components/Tutorial.vue";
+// import Advertisement from "../components/Advertisement.vue";
+// import Message from "../components/Message.vue";
 import watchVisible from "../plugins/watchVisible";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
@@ -494,28 +372,16 @@ export default {
   name: "App",
   components: {
     ChartTable,
-    ViewBadge,
     FilterSlider,
     ProSettings,
-    Advertisement,
-    Message,
-    Profile,
-    PlateQualifier,
-    Calculators,
-    Tutorial,
+  },
+  props: {
+    music_data: Array,
+    records: Array
   },
   data: function () {
     return {
       tab: "",
-      loginForm: {
-        username: "",
-        password: "",
-      },
-      registerForm: {
-        username: "",
-        password: "",
-        passwordConfirm: "",
-      },
       chart_stats: {},
       currentUpdate: {},
       currentAchievements: 0,
@@ -523,14 +389,10 @@ export default {
       activeName: "SD",
       textarea: "",
       searchKey: "",
-      records: [],
-      music_data: [],
       music_data_dict: {},
       level_label: ["Basic", "Advanced", "Expert", "Master", "Re:MASTER"],
       feedbackText: "",
       feedbackVisible: false,
-      loginVisible: false,
-      registerVisible: false,
       dialogVisible: false,
       modifyAchievementVisible: false,
       coverVisible: false,
@@ -627,14 +489,17 @@ export default {
     this.fetchMusicData();
   },
   watch: {
-    loginVisible: watchVisible("loginVisible", "Login"),
+    // loginVisible: watchVisible("loginVisible", "Login"),
     // registerVisible: watchVisible("registerVisible", "Register"),
     dialogVisible: watchVisible("dialogVisible", "Import"),
     feedbackVisible: watchVisible("feedbackVisible", "Feedback"),
     exportVisible: watchVisible("exportVisible", "Export"),
     logoutVisible: watchVisible("logoutVisible", "Logout"),
     allModeVisible: watchVisible("allModeVisible", "AllMode"),
-    modifyAchievementVisible: watchVisible("modifyAchievementVisible", "ModifyAchievement"),
+    modifyAchievementVisible: watchVisible(
+      "modifyAchievementVisible",
+      "ModifyAchievement"
+    ),
     coverVisible: watchVisible("coverVisible", "Cover"),
     qrDialogVisible: function (to) {
       if (!to) {
@@ -653,14 +518,9 @@ export default {
         return text.toUpperCase();
       }
     },
-    invokeRegister: function () {
-      this.loginVisible = false;
-      this.registerVisible = true;
-    },
     coverRow: function (record) {
       this.coverVisible = true;
-      if (record.song_id != this.coverItem.song_id)
-        this.coverLoading = true;
+      if (record.song_id != this.coverItem.song_id) this.coverLoading = true;
       this.coverItem = record;
     },
     editRow: function (record) {
@@ -722,25 +582,6 @@ export default {
         }] 的数据`
       );
     },
-    register: function () {
-      if (!this.$refs.regForm.validate()) return;
-      axios
-        .post("https://www.diving-fish.com/api/maimaidxprober/register", {
-          username: this.registerForm.username,
-          password: this.registerForm.password,
-          records: this.records,
-        })
-        .then(() => {
-          this.$message.success("注册成功，数据已同步完成");
-          this.username = this.registerForm.username;
-          this.registerVisible = false;
-          setTimeout("window.location.reload()", 1000);
-        })
-        .catch((err) => {
-          this.$message.error("注册失败！");
-          this.$message.error(err.response.data.message);
-        });
-    },
     sync: function () {
       // console.log(this.records);
       axios
@@ -786,13 +627,17 @@ export default {
             this.chart_combo[elem.id] = elem.charts.map((o) =>
               o.notes.reduce((prev, curr) => prev + curr)
             );
-          this.$message.success("乐曲信息获取完成，正在获取用户分数及相对难度信息……");
+          this.$message.success(
+            "乐曲信息获取完成，正在获取用户分数及相对难度信息……"
+          );
           Promise.allSettled([
             axios.get(
               "https://www.diving-fish.com/api/maimaidxprober/chart_stats"
             ),
             axios.get(
-              DEBUG ? "https://www.diving-fish.com/api/maimaidxprober/player/test_data" : "https://www.diving-fish.com/api/maimaidxprober/player/records"
+              DEBUG
+                ? "https://www.diving-fish.com/api/maimaidxprober/player/test_data"
+                : "https://www.diving-fish.com/api/maimaidxprober/player/records"
             ),
           ]).then(([resp1, resp2]) => {
             if (resp1.status === "rejected") {
@@ -809,44 +654,12 @@ export default {
             } else {
               this.$message.warning("未获取用户分数");
             }
-            this.$refs.pq.init();
+            this.$emit("pq")
             that.loading = false;
           });
         })
         .catch(() => {
           this.$message.error("乐曲信息获取失败，请重新加载！");
-        });
-    },
-    login: function () {
-      if (!this.$refs.form.validate()) return;
-      axios
-        .post("https://www.diving-fish.com/api/maimaidxprober/login", {
-          username: this.loginForm.username,
-          password: this.loginForm.password,
-        })
-        .then(() => {
-          this.$message.success("登录成功，加载乐曲数据中……");
-          this.loading = true;
-          this.loginVisible = false;
-          this.$refs.profile.fetch();
-          axios
-            .get(
-              "https://www.diving-fish.com/api/maimaidxprober/player/records"
-            )
-            .then((resp) => {
-              const data = resp.data;
-              this.username = data.username;
-              this.merge(data.records);
-              this.$refs.pq.init();
-              this.loading = false;
-            })
-            .catch(() => {
-              this.$message.error("加载乐曲失败！");
-            });
-        })
-        .catch((err) => {
-          this.$message.error("登录失败！");
-          this.$message.error(err.response.data.message);
         });
     },
     computeRecord: function (record) {
@@ -965,9 +778,9 @@ export default {
             level_label: this.level_label[j],
             block: true,
           };
-            if (
+          if (
             !oldRecords.has(Number(record.song_id) * 10 + record.level_index)
-            ) {
+          ) {
             this.records.push(record);
           }
         }
@@ -988,7 +801,7 @@ export default {
       for (let record of records) {
         let i = oldRecords[+record.song_id * 10 + record.level_index];
         if (typeof i != "undefined") {
-            Vue.set(this.records, i, record);
+          Vue.set(this.records, i, record);
         } else {
           this.records.push(record);
         }
@@ -1066,16 +879,16 @@ export default {
               .match("_icon_(.*).png")[1]
               .replace("back", ""),
           };
-          const docId = name.parentNode.parentNode.parentNode.getAttribute(
-            "id"
-          );
+          const docId =
+            name.parentNode.parentNode.parentNode.getAttribute("id");
           if (docId) {
             if (docId.slice(0, 3) == "sta") record_data.type = "SD";
             else record_data.type = "DX";
           } else {
-            record_data.type = name.parentNode.parentNode.nextSibling.nextSibling
-              .getAttribute("src")
-              .match("_(.*).png")[1];
+            record_data.type =
+              name.parentNode.parentNode.nextSibling.nextSibling
+                .getAttribute("src")
+                .match("_(.*).png")[1];
             if (record_data.type == "standard") record_data.type = "SD";
             else record_data.type = "DX";
           }

@@ -1,19 +1,7 @@
 <template>
-  <v-dialog
-    v-model="visible"
-    :width="masOnly ? 500 : 1000"
-    :fullscreen="$vuetify.breakpoint.mobile"
-  >
-    <template #activator="{ on, attrs }">
-      <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">牌子查询</v-btn>
-    </template>
-    <v-card>
+    <v-card elevation="0">
       <v-card-title>
         极将神牌辅助查询工具
-        <v-spacer />
-        <v-btn icon @click="visible = false">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
       </v-card-title>
       <v-card-text>
         <!-- <v-chip>{{ versions }}</v-chip> -->
@@ -87,7 +75,6 @@
         </v-data-table>
       </v-card-text>
     </v-card>
-  </v-dialog>
 </template>
 
 <script>
@@ -116,7 +103,7 @@ export default {
         // { text: "Expert", value: "exp_pq"},
         { text: "Master", value: "mst_pq" },
       ],
-      masOnly: true,
+      masOnly: false,
     };
   },
   methods: {

@@ -1,386 +1,364 @@
 <template>
-  <v-dialog
-    v-model="visible"
-    :width="700"
-    :fullscreen="$vuetify.breakpoint.mobile"
-  >
-    <template #activator="{ on, attrs }">
-      <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">计算工具</v-btn>
-    </template>
-    <v-card>
-      <v-card-title>
-        计算工具
-        <v-spacer />
-        <v-btn icon @click="visible = false">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-      </v-card-title>
-      <v-card-subtitle v-show="current_song">
+  <v-card elevation="0">
+    <v-card-title> 计算工具 </v-card-title>
+    <v-card-subtitle v-show="current_song">
+      当前为
+      <i
+        >{{ current_song.type == "DX" ? "[DX] " : ""
+        }}<b>{{ current_song.title }}</b> [{{ current_song.level_label }}]</i
+      >
+      的数据
+    </v-card-subtitle>
+    <v-card-text>
+      <v-tabs v-model="tab">
+        <v-tab key="score">分数线/绝赞分布计算</v-tab>
+        <v-tab key="rating">rating线计算</v-tab>
+      </v-tabs>
+      <v-tabs-items v-model="tab">
+        <v-tab-item key="score">
+          <v-container class="pa-1">
+            <v-row>
+              <v-col v-for="(item, key) in notes" :key="key">
+                <v-text-field
+                  :label="key + '总数'"
+                  v-model="note_total[key]"
+                  :rules="[
+                    (u) =>
+                      (isFinite(+u) && +u >= 0 && !(+u % 1)) ||
+                      '请输入0或正整数',
+                  ]"
+                  :disabled="manual_input"
+                  @change="clear_current_song"
+                  @keydown="clear_current_song"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-row no-gutters class="mt-0 flex-nowrap">
+              <v-col class="col-score-table"
+                ><v-select
+                  :items="score_modes"
+                  v-model="score_mode"
+                  label="分数模式"
+                  item-text="name"
+                  dense
+                  tile
+                  hide-details
+                  return-object
+                ></v-select
+              ></v-col>
+              <v-col
+                class="col-score-table"
+                v-for="(item, judge) in judges"
+                :key="judge"
+              >
+                <v-card
+                  class="pa-2 d-flex align-center fill-height"
+                  :color="item.color"
+                  dark
+                  tile
+                >
+                  {{ judge }}
+                </v-card>
+              </v-col>
+            </v-row>
+            <v-divider></v-divider>
+            <v-row
+              no-gutters
+              class="mt-0"
+              v-for="(item, note) in score_normal"
+              :key="note"
+            >
+              <v-col class="col-score-table"
+                ><v-card class="pa-2 d-flex align-center fill-height" tile>{{
+                  note
+                }}</v-card></v-col
+              >
+              <v-col
+                class="col-score-table"
+                v-for="(score, judge) in item"
+                :key="judge"
+              >
+                <v-card
+                  class="pa-2 d-flex align-center fill-height"
+                  :color="judges[judge].color"
+                  dark
+                  tile
+                  >{{ score }}</v-card
+                >
+              </v-col>
+            </v-row>
+            <v-row no-gutters class="mt-0 flex-nowrap">
+              <v-col class="col-score-table">
+                <v-card class="pa-2 d-flex align-center fill-height" tile
+                  >Break</v-card
+                >
+              </v-col>
+              <v-col class="col-score-table">
+                <v-row no-gutters class="mt-0">
+                  <v-col>
+                    <v-card
+                      class="pa-2"
+                      :color="break_judges.CRITICAL_PERFECT.color"
+                      dark
+                      tile
+                      >{{ score_break.CRITICAL_PERFECT }}</v-card
+                    >
+                  </v-col>
+                </v-row>
+                <v-row no-gutters class="mt-0">
+                  <v-col>
+                    <v-card
+                      class="pa-2"
+                      :color="break_judges.PERFECT_A.color"
+                      dark
+                      tile
+                      >{{ score_break.PERFECT_A }}</v-card
+                    >
+                  </v-col>
+                </v-row>
+                <v-row no-gutters class="mt-0">
+                  <v-col>
+                    <v-card
+                      class="pa-2"
+                      :color="break_judges.PERFECT_B.color"
+                      dark
+                      tile
+                      >{{ score_break.PERFECT_B }}</v-card
+                    >
+                  </v-col>
+                </v-row>
+              </v-col>
+              <v-col class="col-score-table">
+                <v-row no-gutters class="mt-0">
+                  <v-col>
+                    <v-card
+                      class="pa-2"
+                      :color="break_judges.GREAT_A.color"
+                      dark
+                      tile
+                      >{{ score_break.GREAT_A }}</v-card
+                    >
+                  </v-col>
+                </v-row>
+                <v-row no-gutters class="mt-0">
+                  <v-col>
+                    <v-card
+                      class="pa-2"
+                      :color="break_judges.GREAT_B.color"
+                      dark
+                      tile
+                      >{{ score_break.GREAT_B }}</v-card
+                    >
+                  </v-col>
+                </v-row>
+                <v-row no-gutters class="mt-0">
+                  <v-col>
+                    <v-card
+                      class="pa-2"
+                      :color="break_judges.GREAT_C.color"
+                      dark
+                      tile
+                      >{{ score_break.GREAT_C }}</v-card
+                    >
+                  </v-col>
+                </v-row>
+              </v-col>
+              <v-col class="col-score-table">
+                <v-card
+                  class="pa-2 d-flex align-center fill-height"
+                  :color="break_judges.GOOD.color"
+                  dark
+                  tile
+                  >{{ score_break.GOOD }}</v-card
+                >
+              </v-col>
+              <v-col class="col-score-table">
+                <v-card
+                  class="pa-2 d-flex align-center fill-height"
+                  :color="break_judges.MISS.color"
+                  dark
+                  tile
+                  >{{ score_break.MISS }}</v-card
+                >
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col>
+                <v-text-field
+                  label="目标达成率"
+                  v-model="score_input"
+                  :rules="[
+                    (u) =>
+                      (isFinite(+u) && +u >= 0 && +u <= 101) ||
+                      '请输入合法达成率',
+                  ]"
+                ></v-text-field>
+              </v-col>
+              <v-col
+                v-if="
+                  isFinite(+score_input) &&
+                  +score_input >= 0 &&
+                  +score_input <= 101 &&
+                  note_total.Break
+                "
+              >
+                达成{{ (+score_input).toFixed(4) }}%容错为{{
+                  ((101 - +score_input) / 100 / (0.2 / score_max)).toFixed(3)
+                }}个Tap GREAT <br />
+                BREAK 50落相当于{{
+                  (
+                    (0.01 * 0.25) /
+                    +note_total.Break /
+                    (0.2 / score_max)
+                  ).toFixed(3)
+                }}个Tap GREAT <br />
+                BREAK 粉2000相当于{{
+                  (
+                    (0.01 * 0.6) / +note_total.Break / (0.2 / score_max) +
+                    5
+                  ).toFixed(3)
+                }}个Tap GREAT
+              </v-col>
+            </v-row>
+            <v-expansion-panels accordion>
+              <v-expansion-panel>
+                <v-expansion-panel-header
+                  ><span>绝赞分布计算 </span></v-expansion-panel-header
+                >
+                <v-expansion-panel-content>
+                  <v-form ref="judge_form" v-model="judge_valid">
+                    <v-row
+                      no-gutters
+                      v-for="(note_item, note) in notes"
+                      :key="note"
+                      class="mt-0"
+                    >
+                      <v-col
+                        class="col-score-table"
+                        v-for="(judge_item, judge) in judges_full"
+                        :key="judge"
+                        ><v-text-field
+                          dense
+                          :background-color="judges_full[judge].color"
+                          v-model="judge_input[note][judge]"
+                          :label="note_item.short + ' ' + judge_item.short"
+                          :disabled="
+                            !manual_input &&
+                            (judge == 'CRITICAL_PERFECT' ||
+                              (judge == 'PERFECT' && note != 'Break'))
+                          "
+                          :rules="[
+                            (u) =>
+                              (isFinite(+u) && +u >= 0 && !(+u % 1)) ||
+                              '请输入0或正整数',
+                          ]"
+                        ></v-text-field
+                      ></v-col>
+                    </v-row>
+                  </v-form>
+                  <v-row class="mt-0 align-center">
+                    <v-checkbox
+                      label="手动填充所有栏"
+                      v-model="manual_input"
+                    ></v-checkbox>
+                    <v-spacer />
+                    <v-btn color="primary" @click="calc_break_distribution"
+                      >计算可能的绝赞分布</v-btn
+                    >
+                  </v-row>
+                  <v-data-table
+                    class="mt-2"
+                    dense
+                    :headers="total_list_headers"
+                    :items-per-page="10"
+                    :footer-props="{ 'items-per-page-options': [10, -1] }"
+                    :items="total_list"
+                    item-key="id"
+                    no-data-text="没有符合条件的结果"
+                  >
+                    <template #item.total_score="{ item }">
+                      {{ item.total_score.toFixed(8) }}%
+                    </template></v-data-table
+                  >
+                </v-expansion-panel-content>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </v-container>
+        </v-tab-item>
+        <v-tab-item key="rating">
+          <v-container class="pa-1">
+            <v-radio-group v-model="rating_mode" row>
+              <v-radio label="按定数计算" value="from_ds"></v-radio>
+              <v-radio label="按达成率计算" value="from_achievements"></v-radio>
+              <v-radio label="按Rating计算" value="from_rating"></v-radio>
+            </v-radio-group>
+            <v-text-field
+              v-if="rating_mode == 'from_ds'"
+              label="定数"
+              v-model="ds_input"
+              :rules="[
+                (u) =>
+                  (isFinite(+u) && +u >= 0 && +u <= 15) || '请输入合法数据',
+              ]"
+            ></v-text-field>
+            <v-text-field
+              v-else-if="rating_mode == 'from_achievements'"
+              label="达成率"
+              v-model="achievements_input"
+              :rules="[
+                (u) =>
+                  (isFinite(+u) && +u >= 0 && +u <= 101) || '请输入合法数据',
+              ]"
+            ></v-text-field>
+            <v-text-field
+              v-else
+              label="目标Rating"
+              v-model="rating_input"
+              :rules="[
+                (u) =>
+                  (isFinite(+u) && +u >= 0 && +u <= 300) || '请输入合法数据',
+              ]"
+            ></v-text-field>
+            <v-data-table
+              class="mt-2"
+              dense
+              :headers="rating_list_headers"
+              :items-per-page="-1"
+              :items="rating_list"
+              hide-default-footer
+              sort-by="achievements"
+              sort-desc
+              item-key="id"
+              no-data-text="没有符合条件的结果"
+              mobile-breakpoint="0"
+            >
+              <template #item.ds="{ item }">
+                {{ item.ds.toFixed(1) }}
+              </template>
+              <template #item.achievements="{ item }">
+                {{ item.achievements.toFixed(4) }}%
+              </template></v-data-table
+            >
+          </v-container>
+        </v-tab-item>
+      </v-tabs-items>
+    </v-card-text>
+    <v-footer v-if="current_song">
+      <v-card-subtitle class="pa-1">
         当前为
         <i
           >{{ current_song.type == "DX" ? "[DX] " : ""
-          }}<b>{{ current_song.title }}</b> [{{
-            current_song.level_label
-          }}]</i
+          }}<b>{{ current_song.title }}</b> [{{ current_song.level_label }}]</i
         >
         的数据
       </v-card-subtitle>
-      <v-card-text>
-        <v-tabs v-model="tab">
-          <v-tab key="score">分数线/绝赞分布计算</v-tab>
-          <v-tab key="rating">rating线计算</v-tab>
-        </v-tabs>
-        <v-tabs-items v-model="tab">
-          <v-tab-item key="score">
-            <v-container class="pa-1">
-              <v-row>
-                <v-col v-for="(item, key) in notes" :key="key">
-                  <v-text-field
-                    :label="key + '总数'"
-                    v-model="note_total[key]"
-                    :rules="[
-                      (u) =>
-                        (isFinite(+u) && +u >= 0 && !(+u % 1)) ||
-                        '请输入0或正整数',
-                    ]"
-                    :disabled="manual_input"
-                    @change="clear_current_song"
-                    @keydown="clear_current_song"
-                  ></v-text-field>
-                </v-col>
-              </v-row>
-
-              <v-row no-gutters class="mt-0 flex-nowrap">
-                <v-col class="col-score-table"
-                  ><v-select
-                    :items="score_modes"
-                    v-model="score_mode"
-                    label="分数模式"
-                    item-text="name"
-                    dense
-                    tile
-                    hide-details
-                    return-object
-                  ></v-select
-                ></v-col>
-                <v-col
-                  class="col-score-table"
-                  v-for="(item, judge) in judges"
-                  :key="judge"
-                >
-                  <v-card
-                    class="pa-2 d-flex align-center fill-height"
-                    :color="item.color"
-                    dark
-                    tile
-                  >
-                    {{ judge }}
-                  </v-card>
-                </v-col>
-              </v-row>
-              <v-divider></v-divider>
-              <v-row
-                no-gutters
-                class="mt-0"
-                v-for="(item, note) in score_normal"
-                :key="note"
-              >
-                <v-col class="col-score-table"
-                  ><v-card class="pa-2 d-flex align-center fill-height" tile>{{
-                    note
-                  }}</v-card></v-col
-                >
-                <v-col
-                  class="col-score-table"
-                  v-for="(score, judge) in item"
-                  :key="judge"
-                >
-                  <v-card
-                    class="pa-2 d-flex align-center fill-height"
-                    :color="judges[judge].color"
-                    dark
-                    tile
-                    >{{ score }}</v-card
-                  >
-                </v-col>
-              </v-row>
-              <v-row no-gutters class="mt-0 flex-nowrap">
-                <v-col class="col-score-table">
-                  <v-card class="pa-2 d-flex align-center fill-height" tile
-                    >Break</v-card
-                  >
-                </v-col>
-                <v-col class="col-score-table">
-                  <v-row no-gutters class="mt-0">
-                    <v-col>
-                      <v-card
-                        class="pa-2"
-                        :color="break_judges.CRITICAL_PERFECT.color"
-                        dark
-                        tile
-                        >{{ score_break.CRITICAL_PERFECT }}</v-card
-                      >
-                    </v-col>
-                  </v-row>
-                  <v-row no-gutters class="mt-0">
-                    <v-col>
-                      <v-card
-                        class="pa-2"
-                        :color="break_judges.PERFECT_A.color"
-                        dark
-                        tile
-                        >{{ score_break.PERFECT_A }}</v-card
-                      >
-                    </v-col>
-                  </v-row>
-                  <v-row no-gutters class="mt-0">
-                    <v-col>
-                      <v-card
-                        class="pa-2"
-                        :color="break_judges.PERFECT_B.color"
-                        dark
-                        tile
-                        >{{ score_break.PERFECT_B }}</v-card
-                      >
-                    </v-col>
-                  </v-row>
-                </v-col>
-                <v-col class="col-score-table">
-                  <v-row no-gutters class="mt-0">
-                    <v-col>
-                      <v-card
-                        class="pa-2"
-                        :color="break_judges.GREAT_A.color"
-                        dark
-                        tile
-                        >{{ score_break.GREAT_A }}</v-card
-                      >
-                    </v-col>
-                  </v-row>
-                  <v-row no-gutters class="mt-0">
-                    <v-col>
-                      <v-card
-                        class="pa-2"
-                        :color="break_judges.GREAT_B.color"
-                        dark
-                        tile
-                        >{{ score_break.GREAT_B }}</v-card
-                      >
-                    </v-col>
-                  </v-row>
-                  <v-row no-gutters class="mt-0">
-                    <v-col>
-                      <v-card
-                        class="pa-2"
-                        :color="break_judges.GREAT_C.color"
-                        dark
-                        tile
-                        >{{ score_break.GREAT_C }}</v-card
-                      >
-                    </v-col>
-                  </v-row>
-                </v-col>
-                <v-col class="col-score-table">
-                  <v-card
-                    class="pa-2 d-flex align-center fill-height"
-                    :color="break_judges.GOOD.color"
-                    dark
-                    tile
-                    >{{ score_break.GOOD }}</v-card
-                  >
-                </v-col>
-                <v-col class="col-score-table">
-                  <v-card
-                    class="pa-2 d-flex align-center fill-height"
-                    :color="break_judges.MISS.color"
-                    dark
-                    tile
-                    >{{ score_break.MISS }}</v-card
-                  >
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col>
-                  <v-text-field
-                    label="目标达成率"
-                    v-model="score_input"
-                    :rules="[
-                      (u) =>
-                        (isFinite(+u) && +u >= 0 && +u <= 101) ||
-                        '请输入合法达成率',
-                    ]"
-                  ></v-text-field>
-                </v-col>
-                <v-col
-                  v-if="
-                    isFinite(+score_input) &&
-                    +score_input >= 0 &&
-                    +score_input <= 101 &&
-                    note_total.Break
-                  "
-                >
-                  达成{{ (+score_input).toFixed(4) }}%容错为{{
-                    ((101 - +score_input) / 100 / (0.2 / score_max)).toFixed(3)
-                  }}个Tap GREAT <br />
-                  BREAK 50落相当于{{
-                    (
-                      (0.01 * 0.25) /
-                      +note_total.Break /
-                      (0.2 / score_max)
-                    ).toFixed(3)
-                  }}个Tap GREAT <br />
-                  BREAK 粉2000相当于{{
-                    (
-                      (0.01 * 0.6) / +note_total.Break / (0.2 / score_max) +
-                      5
-                    ).toFixed(3)
-                  }}个Tap GREAT
-                </v-col>
-              </v-row>
-              <v-expansion-panels accordion>
-                <v-expansion-panel>
-                  <v-expansion-panel-header
-                    ><span>绝赞分布计算 </span></v-expansion-panel-header
-                  >
-                  <v-expansion-panel-content>
-                    <v-form ref="judge_form" v-model="judge_valid">
-                      <v-row
-                        no-gutters
-                        v-for="(note_item, note) in notes"
-                        :key="note"
-                        class="mt-0"
-                      >
-                        <v-col
-                          class="col-score-table"
-                          v-for="(judge_item, judge) in judges_full"
-                          :key="judge"
-                          ><v-text-field
-                            dense
-                            :background-color="judges_full[judge].color"
-                            v-model="judge_input[note][judge]"
-                            :label="note_item.short + ' ' + judge_item.short"
-                            :disabled="
-                              !manual_input &&
-                              (judge == 'CRITICAL_PERFECT' ||
-                                (judge == 'PERFECT' && note != 'Break'))
-                            "
-                            :rules="[
-                              (u) =>
-                                (isFinite(+u) && +u >= 0 && !(+u % 1)) ||
-                                '请输入0或正整数',
-                            ]"
-                          ></v-text-field
-                        ></v-col>
-                      </v-row>
-                    </v-form>
-                    <v-row class="mt-0 align-center">
-                      <v-checkbox
-                        label="手动填充所有栏"
-                        v-model="manual_input"
-                      ></v-checkbox>
-                      <v-spacer />
-                      <v-btn color="primary" @click="calc_break_distribution"
-                        >计算可能的绝赞分布</v-btn
-                      >
-                    </v-row>
-                    <v-data-table
-                      class="mt-2"
-                      dense
-                      :headers="total_list_headers"
-                      :items-per-page="10"
-                      :footer-props="{ 'items-per-page-options': [10, -1] }"
-                      :items="total_list"
-                      item-key="id"
-                      no-data-text="没有符合条件的结果"
-                    >
-                      <template #item.total_score="{ item }">
-                        {{ item.total_score.toFixed(8) }}%
-                      </template></v-data-table
-                    >
-                  </v-expansion-panel-content>
-                </v-expansion-panel>
-              </v-expansion-panels>
-            </v-container>
-          </v-tab-item>
-          <v-tab-item key="rating">
-            <v-container class="pa-1">
-              <v-radio-group v-model="rating_mode" row>
-                <v-radio label="按定数计算" value="from_ds"></v-radio>
-                <v-radio
-                  label="按达成率计算"
-                  value="from_achievements"
-                ></v-radio>
-                <v-radio label="按Rating计算" value="from_rating"></v-radio>
-              </v-radio-group>
-              <v-text-field
-                v-if="rating_mode == 'from_ds'"
-                label="定数"
-                v-model="ds_input"
-                :rules="[
-                  (u) =>
-                    (isFinite(+u) && +u >= 0 && +u <= 15) || '请输入合法数据',
-                ]"
-              ></v-text-field>
-              <v-text-field
-                v-else-if="rating_mode == 'from_achievements'"
-                label="达成率"
-                v-model="achievements_input"
-                :rules="[
-                  (u) =>
-                    (isFinite(+u) && +u >= 0 && +u <= 101) || '请输入合法数据',
-                ]"
-              ></v-text-field>
-              <v-text-field
-                v-else
-                label="目标Rating"
-                v-model="rating_input"
-                :rules="[
-                  (u) =>
-                    (isFinite(+u) && +u >= 0 && +u <= 300) || '请输入合法数据',
-                ]"
-              ></v-text-field>
-              <v-data-table
-                class="mt-2"
-                dense
-                :headers="rating_list_headers"
-                :items-per-page="-1"
-                :items="rating_list"
-                hide-default-footer
-                sort-by="achievements"
-                sort-desc
-                item-key="id"
-                no-data-text="没有符合条件的结果"
-                mobile-breakpoint="0"
-              >
-                <template #item.ds="{ item }">
-                  {{ item.ds.toFixed(1) }}
-                </template>
-                <template #item.achievements="{ item }">
-                  {{ item.achievements.toFixed(4) }}%
-                </template></v-data-table
-              >
-            </v-container>
-          </v-tab-item>
-        </v-tabs-items>
-      </v-card-text>
-      <v-footer v-if="current_song">
-        <v-card-subtitle class="pa-1">
-          当前为
-          <i
-            >{{ current_song.type == "DX" ? "[DX] " : ""
-            }}<b>{{ current_song.title }}</b> [{{
-              current_song.level_label
-            }}]</i
-          >
-          的数据
-        </v-card-subtitle>
-      </v-footer>
-    </v-card>
-  </v-dialog>
+    </v-footer>
+  </v-card>
 </template>
 
 <script>
-import watchVisible from '../plugins/watchVisible';
+import watchVisible from "../plugins/watchVisible";
 export default {
   data: () => {
     return {
