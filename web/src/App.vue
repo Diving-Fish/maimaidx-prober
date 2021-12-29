@@ -16,9 +16,9 @@
     </v-app-bar>
     <v-container fluid class="mt-2 fill-height tab-container" :style="$vuetify.breakpoint.mobile ? 'padding:0px' : ''">
       <v-tabs-items v-model="tab">
-        <v-tab-item><main-page ref="mainpage" @pq="init_pq" :music_data="music_data" :records="records" /></v-tab-item>
+        <v-tab-item><main-page ref="mainpage" @pq="init_pq" /></v-tab-item>
         <v-tab-item><calculators /></v-tab-item>
-        <v-tab-item><plate-qualifier ref="pq" :music_data="music_data" :records="records" /></v-tab-item>
+        <v-tab-item eager><plate-qualifier /></v-tab-item> <!-- eager: force loading plate qualifier; for usage in profile component -->
         <v-tab-item><tutorial /></v-tab-item>
         <v-tab-item><update-log /></v-tab-item>
       </v-tabs-items>
@@ -38,7 +38,6 @@
 </template>
 
 <script>
-import axios from "axios";
 import MainPage from "./pages/MainPage.vue";
 import UserComponent from "./components/UserComponent.vue";
 import ViewBadge from "./components/ViewBadge.vue";
@@ -46,70 +45,21 @@ import Tutorial from "./components/Tutorial.vue";
 import UpdateLog from "./components/UpdateLog.vue";
 import Calculators from './components/Calculators.vue';
 import PlateQualifier from './components/PlateQualifier.vue';
+import { mapState } from 'vuex';
 export default {
   components: { MainPage, UserComponent, ViewBadge, Tutorial, UpdateLog, Calculators, PlateQualifier},
   data() {
     return {
       selected: 0,
-      username: "",
       tab: "成绩表格",
-      music_data: [],
-      records: []
     };
   },
   methods: {
     init_pq: function() {
       this.$refs.pq.init();
     },
-    login: function (form) {
-      axios
-        .post("https://www.diving-fish.com/api/maimaidxprober/login", {
-          username: form.username,
-          password: form.password,
-        })
-        .then(() => {
-          this.$message.success("登录成功，加载乐曲数据中……");
-          this.loading = true;
-          this.loginVisible = false;
-          this.$refs.profile.fetch();
-          axios
-            .get(
-              "https://www.diving-fish.com/api/maimaidxprober/player/records"
-            )
-            .then((resp) => {
-              const data = resp.data;
-              this.username = data.username;
-              this.merge(data.records);
-              this.loading = false;
-            })
-            .catch(() => {
-              this.$message.error("加载乐曲失败！");
-            });
-        })
-        .catch((err) => {
-          this.$message.error("登录失败！");
-          this.$message.error(err.response.data.message);
-        });
-    },
-    register: function (form) {
-      axios
-        .post("https://www.diving-fish.com/api/maimaidxprober/register", {
-          username: form.username,
-          password: form.password,
-          records: this.$refs.mainpage.records,
-        })
-        .then(() => {
-          this.$message.success("注册成功，数据已同步完成");
-          this.username = form.username;
-          this.registerVisible = false;
-          // setTimeout("window.location.reload()", 1000);
-        })
-        .catch((err) => {
-          this.$message.error("注册失败！");
-          this.$message.error(err.response.data.message);
-        });
-    },
   },
+  computed: mapState(["username"])
 };
 </script>
 

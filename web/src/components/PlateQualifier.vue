@@ -78,16 +78,12 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
 import watchVisible from '../plugins/watchVisible';
 export default {
-  props: {
-    music_data: Array,
-    records: Array,
-  },
   data: () => {
     return {
       visible: false,
-      versions: [],
       version: "",
       headers: [
         { text: "曲名", value: "title", width: 250 },
@@ -127,24 +123,6 @@ export default {
       // console.log(a);
       return a;
     },
-    init: function () {
-      this.versions = Array.from(
-        new Set(
-          this.music_data.map((elem) => {
-            return elem.basic_info.from;
-          })
-        )
-      );
-      const l = ["bas_pq", "adv_pq", "exp_pq", "mst_pq"];
-      for (let i = 0; i < 4; i++) {
-        for (let data of this.music_data) {
-          data[l[i]] = this.sum_pq(data.id, i);
-          // console.log(data[l[i]]);
-        }
-      }
-      // console.log(this.available_plates())
-      // console.log(this.music_data);
-    },
     available_plates: function () {
       // a method called by others.
       // Just verify master level.
@@ -176,6 +154,26 @@ export default {
     visible: watchVisible("visible", "PlateQualifier"),
   },
   computed: {
+    music_data: function() {
+      let music_data = JSON.parse(JSON.stringify(this.$store.state.music_data));
+      const l = ["bas_pq", "adv_pq", "exp_pq", "mst_pq"];
+      for (let i = 0; i < 4; i++) {
+        for (let data of music_data) {
+          data[l[i]] = this.sum_pq(data.id, i);
+          // console.log(data[l[i]]);
+        }
+      }
+      return music_data;
+    },
+    versions: function() {
+      return Array.from(
+        new Set(
+          this.$store.state.music_data.map((elem) => {
+            return elem.basic_info.from;
+          })
+        )
+      );
+    },
     filtered: function () {
       return this.music_data.filter((elem) => {
         return elem.basic_info.from == this.version;
@@ -229,6 +227,11 @@ export default {
       }
       return sum;
     },
+    ...mapState(['records'])
   },
+  created: function() {
+    console.log("created");
+    this.$store.commit("set_available_plates", this.available_plates);
+  }
 };
 </script>

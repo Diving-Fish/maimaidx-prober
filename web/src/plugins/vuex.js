@@ -7,7 +7,11 @@ const store = new Vuex.Store({
     username: '',
     profile: {},
     music_data: [],
-    records: []
+    music_data_dict: {},
+    records: [],
+    chart_stats: {},
+    available_plates: () => {},
+
   },
   mutations: {
     change_username(state, username) {
@@ -17,10 +21,17 @@ const store = new Vuex.Store({
       state.profile = obj
     },
     change_music_data(state, obj) {
-      state.music_data = obj
+      state.music_data = obj;
+      state.music_data_dict = state.music_data.reduce((acc, music) => {
+        acc[music.id] = music;
+        return acc;
+      }, {});
     },
     change_records(state, obj) {
       state.records = obj
+    },
+    change_chart_stats(state, obj) {
+      state.chart_stats = obj
     },
     merge_records(state, records) {
       let oldRecords = Object.fromEntries(
@@ -35,6 +46,9 @@ const store = new Vuex.Store({
         }
       }
       // after merge, you also need compute record ra
+    },
+    set_available_plates(state, func) {
+      state.available_plates = func
     }
   }
 })

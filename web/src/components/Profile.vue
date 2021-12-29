@@ -1,170 +1,173 @@
 <template>
-  <div>
-    <div class="hdr" v-if="login">
-      {{ username }}，欢迎回来
-      <v-dialog
-        v-model="visible"
-        width="600"
-        :fullscreen="$vuetify.breakpoint.mobile"
-      >
-        <template #activator="{ on, attrs }">
-          <v-btn v-on="on" v-bind="attrs" class="ml-3"> 编辑个人资料 </v-btn>
-        </template>
-        <v-card>
-          <v-card-title>
-            个人资料
-            <v-spacer />
-            <v-btn icon @click="visible = false">
-              <v-icon>mdi-close</v-icon>
-            </v-btn>
-          </v-card-title>
-          <v-form style="padding: 12px 24px" ref="profile" v-model="valid">
-            <v-text-field
-              label="昵称"
-              v-model="nickname"
-              counter="8"
-              :rules="[
-                (u) => !!u || '昵称不能为空',
-                (u) => u.length <= 8 || '昵称不能超过 8 个字符',
-              ]"
-            ></v-text-field>
-            <v-text-field label="绑定 QQ 号" v-model="bind_qq"
-              ><template v-slot:prepend>
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ on }">
-                    <v-icon v-on="on"> mdi-help-circle-outline </v-icon>
-                  </template>
-                  绑定 QQ 号后，您可以直接输入 b40 以在千雪 bot
-                  查询您自己的成绩。
-                </v-tooltip>
-              </template></v-text-field
-            >
-            <v-row align="center">
-              <v-col cols="3">
-                <v-subheader> 段位 </v-subheader>
-              </v-col>
-              <v-col cols="9">
-                <v-select
-                  v-model="select"
-                  :items="ratings"
-                  item-text="label"
-                  item-value="ra"
-                  :hint="`段位分为 ${select.ra}`"
-                  persistent-hint
-                  return-object
-                  single-line
-                ></v-select>
-              </v-col>
-            </v-row>
-            <v-row align="center">
-              <v-col cols="3">
-                <v-subheader> 牌子设置 </v-subheader>
-              </v-col>
-              <v-col cols="5">
-                <v-select
-                  v-model="plate_upload.version"
-                  :items="versions"
-                ></v-select>
-              </v-col>
-              <v-col cols="4">
-                <v-select
-                  v-show="plate_upload.version != '无'"
-                  v-model="plate_upload.plate_type"
-                  :items="this.current_item"
-                  item-text="label"
-                  item-value="value"
-                  :hint="(plate_upload.version && plate_upload.plate_type) ? `${v2n[plate_upload.version]}${t2n[plate_upload.plate_type]}` : ''"
-                  persistent-hint
-                ></v-select>
-              </v-col>
-            </v-row>
-            <v-checkbox v-model="privacy" label="禁止其他人查询我的成绩" />
-          </v-form>
-          <v-card-actions class="pb-4">
-            <v-dialog
-              v-model="changePasswordVisible"
-              width="600"
-              :fullscreen="$vuetify.breakpoint.mobile"
-            >
-              <template #activator="{ on, attrs }">
-                <v-btn v-on="on" v-bind="attrs" class="mr-2">
-                  更改密码
-                </v-btn>
-              </template>
-              <v-card>
-                <v-card-title>更改密码</v-card-title>
-                <v-card-text>
-                  <v-form ref="changePasswordForm" @keydown.enter.native="change_password">
-                    <v-text-field
-                      v-model="changePasswordForm.password"
-                      label="密码"
-                      type="password"
-                      autocomplete="new-password"
-                      :rules="[(u) => !!u || '密码不能为空']"
-                    >
-                    </v-text-field>
-                    <v-text-field
-                      v-model="changePasswordForm.passwordConfirm"
-                      label="确认密码"
-                      type="password"
-                      autocomplete="new-password"
-                      :rules="[
-                        (u) => !!u || '密码不能为空',
-                        (u) => changePasswordForm.password == u || '密码不一致',
-                      ]"
-                    >
-                    </v-text-field>
-                  </v-form>
-                </v-card-text>
-                <v-card-actions class="pb-4">
-                  <v-btn color="warning" @click="change_password">确定</v-btn>
-                  <v-btn @click="changePasswordVisible = false">取消</v-btn>
-                </v-card-actions>
-              </v-card>
-            </v-dialog>
-            <v-dialog
-              v-model="delVisible"
-              width="600"
-              :fullscreen="$vuetify.breakpoint.mobile"
-            >
-              <template #activator="{ on, attrs }">
-                <v-btn v-on="on" v-bind="attrs" color="warning">
-                  删除所有数据
-                </v-btn>
-              </template>
-              <v-card>
-                <v-card-title>删除数据</v-card-title>
-                <v-card-text>
-                  您确定要删除您的所有数据记录吗？您仍可以再次通过数据导入重新导入数据。
-                </v-card-text>
-                <v-card-actions class="pb-4">
-                  <v-btn color="warning" @click="delete_records">确定</v-btn>
-                  <v-btn @click="delVisible = false">取消</v-btn>
-                </v-card-actions>
-              </v-card>
-            </v-dialog>
-            <v-spacer />
-            <v-btn color="primary" @click="submit">保存</v-btn>
-            <v-btn @click="visible = false">取消</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-    </div>
+  <div style="width: max-content" v-if="username !== ''">
+    <span style="font-size: 16px; opacity: 0.62">{{ username }}</span>
+    <v-dialog
+      v-model="visible"
+      width="600"
+      :fullscreen="$vuetify.breakpoint.mobile"
+    >
+      <template #activator="{ on, attrs }">
+        <v-btn class="ml-2" v-on="on" v-bind="attrs" large icon plain
+          ><v-icon>mdi-pencil</v-icon></v-btn
+        >
+      </template>
+      <v-card>
+        <v-card-title>
+          个人资料
+          <v-spacer />
+          <v-btn icon @click="visible = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-form style="padding: 12px 24px" ref="profile" v-model="valid">
+          <v-text-field
+            label="昵称"
+            v-model="nickname"
+            counter="8"
+            :rules="[
+              (u) => !!u || '昵称不能为空',
+              (u) => u.length <= 8 || '昵称不能超过 8 个字符',
+            ]"
+          ></v-text-field>
+          <v-text-field label="绑定 QQ 号" v-model="bind_qq"
+            ><template v-slot:prepend>
+              <v-tooltip bottom>
+                <template v-slot:activator="{ on }">
+                  <v-icon v-on="on"> mdi-help-circle-outline </v-icon>
+                </template>
+                绑定 QQ 号后，您可以直接输入 b40 以在千雪 bot 查询您自己的成绩。
+              </v-tooltip>
+            </template></v-text-field
+          >
+          <v-row align="center">
+            <v-col cols="3">
+              <v-subheader> 段位 </v-subheader>
+            </v-col>
+            <v-col cols="9">
+              <v-select
+                v-model="select"
+                :items="ratings"
+                item-text="label"
+                item-value="ra"
+                :hint="`段位分为 ${select.ra}`"
+                persistent-hint
+                return-object
+                single-line
+              ></v-select>
+            </v-col>
+          </v-row>
+          <v-row align="center">
+            <v-col cols="3">
+              <v-subheader> 牌子设置 </v-subheader>
+            </v-col>
+            <v-col cols="5">
+              <v-select
+                v-model="plate_upload.version"
+                :items="versions"
+              ></v-select>
+            </v-col>
+            <v-col cols="4">
+              <v-select
+                v-show="plate_upload.version != '无'"
+                v-model="plate_upload.plate_type"
+                :items="this.current_item"
+                item-text="label"
+                item-value="value"
+                :hint="
+                  plate_upload.version && plate_upload.plate_type
+                    ? `${v2n[plate_upload.version]}${
+                        t2n[plate_upload.plate_type]
+                      }`
+                    : ''
+                "
+                persistent-hint
+              ></v-select>
+            </v-col>
+          </v-row>
+          <v-checkbox v-model="privacy" label="禁止其他人查询我的成绩" />
+        </v-form>
+        <v-card-actions class="pb-4">
+          <v-dialog
+            v-model="changePasswordVisible"
+            width="600"
+            :fullscreen="$vuetify.breakpoint.mobile"
+          >
+            <template #activator="{ on, attrs }">
+              <v-btn v-on="on" v-bind="attrs" class="mr-2"> 更改密码 </v-btn>
+            </template>
+            <v-card>
+              <v-card-title>更改密码</v-card-title>
+              <v-card-text>
+                <v-form
+                  ref="changePasswordForm"
+                  @keydown.enter.native="change_password"
+                >
+                  <v-text-field
+                    v-model="changePasswordForm.password"
+                    label="密码"
+                    type="password"
+                    autocomplete="new-password"
+                    :rules="[(u) => !!u || '密码不能为空']"
+                  >
+                  </v-text-field>
+                  <v-text-field
+                    v-model="changePasswordForm.passwordConfirm"
+                    label="确认密码"
+                    type="password"
+                    autocomplete="new-password"
+                    :rules="[
+                      (u) => !!u || '密码不能为空',
+                      (u) => changePasswordForm.password == u || '密码不一致',
+                    ]"
+                  >
+                  </v-text-field>
+                </v-form>
+              </v-card-text>
+              <v-card-actions class="pb-4">
+                <v-btn color="warning" @click="change_password">确定</v-btn>
+                <v-btn @click="changePasswordVisible = false">取消</v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
+          <v-dialog
+            v-model="delVisible"
+            width="600"
+            :fullscreen="$vuetify.breakpoint.mobile"
+          >
+            <template #activator="{ on, attrs }">
+              <v-btn v-on="on" v-bind="attrs" color="warning">
+                删除所有数据
+              </v-btn>
+            </template>
+            <v-card>
+              <v-card-title>删除数据</v-card-title>
+              <v-card-text>
+                您确定要删除您的所有数据记录吗？您仍可以再次通过数据导入重新导入数据。
+              </v-card-text>
+              <v-card-actions class="pb-4">
+                <v-btn color="warning" @click="delete_records">确定</v-btn>
+                <v-btn @click="delVisible = false">取消</v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
+          <v-spacer />
+          <v-btn color="primary" @click="submit">保存</v-btn>
+          <v-btn @click="visible = false">取消</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script>
 import axios from "axios";
-import watchVisible from '../plugins/watchVisible';
+import watchVisible from "../plugins/watchVisible";
+import api from "../plugins/uni_api";
 export default {
-  props: {
-    available_plates: Function,
-  },
   data: () => {
     return {
       valid: false,
       login: false,
-      username: "",
       visible: false,
       delVisible: false,
       select: { label: "真传拾段", ra: 2100 },
@@ -220,7 +223,16 @@ export default {
         "maimai FiNALE",
         "maimai でらっくす",
       ],
-      t2n: { 1: "極", 2: "将", 4: "舞舞", 8: "神", "神": 8, "舞舞": 4, "将": 2, "極": 1},
+      t2n: {
+        1: "極",
+        2: "将",
+        4: "舞舞",
+        8: "神",
+        神: 8,
+        舞舞: 4,
+        将: 2,
+        極: 1,
+      },
       versions: [],
       changePasswordVisible: false,
       changePasswordForm: {
@@ -232,11 +244,16 @@ export default {
   watch: {
     visible: function (visible) {
       this.plates_info = this.available_plates();
-      this.versions = ["无"].concat(this.versions_src.filter(elem => this.plates_info[elem] > 0));
+      this.versions = ["无"].concat(
+        this.versions_src.filter((elem) => this.plates_info[elem] > 0)
+      );
       return watchVisible("visible", "Profile", this)(visible);
     },
     delVisible: watchVisible("delVisible", "ProfileDelete"),
-    changePasswordVisible: watchVisible("changePasswordVisible", "ChangePassword"),
+    changePasswordVisible: watchVisible(
+      "changePasswordVisible",
+      "ChangePassword"
+    ),
     "plate_upload.version": function (to) {
       if (!(to in this.plates_info)) return;
       if ((this.plates_info[to] & this.plate_upload.plate_type) == 0)
@@ -254,12 +271,23 @@ export default {
       }
       return items;
     },
+    username: {
+      get() {
+        return this.$store.state.username;
+      },
+      set(v) {
+        this.$store.commit("change_username", v);
+      }
+    }
   },
   methods: {
+    available_plates() {
+      return this.$store.state.available_plates();
+    },
     submit() {
       if (!this.$refs.profile.validate()) return;
-      axios
-        .post("https://www.diving-fish.com/api/maimaidxprober/player/profile", {
+      api
+        .upload_profile({
           username: this.username,
           privacy: this.privacy,
           bind_qq: this.bind_qq,
@@ -267,16 +295,16 @@ export default {
           nickname: this.nickname,
           plate: this.plate_upload,
         })
-        .then((resp) => {
+        .then((data) => {
           this.visible = false;
           this.$message.success("修改成功");
-          this.username = resp.data.username;
-          this.privacy = resp.data.privacy;
-          this.bind_qq = resp.data.bind_qq;
-          this.plate = resp.data.plate;
-          this.nickname = resp.data.nickname;
+          this.username = data.username;
+          this.privacy = data.privacy;
+          this.bind_qq = data.bind_qq;
+          this.plate = data.plate;
+          this.nickname = data.nickname;
           for (let elem of this.ratings) {
-            if (elem.ra == resp.data.additional_rating) {
+            if (elem.ra == data.additional_rating) {
               this.select = elem;
               break;
             }
@@ -300,9 +328,12 @@ export default {
     change_password() {
       if (!this.$refs.changePasswordForm.validate()) return;
       axios
-        .post("https://www.diving-fish.com/api/maimaidxprober/player/change_password", {
-          password: this.changePasswordForm.password
-        })
+        .post(
+          "https://www.diving-fish.com/api/maimaidxprober/player/change_password",
+          {
+            password: this.changePasswordForm.password,
+          }
+        )
         .then(() => {
           this.$message.success("已修改密码");
           this.changePasswordVisible = false;
@@ -313,18 +344,18 @@ export default {
         });
     },
     fetch() {
-      axios
-        .get("https://www.diving-fish.com/api/maimaidxprober/player/profile")
-        .then((resp) => {
+      api
+        .fetch_profile()
+        .then((data) => {
           this.login = true;
-          this.username = resp.data.username;
-          this.privacy = resp.data.privacy;
-          this.bind_qq = resp.data.bind_qq;
-          this.ra = resp.data.additional_rating;
-          this.plate = resp.data.plate;
-          this.nickname = resp.data.nickname;
+          this.username = data.username;
+          this.privacy = data.privacy;
+          this.bind_qq = data.bind_qq;
+          this.ra = data.additional_rating;
+          this.plate = data.plate;
+          this.nickname = data.nickname;
           for (let elem of this.ratings) {
-            if (elem.ra == resp.data.additional_rating) {
+            if (elem.ra == data.additional_rating) {
               this.select = elem;
               break;
             }

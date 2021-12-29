@@ -1,8 +1,8 @@
 <template>
-  <span>
-    <span v-if="username !== ''">
-      <v-btn x-large plain><v-icon>mdi-pencil</v-icon></v-btn>
-    </span>
+  <div>
+    <div style="width: max-content" v-if="$store.state.username !== ''">
+      <profile />
+    </div>
     <span v-else>
       <v-dialog
         width="500px"
@@ -106,14 +106,19 @@
         </v-card>
       </v-dialog>
     </span>
-  </span>
+  </div>
 </template>
 
 <script>
+import api from '../plugins/uni_api.js';
+import Profile from '../components/Profile.vue';
 export default {
   name: "UserComponent",
   props: {
     username: String
+  },
+  components: {
+    Profile
   },
   data() {
     return {
@@ -140,7 +145,10 @@ export default {
     },
     login: function() {
       if (!this.$refs.form.validate()) return;
-      this.$emit('login');
+      console.log("login");
+      api.login(this.loginForm).then(() => {
+        this.loginVisible = false;
+      });
     },
     register: function() {
       if (!this.$refs.regForm.validate()) return;
