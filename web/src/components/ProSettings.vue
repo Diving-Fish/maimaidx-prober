@@ -248,11 +248,8 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
 export default {
-  props: {
-    music_data: Array,
-    music_data_dict: Object,
-  },
   data: () => {
     return {
       darkTheme: false,
@@ -353,6 +350,7 @@ export default {
         )
       );
     },
+    ...mapState(['music_data', 'music_data_dict'])
   },
   methods: {
     f(item) {

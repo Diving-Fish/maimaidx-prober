@@ -757,6 +757,9 @@ export default {
       return [];
     },
   },
+  created: function() {
+    this.$store.commit("set_fill_calcs", this.fill);
+  }
 };
 </script>
 

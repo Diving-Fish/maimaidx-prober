@@ -4,7 +4,7 @@
     :footer-props="{ 'items-per-page-options': [limit, -1] }"
     :headers="headers"
     :loading="loading"
-    :items="items"
+    :items="display_items"
     :search="search"
     sort-by="rank"
     :custom-filter="chartFilter"
@@ -178,6 +178,7 @@
 </template>
 
 <script>
+import { mapState } from 'vuex';
 export default {
   props: {
     items: Array,
@@ -185,15 +186,20 @@ export default {
     loading: Boolean,
     limit: Number,
     headers: Array,
-    music_data_dict: Object,
   },
   data: () => {
     return {};
   },
+  computed: {
+    display_items() {
+      return this.loading ? []: this.items;
+    },
+    ...mapState(['music_data_dict'])
+  },
   watch: {
     search(n) {
       this.search = n;
-    },
+    }
   },
   methods: {
     getLevel(index) {
@@ -349,7 +355,37 @@ export default {
       this.$emit("cover", item);
     },
     calculator(item) {
-      this.$emit("calculator", item);
+      let note_total = {
+        Tap: this.music_data_dict[item.song_id].charts[item.level_index]
+          .notes[0],
+        Hold: this.music_data_dict[item.song_id].charts[item.level_index]
+          .notes[1],
+        Slide:
+          this.music_data_dict[item.song_id].charts[item.level_index].notes[2],
+        Touch: 0,
+        Break:
+          this.music_data_dict[item.song_id].charts[item.level_index].notes[3],
+      };
+      if (this.music_data_dict[item.song_id].type == "DX") {
+        Object.assign(note_total, {
+          Touch:
+            this.music_data_dict[item.song_id].charts[item.level_index]
+              .notes[3],
+          Break:
+            this.music_data_dict[item.song_id].charts[item.level_index]
+              .notes[4],
+        });
+      }
+      this.$store.state.fill_calcs({
+        note_total: note_total,
+        current_song: item,
+        visible: true,
+      });
+      this.$message.success(
+        `已填入 ${item.type == "DX" ? "[DX] " : ""}${item.title} [${
+          item.level_label
+        }] 的数据`
+      );
     },
     chartFilter(value, search, item) {
       if (!item.search_index)

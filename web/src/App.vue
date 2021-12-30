@@ -17,22 +17,24 @@
     <v-container fluid class="mt-2 fill-height tab-container" :style="$vuetify.breakpoint.mobile ? 'padding:0px' : ''">
       <v-tabs-items v-model="tab">
         <v-tab-item><main-page ref="mainpage" @pq="init_pq" /></v-tab-item>
-        <v-tab-item><calculators /></v-tab-item>
+        <v-tab-item eager><calculators /></v-tab-item>
         <v-tab-item eager><plate-qualifier /></v-tab-item> <!-- eager: force loading plate qualifier; for usage in profile component -->
         <v-tab-item><tutorial /></v-tab-item>
         <v-tab-item><update-log /></v-tab-item>
       </v-tabs-items>
     </v-container>
     <v-footer style="justify-content: center; padding: 10px">
+      <p class="mt-4">
       <a href="https://github.com/Diving-Fish/maimaidx-prober"
         ><img
           src="https://img.shields.io/github/stars/Diving-Fish/maimaidx-prober?style=social"
       /></a>
-      <view-badge class="ml-3" />
       <a class="ml-3" href="https://space.bilibili.com/10322617"
         ><img
           src="https://shields.io/badge/bilibili-%E6%B0%B4%E9%B1%BC%E5%96%B5%E5%96%B5%E5%96%B5-00A1D6?logo=bilibili&style=flat"
       /></a>
+      <view-badge class="ml-3" />
+      </p>
     </v-footer>
   </v-app>
 </template>

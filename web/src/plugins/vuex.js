@@ -10,8 +10,9 @@ const store = new Vuex.Store({
     music_data_dict: {},
     records: [],
     chart_stats: {},
+    chart_combo: {},
     available_plates: () => {},
-
+    fill_calcs: () => {}
   },
   mutations: {
     change_username(state, username) {
@@ -46,9 +47,16 @@ const store = new Vuex.Store({
         }
       }
       // after merge, you also need compute record ra
+      for (let elem of state.music_data)
+        state.chart_combo[elem.id] = elem.charts.map((o) =>
+          o.notes.reduce((prev, curr) => prev + curr)
+        );
     },
     set_available_plates(state, func) {
       state.available_plates = func
+    },
+    set_fill_calcs(state, func) {
+      state.fill_calcs = func
     }
   }
 })

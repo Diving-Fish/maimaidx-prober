@@ -28,8 +28,6 @@
           <pro-settings
             v-show="proSetting"
             ref="proSettings"
-            :music_data="music_data"
-            :music_data_dict="music_data_dict"
             @setHeaders="setHeaders"
           ></pro-settings>
           <v-card-text>
@@ -42,14 +40,11 @@
                 <chart-table
                   @cover="coverRow"
                   @edit="editRow"
-                  @calculator="calculatorRow"
                   :search="searchKey"
                   :items="sdDisplay"
                   :limit="25"
                   :loading="loading"
-                  :chart_stats="chart_stats"
                   :headers="headers"
-                  :music_data_dict="music_data_dict"
                   sort-by="achievements"
                   :key="JSON.stringify(headers)"
                 >
@@ -59,14 +54,11 @@
                 <chart-table
                   @cover="coverRow"
                   @edit="editRow"
-                  @calculator="calculatorRow"
                   :search="searchKey"
                   :items="dxDisplay"
                   :limit="15"
                   :loading="loading"
-                  :chart_stats="chart_stats"
                   :headers="headers"
-                  :music_data_dict="music_data_dict"
                   sort-by="achievements"
                   :key="JSON.stringify(headers)"
                 >
@@ -407,7 +399,6 @@ export default {
       logoutVisible: false,
       allModeVisible: false,
       proSetting: false,
-      chart_combo: {},
       headers: [
         { text: "排名", value: "rank" },
         { text: "乐曲名", value: "title" },
@@ -480,7 +471,7 @@ export default {
       return ret;
     },
     ...mapState([
-      'records', 'music_data', 'music_data_dict'
+      'records', 'music_data', 'music_data_dict', 'chart_combo'
     ])
   },
   created: function () {
@@ -548,39 +539,6 @@ export default {
       }
       this.modifyAchievementVisible = false;
     },
-    calculatorRow: function (item) {
-      let note_total = {
-        Tap: this.music_data_dict[item.song_id].charts[item.level_index]
-          .notes[0],
-        Hold: this.music_data_dict[item.song_id].charts[item.level_index]
-          .notes[1],
-        Slide:
-          this.music_data_dict[item.song_id].charts[item.level_index].notes[2],
-        Touch: 0,
-        Break:
-          this.music_data_dict[item.song_id].charts[item.level_index].notes[3],
-      };
-      if (this.music_data_dict[item.song_id].type == "DX") {
-        Object.assign(note_total, {
-          Touch:
-            this.music_data_dict[item.song_id].charts[item.level_index]
-              .notes[3],
-          Break:
-            this.music_data_dict[item.song_id].charts[item.level_index]
-              .notes[4],
-        });
-      }
-      this.$refs.calcs.fill({
-        note_total: note_total,
-        current_song: item,
-        visible: true,
-      });
-      this.$message.success(
-        `已填入 ${item.type == "DX" ? "[DX] " : ""}${item.title} [${
-          item.level_label
-        }] 的数据`
-      );
-    },
     sync: function () {
       // console.log(this.records);
       axios
@@ -611,16 +569,14 @@ export default {
         });
     },
     fetchMusicData: function () {
-      const that = this;
-      that.loading = true;
+      this.loading = true;
       this.$message.info("正在获取乐曲信息……");
       api.fetch_all().then(
         () => {
-          for (let elem of this.music_data)
-            this.chart_combo[elem.id] = elem.charts.map((o) =>
-              o.notes.reduce((prev, curr) => prev + curr)
-            );
-          that.loading = false;
+          for (let i = 0; i < this.records.length; i++) {
+            this.computeRecord(this.records[i]);
+          }
+          this.loading = false;
         }
       );
     },
