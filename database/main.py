@@ -270,11 +270,14 @@ async def do_recovery():
         return {"username": p.username}
     else:
         p: Player = email_reset.player
-        j = request.json()
+        j = await request.json
         if j["operation"] == "unbind_qq":
             p.bind_qq = ""
         elif j["operation"] == "reset_password":
             p.password = md5(j["password"] + p.salt)
+        p.save()
+        email_reset.timeout_stamp = 0;
+        email_reset.save()
         return {"message": "success"}
 
 
