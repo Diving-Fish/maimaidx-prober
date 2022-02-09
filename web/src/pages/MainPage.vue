@@ -133,6 +133,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+        <recovery :visible="username == '未登录'" />
         <v-dialog width="1000px" :fullscreen="$vuetify.breakpoint.mobile" v-model="dialogVisible">
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导入数据</v-btn>
@@ -486,6 +487,7 @@ import Profile from "../components/Profile.vue";
 import PlateQualifier from "../components/PlateQualifier.vue";
 import Calculators from "../components/Calculators.vue";
 import Tutorial from "../components/Tutorial.vue";
+import Recovery from "../components/Recovery.vue";
 import watchVisible from "../plugins/watchVisible";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
@@ -498,6 +500,7 @@ export default {
     FilterSlider,
     ProSettings,
     Advertisement,
+    Recovery,
     Message,
     Profile,
     PlateQualifier,

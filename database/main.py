@@ -6,6 +6,7 @@ import time
 from quart import *
 from _jwt import *
 import asyncio
+from mail import send_mail
 from models import *
 import json
 import hashlib
@@ -55,6 +56,7 @@ with open('config.json', encoding='utf-8') as fr:
     config = json.load(fr)
     db_url = config["database_url"]
     jwt_secret = config["jwt_secret"]
+    mail_config = config["mail"]
 
 
 @app.after_request
@@ -226,6 +228,54 @@ async def change_password():
     g.user.password = md5(password + g.user.salt)
     g.user.save()
     return {"message": "success"}
+
+@app.route("/recovery", methods=['POST'])
+async def recovery():
+    qq = request.args.get("qq", type=str, default="")
+    try:
+        player = Player.get(Player.bind_qq == qq)
+    except Exception:
+        return {"message": "重置邮件已发送到您的QQ邮箱，请按照指引进行操作"}
+    ts = int(time.time())
+    try:
+        email_reset: EmailReset = EmailReset.get((EmailReset.player == player) & (EmailReset.timeout_stamp > ts))
+        random_token = email_reset.token
+    except Exception:
+        random_token = ''.join([random.choice(string.ascii_letters + string.digits) for _ in range(128)])
+        EmailReset.create(player=player, token=random_token, timeout_stamp=1800 + int(ts))
+    asyncio.create_task(send_mail(
+        payload={
+            "sender": "舞萌 DX 查分器",
+            "to": f"{qq}@qq.com",
+            "body": f"""<p>请点击此链接来设置您的查分器账户：<a href="https://www.diving-fish.com/maimaidx/recovery?token={random_token}">网页链接</a></p>
+<p>该链接将在 30 分钟内有效，过期请重新申请。</p>""",
+            "subject": "舞萌 DX 查分器账户重置",
+            "type": "html"
+        },
+        mail_config=mail_config
+    ))
+    return {"message": "重置邮件已发送到您的QQ邮箱，请按照指引进行操作"}
+
+
+@app.route("/do_recovery", methods=['GET', 'POST'])
+async def do_recovery():
+    token = request.args.get("token", type=str, default="")
+    ts = int(time.time())
+    try:
+        email_reset: EmailReset = EmailReset.get((EmailReset.token == token) & (EmailReset.timeout_stamp > ts))
+    except Exception:
+        return {"message": "此链接无效或已过期"}, 400
+    if request.method == "GET":
+        p: Player = email_reset.player
+        return {"username": p.username}
+    else:
+        p: Player = email_reset.player
+        j = request.json()
+        if j["operation"] == "unbind_qq":
+            p.bind_qq = ""
+        elif j["operation"] == "reset_password":
+            p.password = md5(j["password"] + p.salt)
+        return {"message": "success"}
 
 
 @app.route("/music_data", methods=['GET'])
