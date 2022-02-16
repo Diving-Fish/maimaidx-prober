@@ -451,9 +451,18 @@ export default {
       }
     }
     this.reset();
+    // listen change of system dark mode
+    let matchMedia = window.matchMedia("(prefers-color-scheme: dark)")
+    matchMedia.addEventListener("change", () => {
+      this.darkTheme = matchMedia.matches
+      this.toggleDarkTheme(matchMedia.matches);
+    });
+
     this.darkTheme = +localStorage.darkTheme;
   },
   beforeCreate: function () {
+    // detect dark mode
+    localStorage.darkTheme = +window.matchMedia("(prefers-color-scheme: dark)").matches
     if (+localStorage.darkTheme) {
       document
         .querySelector("body")
