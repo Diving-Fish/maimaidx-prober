@@ -105,7 +105,7 @@ export default {
       this.ds = param;
     },
     change(param) {
-      console.log(param);
+      // console.log(param);
       if (param) {
         this.ds = [
           this.level_min[this.level[0]],

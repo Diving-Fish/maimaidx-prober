@@ -297,8 +297,6 @@ export default {
       ],
       version: null,
       genre: null,
-      versions: [],
-      genres: [],
       headers: [],
       headers_default: [
         { text: "排名", value: "rank" },
@@ -308,7 +306,7 @@ export default {
         { text: "达成率", value: "achievements" },
         { text: "DX Rating", value: "ra" },
         { text: "相对难度", value: "tag" },
-        { text: "编辑", value: "actions", sortable: false },
+        { text: "操作", value: "actions", sortable: false },
       ],
       headers_items: [
         { text: "排名", value: "rank" },
@@ -320,7 +318,7 @@ export default {
         { text: "相对难度", value: "tag" },
         { text: "DX分数", value: "dxScore" },
         { text: "DX分数比例", value: "dxScore_perc" },
-        { text: "编辑", value: "actions", sortable: false },
+        { text: "操作", value: "actions", sortable: false },
       ],
       headers_values: [
         "rank",
@@ -335,6 +333,26 @@ export default {
         "actions",
       ],
     };
+  },
+  computed: {
+    versions: function () {
+      return Array.from(
+        new Set(
+          this.music_data.map((elem) => {
+            return elem.basic_info.from;
+          })
+        )
+      );
+    },
+    genres: function () {
+      return Array.from(
+        new Set(
+          this.music_data.map((elem) => {
+            return elem.basic_info.genre;
+          })
+        )
+      );
+    },
   },
   methods: {
     f(item) {
@@ -385,22 +403,7 @@ export default {
     setHeadersDefault(headers) {
       localStorage.headers_default = JSON.stringify(headers);
       this.headers_default = headers;
-    },
-    init: function () {
-      this.versions = Array.from(
-        new Set(
-          this.music_data.map((elem) => {
-            return elem.basic_info.from;
-          })
-        )
-      );
-      this.genres = Array.from(
-        new Set(
-          this.music_data.map((elem) => {
-            return elem.basic_info.genre;
-          })
-        )
-      );
+      this.$message.success(`已保存表列设置`);
     },
     reset() {
       this.fc_filter = [0, "fc", "fcp", "ap", "app"];
@@ -425,12 +428,41 @@ export default {
     },
   },
   created: function () {
-    if (localStorage.headers_default)
-      this.headers_default = JSON.parse(localStorage.headers_default);
+    if (localStorage.headers_default) {
+      try {
+        this.headers_default = JSON.parse(localStorage.headers_default);
+        let headers_items_stringified = this.headers_items.map((o) =>
+          JSON.stringify(o)
+        );
+        this.headers_default = this.headers_default.filter(
+          (o) => headers_items_stringified.indexOf(JSON.stringify(o)) != -1
+        );
+      } catch (e) {
+        this.headers_default = [
+          { text: "排名", value: "rank" },
+          { text: "乐曲名", value: "title" },
+          { text: "难度", value: "level", sortable: false },
+          { text: "定数", value: "ds" },
+          { text: "达成率", value: "achievements" },
+          { text: "DX Rating", value: "ra" },
+          { text: "相对难度", value: "tag" },
+          { text: "操作", value: "actions", sortable: false },
+        ];
+      }
+    }
     this.reset();
+    // listen change of system dark mode
+    let matchMedia = window.matchMedia("(prefers-color-scheme: dark)")
+    matchMedia.addEventListener("change", () => {
+      this.darkTheme = matchMedia.matches
+      this.toggleDarkTheme(matchMedia.matches);
+    });
+
     this.darkTheme = +localStorage.darkTheme;
   },
   beforeCreate: function () {
+    // detect dark mode
+    localStorage.darkTheme = +window.matchMedia("(prefers-color-scheme: dark)").matches
     if (+localStorage.darkTheme) {
       document
         .querySelector("body")

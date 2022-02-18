@@ -6,6 +6,7 @@ import time
 from quart import *
 from _jwt import *
 import asyncio
+from mail import send_mail
 from models import *
 import json
 import hashlib
@@ -20,7 +21,9 @@ def md5(v: str):
 
 cs_need_update = True
 cs_cache = {}
+cs_cache_eTag = md5(json.dumps(cs_cache, ensure_ascii=False))
 md_cache = music_data()
+md_cache_eTag = md5(json.dumps(md_cache))
 md_map = {}
 for music in md_cache:
     md_map[music['id']] = music
@@ -53,6 +56,7 @@ with open('config.json', encoding='utf-8') as fr:
     config = json.load(fr)
     db_url = config["database_url"]
     jwt_secret = config["jwt_secret"]
+    mail_config = config["mail"]
 
 
 @app.after_request
@@ -76,11 +80,11 @@ def login_required(f):
         try:
             token = decode(request.cookies['jwt_token'])
         except KeyError:
-            return {"status": "error", "msg": "尚未登录"}, 403
+            return {"status": "error", "message": "尚未登录"}, 403
         if token == {}:
-            return {"status": "error", "msg": "尚未登录"}, 403
+            return {"status": "error", "message": "尚未登录"}, 403
         if token['exp'] < ts():
-            return {"status": "error", "msg": "会话过期"}, 403
+            return {"status": "error", "message": "会话过期"}, 403
         g.username = token['username']
         g.user = Player.get(Player.username == g.username)
         return await f(*args, **kwargs)
@@ -219,16 +223,71 @@ def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
 @login_required
 async def change_password():
     password = (await request.json)["password"]
-    if len(password) >= 30:
-        return {"message": "密码不能大于30位"}, 400
+    # if len(password) >= 30:
+    #     return {"message": "密码不能大于30位"}, 400
     g.user.password = md5(password + g.user.salt)
+    g.user.save()
     return {"message": "success"}
+
+@app.route("/recovery", methods=['POST'])
+async def recovery():
+    qq = request.args.get("qq", type=str, default="")
+    try:
+        player = Player.get(Player.bind_qq == qq)
+    except Exception:
+        return {"message": "重置邮件已发送到您的QQ邮箱，请按照指引进行操作"}
+    ts = int(time.time())
+    try:
+        email_reset: EmailReset = EmailReset.get((EmailReset.player == player) & (EmailReset.timeout_stamp > ts))
+        random_token = email_reset.token
+    except Exception:
+        random_token = ''.join([random.choice(string.ascii_letters + string.digits) for _ in range(128)])
+        EmailReset.create(player=player, token=random_token, timeout_stamp=1800 + int(ts))
+    asyncio.create_task(send_mail(
+        payload={
+            "sender": "舞萌 DX 查分器",
+            "to": f"{qq}@qq.com",
+            "body": f"""<p>请点击此链接来设置您的查分器账户：<a href="https://www.diving-fish.com/maimaidx/recovery?token={random_token}">网页链接</a></p>
+<p>该链接将在 30 分钟内有效，过期请重新申请。</p>""",
+            "subject": "舞萌 DX 查分器账户重置",
+            "type": "html"
+        },
+        mail_config=mail_config
+    ))
+    return {"message": "重置邮件已发送到您的QQ邮箱，请按照指引进行操作"}
+
+
+@app.route("/do_recovery", methods=['GET', 'POST'])
+async def do_recovery():
+    token = request.args.get("token", type=str, default="")
+    ts = int(time.time())
+    try:
+        email_reset: EmailReset = EmailReset.get((EmailReset.token == token) & (EmailReset.timeout_stamp > ts))
+    except Exception:
+        return {"message": "此链接无效或已过期"}, 400
+    if request.method == "GET":
+        p: Player = email_reset.player
+        return {"username": p.username}
+    else:
+        p: Player = email_reset.player
+        j = request.json()
+        if j["operation"] == "unbind_qq":
+            p.bind_qq = ""
+        elif j["operation"] == "reset_password":
+            p.password = md5(j["password"] + p.salt)
+        return {"message": "success"}
 
 
 @app.route("/music_data", methods=['GET'])
 async def get_music_data():
+    if request.headers.get('If-None-Match') == '"' + md_cache_eTag + '"':
+        resp = await make_response("", 304)
+        resp.headers['cache-control'] = "private, max_age=86400"
+        return resp
     resp = await make_response(json.dumps(md_cache))
+    resp.headers['ETag'] = '"' + md_cache_eTag + '"';
     resp.headers['content-type'] = "application/json; charset=utf-8"
+    resp.headers['cache-control'] = "private, max_age=86400"
     return resp
 
 
@@ -333,13 +392,13 @@ async def query_player():
         try:
             token = decode(request.cookies['jwt_token'])
         except KeyError:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
         if token == {}:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
         if token['exp'] < ts():
-            return {"status": "error", "msg": "会话过期"}, 403
+            return {"status": "error", "message": "会话过期"}, 403
         if token['username'] != obj["username"]:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
     if "b50" in obj:
         sd, dx = get_dx_and_sd_for50(p)
     else:
@@ -382,13 +441,13 @@ async def query_plate():
         try:
             token = decode(request.cookies['jwt_token'])
         except KeyError:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
         if token == {}:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
         if token['exp'] < ts():
-            return {"status": "error", "msg": "会话过期"}, 403
+            return {"status": "error", "message": "会话过期"}, 403
         if token['username'] != obj["username"]:
-            return {"status": "error", "msg": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私"}, 403
     v: List[Dict] = obj["version"]
     vl = getplatelist(p, v)
     return {
@@ -571,9 +630,16 @@ async def message():
 async def chart_stats():
     global cs_need_update
     global cs_cache
+    global cs_cache_eTag
     if len(cs_cache) > 0:
+        if request.headers.get('If-None-Match') == '"' + cs_cache_eTag + '"':
+            resp = await make_response("", 304)
+            resp.headers['cache-control'] = "private, max_age=86400"
+            return resp
         resp = await make_response(json.dumps(cs_cache, ensure_ascii=False))
+        resp.headers['ETag'] = '"' + cs_cache_eTag + '"';
         resp.headers['content-type'] = "application/json; charset=utf-8"
+        resp.headers['cache-control'] = "private, max_age=86400"
         return resp
     cursor = NewRecord.raw(
         'select newrecord.chart_id, count(*) as cnt, avg(achievements) as `avg`,'
@@ -628,6 +694,7 @@ async def chart_stats():
             del elem['level_index']
             data[key][level_index] = elem
     cs_cache = data
+    cs_cache_eTag = md5(json.dumps(cs_cache, ensure_ascii=False))
     cs_need_update = False
     resp = await make_response(json.dumps(data, ensure_ascii=False))
     resp.headers['content-type'] = "application/json; charset=utf-8"

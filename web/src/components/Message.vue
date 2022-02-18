@@ -84,6 +84,7 @@
 
 <script>
 import axios from "axios";
+import watchVisible from '../plugins/watchVisible';
 export default {
   data: function () {
     return {
@@ -98,6 +99,7 @@ export default {
     this.getMessages();
   },
   watch: {
+    vsb: watchVisible("vsb", "Message"),
     window() {
       this.resize();
     }

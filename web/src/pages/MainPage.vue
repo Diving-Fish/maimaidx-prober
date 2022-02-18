@@ -53,10 +53,11 @@
               </v-btn>
             </v-card-title>
             <v-card-text>
-              <v-form ref="form" v-model="valid" @keyup.enter.native="login">
+              <v-form ref="form" v-model="valid" @keydown.enter.native="login">
                 <v-text-field
                   v-model="loginForm.username"
                   label="用户名"
+                  autocomplete="username"
                   :rules="[(u) => !!u || '用户名不能为空']"
                 >
                 </v-text-field>
@@ -65,6 +66,7 @@
                   label="密码"
                   :rules="[(u) => !!u || '密码不能为空']"
                   type="password"
+                  autocomplete="current-password"
                 >
                 </v-text-field>
               </v-form>
@@ -90,10 +92,11 @@
                     注册后会自动同步当前已导入的乐曲数据
                   </v-card-subtitle>
                   <v-card-text>
-                    <v-form ref="regForm" v-model="valid2">
+                    <v-form ref="regForm" v-model="valid2" @keydown.enter.native="register">
                       <v-text-field
                         v-model="registerForm.username"
                         label="用户名"
+                        autocomplete="username"
                         :rules="[
                           (u) => !!u || '用户名不能为空',
                           (u) => u.length >= 4 || '用户名至少长 4 个字符',
@@ -104,6 +107,7 @@
                         v-model="registerForm.password"
                         label="密码"
                         type="password"
+                        autocomplete="new-password"
                         :rules="[(u) => !!u || '密码不能为空']"
                       >
                       </v-text-field>
@@ -111,6 +115,7 @@
                         v-model="registerForm.passwordConfirm"
                         label="确认密码"
                         type="password"
+                        autocomplete="new-password"
                         :rules="[
                           (u) => !!u || '密码不能为空',
                           (u) => registerForm.password == u || '密码不一致',
@@ -128,6 +133,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+        <recovery :visible="username == '未登录'" />
         <v-dialog width="1000px" :fullscreen="$vuetify.breakpoint.mobile" v-model="dialogVisible">
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导入数据</v-btn>
@@ -280,27 +286,74 @@
       <v-dialog
         width="500px"
         :fullscreen="$vuetify.breakpoint.mobile"
-        v-model="modifyAchivementVisible"
+        v-model="modifyAchievementVisible"
       >
         <v-card>
           <v-card-title>
             修改完成率
             <v-spacer />
-            <v-btn icon @click="modifyAchivementVisible = false">
+            <v-btn icon @click="modifyAchievementVisible = false">
               <v-icon>mdi-close</v-icon>
             </v-btn>
           </v-card-title>
           <v-card-subtitle>
-            修改{{ currentUpdate.title }}（{{
+            修改
+            <i
+              >{{ currentUpdate.type == "DX" ? "[DX] " : ""
+              }}<b>{{ currentUpdate.title }}</b> [{{
               currentUpdate.level_label
-            }}）的完成率为
+              }}]</i
+            >
+            的完成率为
           </v-card-subtitle>
           <v-card-text>
-            <v-text-field v-model="currentAchievements" />
+            <v-form ref="modifyAchievementForm" @keydown.enter.native="finishEditRow">
+              <v-text-field
+                label="达成率"
+                v-model="currentAchievements"
+                :rules="[
+                  (u) =>
+                    (isFinite(+u) && +u >= 0 && +u <= 101) ||
+                    '请输入合法达成率',
+                ]"
+              />
+            </v-form>
           </v-card-text>
           <v-card-actions>
+            <v-spacer />
             <v-btn color="primary" @click="finishEditRow()">确定</v-btn>
           </v-card-actions>
+        </v-card>
+      </v-dialog>
+      <v-dialog
+        width="500px"
+        :fullscreen="$vuetify.breakpoint.mobile"
+        v-model="coverVisible"
+      >
+        <v-card>
+          <v-card-title>
+            查看封面
+            <v-spacer />
+            <v-btn icon @click="coverVisible = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+          <v-card-subtitle>
+            <i><b>{{ coverItem.title }}</b></i>
+          </v-card-subtitle>
+          <v-row class="ma-0" align="center" justify="center" v-if="coverLoading">
+            <v-progress-circular color="grey"
+              indeterminate
+            ></v-progress-circular>
+          </v-row>
+          <v-card-text>
+            <v-img
+              :src="`https://www.diving-fish.com/covers/${coverItem.song_id}.jpg`"
+              contain
+              :height="coverLoading ? 0 : undefined"
+              @load="coverLoading=false"
+            ></v-img>
+          </v-card-text>
         </v-card>
       </v-dialog>
       <v-container id="tableBody" style="margin-top: 2em" px-0 py-0>
@@ -342,6 +395,7 @@
             <v-tabs-items v-model="tab">
               <v-tab-item key="sd">
                 <chart-table
+                  @cover="coverRow"
                   @edit="editRow"
                   @calculator="calculatorRow"
                   :search="searchKey"
@@ -358,6 +412,7 @@
               </v-tab-item>
               <v-tab-item key="dx">
                 <chart-table
+                  @cover="coverRow"
                   @edit="editRow"
                   @calculator="calculatorRow"
                   :search="searchKey"
@@ -383,7 +438,9 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
-          2021/11/7
+          2021/11/25
+          （By StageChan）又更了一大堆，包括查看封面按钮，修改密码功能，优化移动端网页体验等。<br />
+          2021/11/07
           （By StageChan）更了一些网页计算器工具以及网页使用指南。<br />
           2021/09/28
           （By StageChan）更了一大堆，包括高级设置中的各种筛选、表列选择和暗色主题；DX分数相关；
@@ -430,6 +487,8 @@ import Profile from "../components/Profile.vue";
 import PlateQualifier from "../components/PlateQualifier.vue";
 import Calculators from "../components/Calculators.vue";
 import Tutorial from "../components/Tutorial.vue";
+import Recovery from "../components/Recovery.vue";
+import watchVisible from "../plugins/watchVisible";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 const DEBUG = false;
@@ -441,6 +500,7 @@ export default {
     FilterSlider,
     ProSettings,
     Advertisement,
+    Recovery,
     Message,
     Profile,
     PlateQualifier,
@@ -475,7 +535,10 @@ export default {
       loginVisible: false,
       registerVisible: false,
       dialogVisible: false,
-      modifyAchivementVisible: false,
+      modifyAchievementVisible: false,
+      coverVisible: false,
+      coverLoading: true,
+      coverItem: {},
       qrDialogVisible: false,
       qrcode: "",
       qrcodePrompt: "",
@@ -498,7 +561,7 @@ export default {
         { text: "达成率", value: "achievements" },
         { text: "DX Rating", value: "ra" },
         { text: "相对难度", value: "tag" },
-        { text: "编辑", value: "actions", sortable: false },
+        { text: "操作", value: "actions", sortable: false },
       ],
     };
   },
@@ -570,26 +633,19 @@ export default {
     },
   },
   created: function () {
+    history.replaceState("", "", window.location.pathname);
     this.fetchMusicData();
   },
   watch: {
-    currentAchievements: function (to) {
-      if (to == "") return;
-      let flag = true;
-      if (to.toString().match(/\.0*$/)) flag = false;
-      const r = parseFloat(to);
-      if (isNaN(r)) {
-        this.currentAchievements = 0;
-      } else {
-        if (r < 0) {
-          this.currentAchievements = 0;
-        } else if (r > 101) {
-          this.currentAchievements = 101;
-        } else {
-          if (flag) this.currentAchievements = r;
-        }
-      }
-    },
+    loginVisible: watchVisible("loginVisible", "Login"),
+    // registerVisible: watchVisible("registerVisible", "Register"),
+    dialogVisible: watchVisible("dialogVisible", "Import"),
+    feedbackVisible: watchVisible("feedbackVisible", "Feedback"),
+    exportVisible: watchVisible("exportVisible", "Export"),
+    logoutVisible: watchVisible("logoutVisible", "Logout"),
+    allModeVisible: watchVisible("allModeVisible", "AllMode"),
+    modifyAchievementVisible: watchVisible("modifyAchievementVisible", "ModifyAchievement"),
+    coverVisible: watchVisible("coverVisible", "Cover"),
     qrDialogVisible: function (to) {
       if (!to) {
         console.log("cancelled by user.");
@@ -611,13 +667,20 @@ export default {
       this.loginVisible = false;
       this.registerVisible = true;
     },
+    coverRow: function (record) {
+      this.coverVisible = true;
+      if (record.song_id != this.coverItem.song_id)
+        this.coverLoading = true;
+      this.coverItem = record;
+    },
     editRow: function (record) {
       this.currentUpdate = record;
       this.currentAchievements = this.currentUpdate.achievements;
-      this.modifyAchivementVisible = true;
+      this.modifyAchievementVisible = true;
     },
     finishEditRow: function () {
-      this.currentUpdate.achievements = this.currentAchievements;
+      if (!this.$refs.modifyAchievementForm.validate()) return;
+      this.currentUpdate.achievements = parseFloat(this.currentAchievements);
       this.computeRecord(this.currentUpdate);
       if (this.username != "未登录") {
         axios
@@ -627,11 +690,14 @@ export default {
           )
           .then(() => {
             this.$message.success("修改已同步");
+          })
+          .catch(() => {
+            this.$message.error("修改失败！");
           });
       } else {
         this.$message.success("修改成功");
       }
-      this.modifyAchivementVisible = false;
+      this.modifyAchievementVisible = false;
     },
     calculatorRow: function (item) {
       let note_total = {
@@ -657,12 +723,14 @@ export default {
       }
       this.$refs.calcs.fill({
         note_total: note_total,
-        current_song: (item.type == "DX" ? "[DX] " : "") + item.title + " " + item.level_label,
-        ds_input: item.ds,
-        rating_input: item.ra,
-        achievements_input: item.achievements,
+        current_song: item,
         visible: true,
       });
+      this.$message.success(
+        `已填入 ${item.type == "DX" ? "[DX] " : ""}${item.title} [${
+          item.level_label
+        }] 的数据`
+      );
     },
     register: function () {
       if (!this.$refs.regForm.validate()) return;
@@ -676,8 +744,10 @@ export default {
           this.$message.success("注册成功，数据已同步完成");
           this.username = this.registerForm.username;
           this.registerVisible = false;
+          setTimeout("window.location.reload()", 1000);
         })
         .catch((err) => {
+          this.$message.error("注册失败！");
           this.$message.error(err.response.data.message);
         });
     },
@@ -692,6 +762,9 @@ export default {
         )
         .then(() => {
           this.$message.success("数据已同步完成");
+        })
+        .catch(() => {
+          this.$message.error("数据同步失败！");
         });
     },
     sendFeedback: function () {
@@ -702,11 +775,15 @@ export default {
         .then(() => {
           this.$message.success("您的反馈我们已收到，谢谢！");
           this.feedbackVisible = false;
+        })
+        .catch(() => {
+          this.$message.error("反馈发送失败！");
         });
     },
     fetchMusicData: function () {
       const that = this;
       that.loading = true;
+      this.$message.info("正在获取乐曲信息……");
       axios
         .get("https://www.diving-fish.com/api/maimaidxprober/music_data")
         .then((resp) => {
@@ -719,6 +796,7 @@ export default {
             this.chart_combo[elem.id] = elem.charts.map((o) =>
               o.notes.reduce((prev, curr) => prev + curr)
             );
+          this.$message.success("乐曲信息获取完成，正在获取用户分数及相对难度信息……");
           Promise.allSettled([
             axios.get(
               "https://www.diving-fish.com/api/maimaidxprober/chart_stats"
@@ -727,16 +805,26 @@ export default {
               DEBUG ? "https://www.diving-fish.com/api/maimaidxprober/player/test_data" : "https://www.diving-fish.com/api/maimaidxprober/player/records"
             ),
           ]).then(([resp1, resp2]) => {
+            if (resp1.status === "rejected") {
+              this.$message.error("相对难度信息获取失败，请重新加载！");
+              that.loading = false;
+              return;
+            }
             that.chart_stats = resp1.value.data;
             if (resp2.status !== "rejected") {
               const data = resp2.value.data;
               that.username = data.username;
               that.merge(data.records);
+              this.$message.success("用户分数及相对难度信息获取完成");
+            } else {
+              this.$message.warning("未获取用户分数");
             }
             this.$refs.pq.init();
-            this.$refs.proSettings.init();
             that.loading = false;
           });
+        })
+        .catch(() => {
+          this.$message.error("乐曲信息获取失败，请重新加载！");
         });
     },
     login: function () {
@@ -759,10 +847,15 @@ export default {
               const data = resp.data;
               this.username = data.username;
               this.merge(data.records);
+              this.$refs.pq.init();
               this.loading = false;
+            })
+            .catch(() => {
+              this.$message.error("加载乐曲失败！");
             });
         })
         .catch((err) => {
+          this.$message.error("登录失败！");
           this.$message.error(err.response.data.message);
         });
     },
@@ -861,7 +954,7 @@ export default {
     mergeOnAllMode: function () {
       this.allModeVisible = false;
       let oldRecords = new Set(
-        this.records.map((r) => Number(r.song_id) * 10 + r.level_index)
+        this.records.map((r) => +r.song_id * 10 + r.level_index)
       );
       for (const music of this.music_data) {
         //console.log(music);
@@ -900,10 +993,10 @@ export default {
     merge: function (records) {
       // console.log(records);
       let oldRecords = Object.fromEntries(
-        this.records.map((r, i) => [Number(r.song_id) * 10 + r.level_index, i])
+        this.records.map((r, i) => [+r.song_id * 10 + r.level_index, i])
       );
       for (let record of records) {
-        let i = oldRecords[Number(record.song_id) * 10 + record.level_index];
+        let i = oldRecords[+record.song_id * 10 + record.level_index];
         if (typeof i != "undefined") {
             Vue.set(this.records, i, record);
         } else {
@@ -1040,7 +1133,8 @@ export default {
       };
       setCookie("jwt_token", "", -1);
       this.logoutVisible = false;
-      window.location.reload();
+      this.$message.success("已登出");
+      setTimeout("window.location.reload()", 1000);
     },
     available_plates: function () {
       return this.$refs.pq.available_plates();

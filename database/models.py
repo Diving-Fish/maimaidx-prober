@@ -2,7 +2,7 @@ import json
 import time
 from typing import List, Optional, Dict, Text, Union, Any, Tuple
 
-from peewee import Model, CharField, IntegerField, BooleanField, ForeignKeyField, DoubleField, TextField
+from peewee import Model, CharField, IntegerField, BigIntegerField, BooleanField, ForeignKeyField, DoubleField, TextField
 from playhouse.db_url import connect
 
 with open('config.json', encoding='utf-8') as fr:
@@ -69,6 +69,19 @@ class Player(BaseModel):
     privacy = BooleanField()
     user_id = IntegerField()
     user_data = TextField()
+
+
+class EmailReset(BaseModel):
+    # class for reset username and password.
+    player = ForeignKeyField(Player)
+    token = CharField()
+    timeout_stamp = BigIntegerField()
+
+    def timeout(self):
+        return int(time.time()) > self.timeout_stamp
+
+    def reset(self):
+        self.timeout_stamp = 4102444800
 
 
 class NewRecord(BaseModel):
@@ -148,7 +161,7 @@ class Message(BaseModel):
     ts = IntegerField()
 
 
-db.create_tables([Music, NewRecord, Chart, Player,
+db.create_tables([Music, NewRecord, Chart, Player, EmailReset,
                  Record, FeedBack, Views, Message, Developer, DeveloperLog])
 
 
