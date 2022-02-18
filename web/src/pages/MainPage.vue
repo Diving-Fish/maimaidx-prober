@@ -503,6 +503,13 @@ export default {
     };
   },
   computed: {
+    title2id: function() {
+      let obj = {};
+      for (const music of this.music_data) {
+        obj[music.title + music.type] = music.id
+      }
+      return obj;
+    },
     sdDisplay: function () {
       const that = this;
       return this.sdData.filter((elem) => {
@@ -990,6 +997,9 @@ export default {
             else record_data.type = "DX";
           }
           records.push(record_data);
+        }
+        for (let i = 0; i < records.length; i++) {
+          records[i].song_id = this.title2id[records[i].title + records[i].type];
         }
         return records;
       } catch (err) {
