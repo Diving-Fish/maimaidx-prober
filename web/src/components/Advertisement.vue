@@ -22,6 +22,7 @@ export default {
       height: 0,
       img_urls: [
         {s: "https://www.diving-fish.com/maimaidx/prober/ad1.png", l: "https://chihaya.cloud/login"},
+        {s: "https://www.diving-fish.com/maimaidx/prober/ad2.jpg"},
         {s: "https://www.diving-fish.com/maimaidx/prober/pic0.jpg", l: ""},
         {s: "https://www.diving-fish.com/maimaidx/prober/pic1.jpg", l: ""}
       ]
