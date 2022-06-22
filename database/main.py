@@ -495,6 +495,7 @@ async def update_records():
             g.user.user_data = json.dumps(j["userData"]) if "userData" in j else ""
             g.user.save()
         except Exception as e:
+            raise e
             return {
                 "message": str(e)
             }, 400
