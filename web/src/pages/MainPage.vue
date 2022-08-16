@@ -862,7 +862,7 @@ export default {
     computeRecord: function (record) {
       if (this.music_data_dict[record.song_id])
         record.ds = this.music_data_dict[record.song_id].ds[record.level_index];
-      if (record.ds) {
+      if (record.ds && record.ds >= 7.0) {
         let arr = ("" + record.ds).split(".");
         if (["7", "8", "9"].indexOf(arr[1]) != -1) {
           record.level = arr[0] + "+";
