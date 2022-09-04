@@ -348,7 +348,7 @@
           </v-row>
           <v-card-text>
             <v-img
-              :src="`https://www.diving-fish.com/covers/${coverItem.song_id}.jpg`"
+              :src="`https://www.diving-fish.com/covers/${(() => { let t = coverItem.song_id.toString();return t.length == 5 ? t.slice(1) : `0${t}` })()}.jpg`"
               contain
               :height="coverLoading ? 0 : undefined"
               @load="coverLoading=false"
