@@ -348,7 +348,7 @@
           </v-row>
           <v-card-text>
             <v-img
-              :src="`https://www.diving-fish.com/covers/${coverItem.song_id}.jpg`"
+              :src="`https://www.diving-fish.com/covers/${getCoverPathById(coverItem.song_id)}.jpg`"
               contain
               :height="coverLoading ? 0 : undefined"
               @load="coverLoading=false"
@@ -672,6 +672,11 @@ export default {
       if (record.song_id != this.coverItem.song_id)
         this.coverLoading = true;
       this.coverItem = record;
+    },
+    getCoverPathById: function (songId) {
+      let i = parseInt(songId);
+      if (i > 10000) i -= 10000;
+      return (i + "").padStart(4, '0') + ".png";
     },
     editRow: function (record) {
       this.currentUpdate = record;
