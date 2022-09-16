@@ -181,14 +181,6 @@ http://debugx5.qq.com
 
 程序在退出时没能关闭你的系统代理。进入你的系统代理服务器设置并关闭即可。
 
-#### 请作者打一局maimai？
-
-<details>
-<summary>点击展开收款码</summary>
-<img style="width: 48%" src="https://www.diving-fish.com/images/qrcode/alipay_qrcode.jpg">
-<img style="width: 50%" src="https://www.diving-fish.com/images/qrcode/wechat_qrcode.jpg">
-</details>
-
 ### License & Disclaimer
 
 MIT
