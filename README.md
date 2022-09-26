@@ -181,6 +181,10 @@ http://debugx5.qq.com
 
 程序在退出时没能关闭你的系统代理。进入你的系统代理服务器设置并关闭即可。
 
+### 捐赠
+
+爱发电：https://afdian.net/a/divingfish
+
 ### License & Disclaimer
 
 MIT
