@@ -40,8 +40,8 @@ async def update_records_chuni():
     if recent != 0:
         recent = 1
     raw_data = await request.get_data()
-    with open(f"{time.time_ns()}.html", 'w') as fw:
-        fw.write(str(raw_data, encoding="utf-8"))
+    # with open(f"{time.time_ns()}.html", 'w') as fw:
+    #     fw.write(str(raw_data, encoding="utf-8"))
     dicts = {}
     try:
         if recent == 1:
@@ -52,18 +52,17 @@ async def update_records_chuni():
         return {
                 "message": str(e)
             }, 400
-    for record in j:
-        title = record['title']
-        if title not in md_title_map:
-            continue
-        m = md_title_map[title]
-        cid = m["cids"][record["level"]]
-        dicts[cid] = {
-            "chart": cid, "player": g.user.id, "fc": record["fc"],
-            "score": min(1010000, record["score"]), "recent": recent == 1
-        }
-
-    if recent == 0:
+    if recent == 0:       
+        for record in j:
+            title = record['title']
+            if title not in md_title_map:
+                continue
+            m = md_title_map[title]
+            cid = m["cids"][record["level"]]
+            dicts[cid] = {
+                "chart": cid, "player": g.user.id, "fc": record["fc"],
+                "score": min(1010000, record["score"]), "recent": False
+            }
         rs = ChuniRecord.raw(
             'select * from chunirecord where player_id = %s', g.user.id)
         updates = []
@@ -80,8 +79,21 @@ async def update_records_chuni():
                 ChuniRecord.fc, ChuniRecord.score
             ])
     elif recent == 1:
+        arr = []
+        for record in j:
+            title = record['title']
+            if title not in md_title_map:
+                continue
+            m = md_title_map[title]
+            arr.append({
+                "chart": m["cids"][record["level"]],
+                "player": g.user.id,
+                "fc": record["fc"],
+                "score": min(1010000, record["score"]),
+                "recent": True
+            })
         ChuniRecord.delete().where((ChuniRecord.player == g.user.id) & (ChuniRecord.recent == 1)).execute()
-        ChuniRecord.insert_many(list(dicts.values())[0:10]).execute()
+        ChuniRecord.insert_many(arr).execute()
     return {"message": "更新成功"}
 
 
@@ -98,13 +110,13 @@ def single_ra(record: ChuniRecord):
     if score < 500000:
         return 0.0
     elif score < 800000:
-        return lerp(500000, 800000, 0, (ds - 5) / 2, score)
+        return max(0, lerp(500000, 800000, 0, (ds - 5) / 2, score))
     elif score < 900000:
-        return lerp(800000, 900000, (ds - 5) / 2, ds - 5, score)
+        return max(0, lerp(800000, 900000, (ds - 5) / 2, ds - 5, score))
     elif score < 925000:
-        return lerp(900000, 925000, ds - 5, ds - 3, score)
+        return max(0, lerp(900000, 925000, ds - 5, ds - 3, score))
     elif score < 975000:
-        return lerp(925000, 975000, ds - 3, ds, score)
+        return max(0, lerp(925000, 975000, ds - 3, ds, score))
     elif score < 1000000:
         return lerp(975000, 1000000, ds, ds + 1, score)
     elif score < 1005000:

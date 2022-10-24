@@ -502,10 +502,10 @@ export default {
     chuniBestRating: function() {
       let ra = 0;
       if (this.chuni_obj.records == undefined) return 0.0;
+      if (this.chuni_obj.records.best.length > 0) ra += this.chuni_obj.records.best[0].ra * 10;
       for (let i = 0; i < Math.min(this.chuni_obj.records.best.length, 30); i++)
       {
-        if (i < 10) ra += this.chuni_obj.records.best[i].ra * 2;
-        else ra += this.chuni_obj.records.best[i].ra;
+        ra += this.chuni_obj.records.best[i].ra;
       }
       return ra / 40;
     },
