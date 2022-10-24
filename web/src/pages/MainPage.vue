@@ -1129,7 +1129,7 @@ export default {
     },
     unlockAllChuni: function() {
       const currentCids = this.chuni_records.map(elem => {return elem.cid});
-      let rank = currentCids.length;
+      let rank = currentCids.length + 1;
       for (const m of this.chuni_data) {
         for (let i = 0; i < m.ds.length; i++) {
           if (currentCids.indexOf(m.cids[i]) != -1) continue;
