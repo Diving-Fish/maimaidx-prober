@@ -8,15 +8,16 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/elazarl/goproxy"
 
@@ -67,7 +68,7 @@ func tryLogin(username string, password string) {
 
 func commit(data io.Reader) {
 	resp2, _ := http.Post("http://www.diving-fish.com:8089/page", "text/plain", data)
-	b, _ := ioutil.ReadAll(resp2.Body)
+	b, _ := io.ReadAll(resp2.Body)
 	req, _ := http.NewRequest("POST", "https://www.diving-fish.com/api/maimaidxprober/player/update_records", bytes.NewReader(b))
 	req.Header.Add("Content-Type", "application/json")
 	req.AddCookie(jwt)
@@ -90,27 +91,76 @@ func fetchData(url *url.URL, cookies []*http.Cookie) {
 		if mode == MODE_UPDATE {
 			commit(resp.Body)
 		} else if mode == MODE_EXPORT {
-			r, _ := ioutil.ReadAll(resp.Body)
-			ioutil.WriteFile(fmt.Sprintf("diff%d.html", i), r, 0644)
+			r, _ := io.ReadAll(resp.Body)
+			os.WriteFile(fmt.Sprintf("mai-diff%d.html", i), r, 0644)
 			fmt.Println("已导出到文件")
 		}
 	}
-	if ProxyEnable != 39 {
-		rollbackSystemProxySettings()
-		fmt.Println("所有数据均已导入完成，请按 Enter 键以关闭此窗口，代理设置已经恢复到先前的设置~")
-	} else {
-		fmt.Println("所有数据均已导入完成，请按 Enter 键以关闭此窗口，不要忘记还原代理设置哦~")
+}
+
+func fetchDataChuni(req0 *http.Request, cookies []*http.Cookie) {
+	client := &http.Client{}
+	client.Jar, _ = cookiejar.New(nil)
+	client.Jar.SetCookies(req0.URL, cookies)
+	hds := req0.Header.Clone()
+	hds.Del("Cookie")
+	labels := []string{
+		"Basic 难度", "Advanced 难度", "Expert 难度", "Master 难度", "Ultima 难度", "World's End 难度", "Best 10 ",
 	}
-	bufio.NewReader(os.Stdin).ReadString('\n')
-	os.Exit(0)
+	postUrls := []string{
+		"/record/musicGenre/sendBasic",
+		"/record/musicGenre/sendAdvanced",
+		"/record/musicGenre/sendExpert",
+		"/record/musicGenre/sendMaster",
+		"/record/musicGenre/sendUltima",
+	}
+	urls := []string{
+		"/record/musicGenre/basic",
+		"/record/musicGenre/advanced",
+		"/record/musicGenre/expert",
+		"/record/musicGenre/master",
+		"/record/musicGenre/ultima",
+		"/record/worldsEndList/",
+		"/home/playerData/ratingDetailRecent/",
+	}
+
+	for i := 0; i < 7; i++ {
+		fmt.Printf("正在导入 %s……", labels[i])
+		if i < 5 {
+			formData := url.Values{
+				"genre": {"99"},
+				"token": {cookies[0].Value},
+			}
+			req, _ := http.NewRequest("POST", "https://chunithm.wahlap.com/mobile"+postUrls[i], strings.NewReader(formData.Encode()))
+			req.Header = hds
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			_, _ = client.Do(req)
+		}
+		req, _ := http.NewRequest("GET", "https://chunithm.wahlap.com/mobile"+urls[i], nil)
+		resp, _ := client.Do(req)
+		if mode == MODE_UPDATE {
+			url2 := "https://www.diving-fish.com/api/chunithmprober/player/update_records_html"
+			if i == 6 {
+				url2 += "?recent=1"
+			}
+			req2, _ := http.NewRequest("POST", url2, resp.Body)
+			req2.AddCookie(jwt)
+			client.Do(req2)
+			fmt.Println("导入成功")
+		} else if mode == MODE_EXPORT {
+			r, _ := io.ReadAll(resp.Body)
+			os.WriteFile(fmt.Sprintf("chuni-diff%d.html", i), r, 0644)
+			fmt.Println("已导出到文件")
+		}
+	}
 }
 
 func main() {
-	b, err := ioutil.ReadFile("config.json")
+	b, err := os.ReadFile("config.json")
 	if err != nil {
 		// First run
 		lib.GenerateCert()
-		ioutil.WriteFile("config.json", []byte("{\"username\": \"\", \"password\": \"\"}"), 0644)
+		os.WriteFile("config.json", []byte("{\"username\": \"\", \"password\": \"\"}"), 0644)
 		commandFatal("初次使用请填写config.json文件，并依据教程完成根证书的安装。")
 	}
 	obj := map[string]interface{}{}
@@ -120,21 +170,44 @@ func main() {
 	}
 	tryLogin(obj["username"].(string), obj["password"].(string))
 	applySystemProxySettings()
-	crt, _ := ioutil.ReadFile("cert.crt")
-	pem, _ := ioutil.ReadFile("key.pem")
+	// 搞个抓SIGINT的东西，×的时候可以关闭代理
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		for range c {
+			if ProxyEnable != 39 {
+				rollbackSystemProxySettings()
+			}
+			os.Exit(0)
+		}
+	}()
+	crt, _ := os.ReadFile("cert.crt")
+	pem, _ := os.ReadFile("key.pem")
 	goproxy.GoproxyCa, _ = tls.X509KeyPair(crt, pem)
+	fmt.Println("使用此软件则表示您同意共享您在微信公众号舞萌 DX、中二节奏中的数据。")
+	fmt.Println("您可以在微信客户端访问微信公众号舞萌 DX、中二节奏的个人信息主页进行分数导入，如需退出请直接关闭程序或按下 Ctrl + C")
 	proxy := goproxy.NewProxyHttpServer()
-	proxy.OnRequest(goproxy.ReqHostMatches(regexp.MustCompile("^maimai.wahlap.com:443.*$"))).
+	proxy.OnRequest(goproxy.ReqHostMatches(regexp.MustCompile("^(maimai|chunithm).wahlap.com:443.*$"))).
 		HandleConnect(goproxy.AlwaysMitm)
 	proxy.OnResponse().DoFunc(
 		func(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+			if resp == nil || resp.Request == nil || resp.Request.URL == nil {
+				return resp
+			}
 			path := resp.Request.URL.Path
 			if regexp.MustCompile("^/maimai-mobile/home.*").MatchString(path) {
-				resp.Body = ioutil.NopCloser(strings.NewReader("<p>正在获取您的乐曲数据，请稍候……这可能需要花费数秒，具体进度可以在代理服务器的命令行窗口查看。</p><p>此页面仅用于提示您成功访问了代理服务器，您可以立即关闭此窗口。</p>"))
+				resp.Body = io.NopCloser(strings.NewReader("<p>正在获取您的舞萌 DX 乐曲数据，请稍候……这可能需要花费数秒，具体进度可以在代理服务器的命令行窗口查看。</p><p>此页面仅用于提示您成功访问了代理服务器，您可以立即关闭此窗口。</p>"))
 				if resp.StatusCode == 302 {
 					commandFatal("访问舞萌 DX 的成绩界面出错。")
 				}
 				go fetchData(resp.Request.URL, resp.Cookies())
+			}
+			if regexp.MustCompile("^/mobile/home.*").MatchString(path) {
+				resp.Body = io.NopCloser(strings.NewReader("<p>正在获取您的中二节奏乐曲数据，请稍候……这可能需要花费数秒，具体进度可以在代理服务器的命令行窗口查看。</p><p>此页面仅用于提示您成功访问了代理服务器，您可以立即关闭此窗口。</p>"))
+				if resp.StatusCode == 302 {
+					commandFatal("访问中二节奏的成绩界面出错。")
+				}
+				go fetchDataChuni(ctx.Req, resp.Cookies())
 			}
 			return resp
 		})
