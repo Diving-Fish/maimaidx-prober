@@ -418,7 +418,7 @@ import Recovery from "../components/Recovery.vue";
 import watchVisible from "../plugins/watchVisible";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
-const DEBUG = true;
+const DEBUG = false;
 export default {
   name: "App",
   components: {
