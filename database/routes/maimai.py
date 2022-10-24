@@ -398,7 +398,7 @@ async def update_records_html():
     raw_data = await request.get_data()
     dicts = {}
     try:
-        j = page_parser.html2json(str(raw_data, encoding="utf-8"))
+        j = page_parser.wmdx_html2json(str(raw_data, encoding="utf-8"))
     except Exception as e:
         return {
                 "message": str(e)

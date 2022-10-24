@@ -1,34 +1,4 @@
-import json
-import time
-from typing import List, Optional, Dict, Text, Union, Any, Tuple
-
-from peewee import Model, CharField, IntegerField, BigIntegerField, BooleanField, ForeignKeyField, DoubleField, TextField
-from playhouse.db_url import connect
-
-with open('config.json', encoding='utf-8') as fr:
-    config = json.load(fr)
-    mysql_url = config["mysql_url"]
-
-db = connect(mysql_url)
-
-
-class BaseModel(Model):
-    class Meta:
-        database = db
-
-
-class Developer(BaseModel):
-    nickname = CharField()
-    token = CharField()
-    reason = TextField()
-    available = BooleanField()
-
-
-class DeveloperLog(BaseModel):
-    developer = ForeignKeyField(Developer)
-    function = CharField()
-    remote_addr = CharField()
-    timestamp = DoubleField()
+from models.base import *
 
 
 class Music(BaseModel):
@@ -55,33 +25,6 @@ class Chart(BaseModel):
     break_note = IntegerField()
     ds = DoubleField()
     charter = CharField()
-
-
-class Player(BaseModel):
-    username = CharField()
-    password = CharField()
-    salt = CharField()
-    rating = IntegerField()
-    additional_rating = IntegerField()
-    nickname = CharField()
-    bind_qq = CharField()
-    plate = CharField()
-    privacy = BooleanField()
-    user_id = IntegerField()
-    user_data = TextField()
-
-
-class EmailReset(BaseModel):
-    # class for reset username and password.
-    player = ForeignKeyField(Player)
-    token = CharField()
-    timeout_stamp = BigIntegerField()
-
-    def timeout(self):
-        return int(time.time()) > self.timeout_stamp
-
-    def reset(self):
-        self.timeout_stamp = 4102444800
 
 
 class NewRecord(BaseModel):
@@ -144,21 +87,6 @@ class Record(BaseModel):
             "fc": self.fc,
             "fs": self.fs
         }
-
-
-class FeedBack(BaseModel):
-    message = TextField()
-
-
-class Views(BaseModel):
-    prober = IntegerField()
-
-
-class Message(BaseModel):
-    text = CharField()
-    player = ForeignKeyField(Player)
-    nickname = CharField()
-    ts = IntegerField()
 
 
 db.create_tables([Music, NewRecord, Chart, Player, EmailReset,
