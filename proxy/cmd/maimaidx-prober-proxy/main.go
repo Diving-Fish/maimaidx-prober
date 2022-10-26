@@ -77,10 +77,20 @@ func commit(data io.Reader) {
 	fmt.Println("导入成功")
 }
 
-func fetchData(url *url.URL, cookies []*http.Cookie) {
+func fetchData(req0 *http.Request, cookies []*http.Cookie) {
 	client := &http.Client{}
 	client.Jar, _ = cookiejar.New(nil)
-	client.Jar.SetCookies(url, cookies)
+	if len(cookies) != 2 {
+		for _, cookie := range req0.Cookies() {
+			if cookie.Name == "userId" {
+				cookie2 := *cookies[0]
+				cookie2.Name = cookie.Name
+				cookie2.Value = cookie.Value
+				cookies = append(cookies, &cookie2)
+			}
+		}
+	}
+	client.Jar.SetCookies(req0.URL, cookies)
 	labels := []string{
 		"Basic", "Advanced", "Expert", "Master", "Re: MASTER",
 	}
@@ -200,7 +210,7 @@ func main() {
 				if resp.StatusCode == 302 {
 					commandFatal("访问舞萌 DX 的成绩界面出错。")
 				}
-				go fetchData(resp.Request.URL, resp.Cookies())
+				go fetchData(resp.Request, resp.Cookies())
 			}
 			if regexp.MustCompile("^/mobile/home.*").MatchString(path) {
 				resp.Body = io.NopCloser(strings.NewReader("<p>正在获取您的中二节奏乐曲数据，请稍候……这可能需要花费数秒，具体进度可以在代理服务器的命令行窗口查看。</p><p>此页面仅用于提示您成功访问了代理服务器，您可以立即关闭此窗口。</p>"))
