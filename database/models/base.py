@@ -17,6 +17,15 @@ class BaseModel(Model):
         database = db
 
 
+class RequestLog(BaseModel):
+    year = IntegerField()
+    month = IntegerField()
+    day = IntegerField()
+    hour = IntegerField()
+    path = CharField()
+    times = IntegerField()
+
+
 class Player(BaseModel):
     username = CharField()
     password = CharField()

@@ -1,3 +1,5 @@
+from ast import arg
+from datetime import datetime
 from functools import wraps
 import hashlib
 from quart import *
@@ -27,6 +29,20 @@ with open('config.json', encoding='utf-8') as fr:
 
 @app.after_request
 def cors(environ):
+    cur = datetime.today()
+    try:
+        log = RequestLog.get((cur.hour == RequestLog.hour) & (cur.day == RequestLog.day) & (cur.month == RequestLog.month) & (cur.year == RequestLog.year) & (request.path == RequestLog.path))
+        log.times += 1
+        log.save()
+    except Exception:
+        log = RequestLog()
+        log.year = cur.year
+        log.month = cur.month
+        log.day = cur.day
+        log.hour = cur.hour
+        log.times = 1
+        log.path = request.path
+        log.save()
     environ.headers['Access-Control-Allow-Origin'] = '*'
     environ.headers['Access-Control-Allow-Method'] = '*'
     environ.headers['Access-Control-Allow-Headers'] = 'x-requested-with,content-type'

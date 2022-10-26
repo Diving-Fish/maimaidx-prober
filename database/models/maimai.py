@@ -90,7 +90,7 @@ class Record(BaseModel):
 
 
 db.create_tables([Music, NewRecord, Chart, Player, EmailReset,
-                 Record, FeedBack, Views, Message, Developer, DeveloperLog])
+                 Record, FeedBack, Views, Message, Developer, DeveloperLog, RequestLog])
 
 
 def get_idx(achievements):

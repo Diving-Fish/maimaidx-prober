@@ -332,6 +332,10 @@ async def update_records():
                 "message": str(e)
             }, 400
     else:
+        if type(j) != type([]):
+            return {"message": "导入数据格式有误"}, 404
+        elif len(j) == 0:
+            return {"message": "更新成功"}
         for record in j:
             # print(time.time())
             title = record['title']
@@ -538,6 +542,7 @@ async def message():
 
 @app.route("/chart_stats", methods=['GET'])
 async def chart_stats():
+    # return {}
     global cs_need_update
     global cs_cache
     global cs_cache_eTag
