@@ -219,7 +219,7 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <v-btn plain class="mt-3 mr-4" style="position: absolute; right: 0px" @click="changeTable(1)">
+                <v-btn :block="$vuetify.breakpoint.mobile" plain class="mt-3 mr-4" style="position: absolute; right: 0px" @click="changeTable(1)">
                   <v-icon>mdi-swap-horizontal</v-icon>切换到中二节奏成绩表格
                 </v-btn>
               </div>
@@ -258,7 +258,7 @@
             </v-window-item>
             <v-window-item eager>
               <div style="display: flex; line-height: 64px; justify-content: left; flex-wrap: wrap; min-height: 60px;" class="pt-3 pl-5">
-                <v-dialog v-model="allModeVisible" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
+                <v-dialog v-model="allModeVisibleChuni" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
                   <template #activator="{ on, attrs }">
                     <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on" color="deep-orange" dark>解锁全曲</v-btn>
                   </template>
@@ -266,7 +266,7 @@
                     <v-card-title>
                       确认
                       <v-spacer />
-                      <v-btn icon @click="allModeVisible = false">
+                      <v-btn icon @click="allModeVisibleChuni = false">
                         <v-icon>mdi-close</v-icon>
                       </v-btn>
                     </v-card-title>
@@ -278,7 +278,7 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <v-btn plain class="mt-3 mr-4" style="position: absolute; right: 0px" @click="changeTable(0)">
+                <v-btn plain :block="$vuetify.breakpoint.mobile" class="mt-3 mr-4" style="position: absolute; right: 0px" @click="changeTable(0)">
                   <v-icon>mdi-swap-horizontal</v-icon>切换到舞萌 DX 成绩表格
                 </v-btn>
               </div>
@@ -484,6 +484,7 @@ export default {
       exportEncodings: ["GBK", "UTF-8"],
       logoutVisible: false,
       allModeVisible: false,
+      allModeVisibleChuni: false,
       proSetting: false,
       chart_combo: {},
       headers: [
@@ -1151,7 +1152,7 @@ export default {
           rank++;
         }
       }
-      this.allModeVisible = false;
+      this.allModeVisibleChuni = false;
     }
   },
 };
