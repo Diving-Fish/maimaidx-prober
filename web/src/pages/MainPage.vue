@@ -163,7 +163,9 @@
         <v-card>
           <v-window v-model="tableMode">
             <v-window-item>
-
+              <v-btn v-if="$vuetify.breakpoint.mobile" plain block class="mt-3" @click="changeTable(1)">
+                <v-icon>mdi-swap-horizontal</v-icon>切换到中二节奏成绩表格
+              </v-btn>
               <div style="display: flex; line-height: 64px; justify-content: left; flex-wrap: wrap;" class="pt-3 pl-5">
                 <v-dialog v-model="exportVisible" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
                   <template #activator="{ on, attrs }">
@@ -219,7 +221,7 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <v-btn :block="$vuetify.breakpoint.mobile" plain class="mt-3 mr-4" style="position: absolute; right: 0px" @click="changeTable(1)">
+                <v-btn v-if="!$vuetify.breakpoint.mobile" plain class="mt-3 mr-4" style="position: absolute; right: 0px" @click="changeTable(1)">
                   <v-icon>mdi-swap-horizontal</v-icon>切换到中二节奏成绩表格
                 </v-btn>
               </div>
@@ -257,6 +259,9 @@
               </v-card-text>
             </v-window-item>
             <v-window-item eager>
+              <v-btn plain v-if="$vuetify.breakpoint.mobile" block class="mt-3" @click="changeTable(0)">
+                <v-icon>mdi-swap-horizontal</v-icon>切换到舞萌 DX 成绩表格
+              </v-btn>
               <div style="display: flex; line-height: 64px; justify-content: left; flex-wrap: wrap; min-height: 60px;" class="pt-3 pl-5">
                 <v-dialog v-model="allModeVisibleChuni" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
                   <template #activator="{ on, attrs }">
@@ -278,7 +283,7 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <v-btn plain :block="$vuetify.breakpoint.mobile" class="mt-3 mr-4" style="position: absolute; right: 0px" @click="changeTable(0)">
+                <v-btn plain v-if="!$vuetify.breakpoint.mobile" class="mt-3 mr-4" style="position: absolute; right: 0px" @click="changeTable(0)">
                   <v-icon>mdi-swap-horizontal</v-icon>切换到舞萌 DX 成绩表格
                 </v-btn>
               </div>
