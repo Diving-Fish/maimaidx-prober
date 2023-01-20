@@ -263,6 +263,37 @@
                 <v-icon>mdi-swap-horizontal</v-icon>切换到舞萌 DX 成绩表格
               </v-btn>
               <div style="display: flex; line-height: 64px; justify-content: left; flex-wrap: wrap; min-height: 60px;" class="pt-3 pl-5">
+                <v-dialog v-model="exportVisibleChuni" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
+                  <template #activator="{ on, attrs }">
+                    <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导出为 CSV</v-btn>
+                  </template>
+                  <v-card>
+                    <v-card-title>
+                      导出为 CSV
+                      <v-spacer />
+                      <v-btn icon @click="exportVisibleChuni = false">
+                        <v-icon>mdi-close</v-icon>
+                      </v-btn>
+                    </v-card-title>
+                    <v-card-text>
+                      <div style="display: flex">
+                        <v-select v-model="exportEncodingChuni" label="选择编码" :items="exportEncodings">
+                        </v-select>
+                        <v-tooltip bottom>
+                          <template v-slot:activator="{ on, attrs }">
+                            <v-icon v-bind="attrs" v-on="on" class="ml-4">
+                              mdi-help-circle
+                            </v-icon>
+                          </template>
+                          <span>GBK编码一般用于Excel打开，UTF-8编码则可以供部分其他编辑器直接显示。</span>
+                        </v-tooltip>
+                      </div>
+                    </v-card-text>
+                    <v-card-actions>
+                      <v-btn class="mr-4" @click="expertToCSVChuni()">导出</v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-dialog>
                 <v-dialog v-model="allModeVisibleChuni" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
                   <template #activator="{ on, attrs }">
                     <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on" color="deep-orange" dark>解锁全曲</v-btn>
@@ -279,7 +310,7 @@
                     </v-card-text>
                     <v-card-actions>
                       <v-btn class="mr-4" @click="unlockAllChuni" color="primary">解锁</v-btn>
-                      <v-btn @click="allModeVisible = false">取消</v-btn>
+                      <v-btn @click="allModeVisibleChuni = false">取消</v-btn>
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
@@ -486,10 +517,12 @@ export default {
       valid2: false,
       exportVisible: false,
       exportEncoding: "GBK",
+      exportEncodingChuni: "GBK",
       exportEncodings: ["GBK", "UTF-8"],
       logoutVisible: false,
       allModeVisible: false,
       allModeVisibleChuni: false,
+      exportVisibleChuni: false,
       proSetting: false,
       chart_combo: {},
       headers: [
@@ -1090,6 +1123,26 @@ export default {
           "导入页面信息出错，请确认您导入的是【记录】-【乐曲成绩】-【歌曲类别】。"
         );
       }
+    },
+    expertToCSVChuni: function() {
+      let text = "排名,乐曲名,难度,定数,分数,Rating\n";
+      const escape = function (value) {
+        if (value.indexOf(",") >= 0) {
+          return value;
+        } else {
+          return `"${value}"`;
+        }
+      };
+      for (const m of this["chuni_records"]) {
+        text += `${m.rank},${escape(m.title)},${m.level},${m.ds},${m.score},${m.ra}\n`;
+      }
+      const blob = new Blob([
+        this.exportEncodingChuni === "GBK" ? new Uint8Array(GBK.encode(text)) : text,
+      ]);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "中二节奏.csv";
+      a.click();
     },
     exportToCSV: function (type) {
       let text = "排名,曲名,难度,等级,定数,达成率, DX Rating\n";
