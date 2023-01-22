@@ -463,7 +463,7 @@ import watchVisible from "../plugins/watchVisible";
 import ChuniOverPowerCalculators from "@/components/ChuniOverPowerCalculators";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
-const DEBUG = false;
+const DEBUG = true;
 export default {
   name: "App",
   components: {
@@ -564,7 +564,9 @@ export default {
     chuniRecordDisplay: function() {
       const that = this;
       return this.chuni_records.filter((elem) => {
-        return (!that.$refs.filterSliderChuni || that.$refs.filterSliderChuni.f(elem))
+        return (
+            that.$refs.filterSliderChuni.f(elem) &&
+            (!that.proSettingChuni || that.$refs.proSettingsChuni.f(elem)))
       });
     },
     title2id: function () {

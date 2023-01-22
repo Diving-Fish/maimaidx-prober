@@ -106,20 +106,28 @@ export default {
     getRate(val) {
       if (val < 500000) {
         return 'd'
-      } else if (val < 800000) {
+      } else if (val < 600000) {
         return 'c'
-      } else if (val < 900000) {
+      } else if (val < 700000) {
         return 'b'
+      } else if (val < 800000) {
+        return 'bb'
+      } else if (val < 900000) {
+        return 'bbb'
       } else if (val < 925000) {
         return 'a'
       } else if (val < 950000) {
         return 'aa'
       } else if (val < 975000) {
         return 'aaa'
-      } else if (val < 1000000) {
+      } else if (val < 990000) {
         return 's'
-      } else if (val < 1007500) {
+      } else if (val < 1000000) {
+        return 's+'
+      } else if (val < 1005000) {
         return 'ss'
+      } else if (val < 1007500) {
+        return 'ss+'
       } else if (val < 1009000) {
         return 'sss'
       } else {

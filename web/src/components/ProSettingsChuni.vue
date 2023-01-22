@@ -18,21 +18,6 @@
     <v-row dense>
       <v-col cols="4" class="px-0 py-0">
         <v-subheader>
-          按 FULL CHAIN 情况筛选
-          <v-icon @click="fullchain_filter.length === fullchain_filter_items.length ? (fullchain_filter = []) : (fullchain_filter = fullchain_filter_items.map((i) => i.value))" class="ml-2">mdi-check-all</v-icon>
-        </v-subheader>
-      </v-col>
-      <v-col cols="8" class="px-0 py-0">
-        <v-slide-group multiple v-model="fullchain_filter" class="ml-2 py-2" show-arrows>
-          <v-slide-item v-for="(item,key) in fullchain_filter_items" :key="key" :value="item.value" class="mr-2" v-slot="{ active, toggle }">
-            <v-chip :color="getFULLCHAIN(item.value)" :outlined="!active" dark @click="toggle">{{ item.text }}</v-chip>
-          </v-slide-item>
-        </v-slide-group>
-      </v-col>
-    </v-row>
-    <v-row dense>
-      <v-col cols="4" class="px-0 py-0">
-        <v-subheader>
           按难度筛选
           <v-icon @click="level_filter.length === level_filter_items.length ? (level_filter = []) : (level_filter = level_filter_items.map((i) => i.value))" class="ml-2">mdi-check-all</v-icon>
         </v-subheader>
@@ -96,18 +81,14 @@ export default {
     return {
       darkTheme: false,
       fc_filter: [],
-      fullchain_filter: [],
       level_filter: [],
       rate_filter: [],
+      version: null,
+      genre: null,
       fc_filter_items: [
-        { text: "空", value: 0 },
-        { text: "FC", value: "fc"},
-        { text: "AJ", value: "aj"},
-      ],
-      fullchain_filter_items: [
-        { text: "空", value: 0 },
-        { text: "FULL CHAIN", value: "fullchain"},
-        { text: "FULL CHAIN+", value: "fullchainp"},
+        { text: "空", value: 0},
+        { text: "FC", value: "fullcombo"},
+        { text: "AJ", value: "alljustice"},
       ],
       level_filter_items: [
         { text: "Basic", value: 0 },
@@ -167,11 +148,47 @@ export default {
   methods: {
     f(item) {
       return (
-          this.fc_filter.findIndex((i) => i == item.fc) != -1 &&
-              this.fullchain_filter.findIndex((i) => i == item.fullchain) != -1 &&
-              this.level_filter.findIndex((i) => i == item.level) != -1 &&
-              this.rate_filter.findIndex((i) => item.rate.startsWith(i)) != -1
+          console.log(item),
+          this.fc_filter.findIndex((i) => i == item.fc) !== -1 &&
+          this.level_filter.findIndex((i) => i == item.level_index) !== -1 &&
+          (!this.version ||
+              this.music_data_dict[item.mid] &&
+              this.music_data_dict[item.mid].basic_info.from == this.version) &&
+          (!this.genre ||
+              this.music_data_dict[item.mid] &&
+              this.music_data_dict[item.mid].basic_info.genre == this.genre)
       )
+    },
+    getRateLabel(val) {
+      if (val < 500000) {
+        return 'd'
+      } else if (val < 600000) {
+        return 'c'
+      } else if (val < 700000) {
+        return 'b'
+      } else if (val < 800000) {
+        return 'bb'
+      } else if (val < 900000) {
+        return 'bbb'
+      } else if (val < 925000) {
+        return 'a'
+      } else if (val < 950000) {
+        return 'aa'
+      } else if (val < 975000) {
+        return 'aaa'
+      } else if (val < 990000) {
+        return 's'
+      } else if (val < 1000000) {
+        return 'sp'
+      } else if (val < 1005000) {
+        return 'ss'
+      } else if (val < 1007500) {
+        return 'ssp'
+      } else if (val < 1009000) {
+        return 'sss'
+      } else {
+        return 'sssp'
+      }
     },
     toggleDarkTheme: function (param) {
       localStorage.darkTheme = +param;
@@ -182,13 +199,8 @@ export default {
     },
     getFC(str) {
       if (!str) return "grey";
-      if (str.startsWith("fc")) return "green";
+      if (str.startsWith("fullcombo")) return "green";
       return "orange";
-    },
-    getFULLCHAIN(str) {
-      if (!str) return "grey";
-      if (str === "fullchain") return "green";
-      return "orange"
     },
     getRate(str) {
       if (str.startsWith("sssp")) return "red";
@@ -197,8 +209,7 @@ export default {
       return "grey";
     },
     reset() {
-      this.fc_filter = [0, "fc", "aj"];
-      this.fullchain_filter = [0, "fullchain", "fullchainp"];
+      this.fc_filter = [0, "fullcombo", "alljustice"];
       this.level_filter = [0, 1, 2, 3, 4, 5];
       this.rate_filter = ["sssp", "sss", "ssp", "ss", "sp", "s", "aaa", "aa", "a", "bbb", "bb", "b", "c", "d"];
     },
