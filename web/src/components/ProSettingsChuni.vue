@@ -148,9 +148,9 @@ export default {
   methods: {
     f(item) {
       return (
-          console.log(item),
           this.fc_filter.findIndex((i) => i == item.fc) !== -1 &&
           this.level_filter.findIndex((i) => i == item.level_index) !== -1 &&
+          this.rate_filter.findIndex((i) => i == this.getRateLabel(item.score)) !== -1 &&
           (!this.version ||
               this.music_data_dict[item.mid] &&
               this.music_data_dict[item.mid].basic_info.from == this.version) &&
@@ -186,8 +186,10 @@ export default {
         return 'ssp'
       } else if (val < 1009000) {
         return 'sss'
-      } else {
+      } else if (val <= 1010000){
         return 'sssp'
+      } else {
+        return NaN
       }
     },
     toggleDarkTheme: function (param) {
