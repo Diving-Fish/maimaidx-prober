@@ -86,6 +86,7 @@ export default {
       version: null,
       genre: null,
       fc_filter_items: [
+        { text: "无数据", value: "nodata"},
         { text: "空", value: 0},
         { text: "FC", value: "fullcombo"},
         { text: "AJ", value: "alljustice"},
@@ -147,17 +148,32 @@ export default {
   },
   methods: {
     f(item) {
-      return (
-          this.fc_filter.findIndex((i) => i == item.fc) !== -1 &&
-          this.level_filter.findIndex((i) => i == item.level_index) !== -1 &&
-          this.rate_filter.findIndex((i) => i == this.getRateLabel(item.score)) !== -1 &&
-          (!this.version ||
-              this.music_data_dict[item.mid] &&
-              this.music_data_dict[item.mid].basic_info.from == this.version) &&
-          (!this.genre ||
-              this.music_data_dict[item.mid] &&
-              this.music_data_dict[item.mid].basic_info.genre == this.genre)
-      )
+      if (this.fc_filter.includes("nodata")===false){
+        return (
+            this.fc_filter.findIndex((i) => i == item.fc) !== -1 &&
+            this.level_filter.findIndex((i) => i == item.level_index) !== -1 &&
+            this.rate_filter.findIndex((i) => i == this.getRateLabel(item.score)) !== -1 &&
+            (!this.version ||
+                this.music_data_dict[item.mid] &&
+                this.music_data_dict[item.mid].basic_info.from == this.version) &&
+            (!this.genre ||
+                this.music_data_dict[item.mid] &&
+                this.music_data_dict[item.mid].basic_info.genre == this.genre)
+        )
+      } else {
+        this.fc_filter = ["nodata"];
+        return (
+            this.level_filter.findIndex((i) => i == item.level_index) !== -1 &&
+            this.rate_filter.findIndex((i) => i == this.getRateLabel(item.score)) !== -1 &&
+            (!this.version ||
+                this.music_data_dict[item.mid] &&
+                this.music_data_dict[item.mid].basic_info.from == this.version) &&
+            (!this.genre ||
+                this.music_data_dict[item.mid] &&
+                this.music_data_dict[item.mid].basic_info.genre == this.genre)
+        )
+      }
+
     },
     getRateLabel(val) {
       if (val < 500000) {

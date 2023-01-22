@@ -294,7 +294,6 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
-                <chuni-calculators/>
                 <ChuniOverPowerCalculators/>
                 <v-dialog v-model="allModeVisibleChuni" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
                   <template #activator="{ on, attrs }">
@@ -351,6 +350,8 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
+          2023/01/22
+          （By 蜜柑）大家新年快乐，除夕和春节两晚给中二节奏成绩表格肝（抄）了个导出成绩、谱面筛选和 OP 计算器（这个是自己写的）等功能。同时修复了一些前端的小 bug，并将成绩评级分数线修改成与中二节奏 NEW 现行分数线一致。<br />
           2022/10/24
           中二查分器来咯，1024程序员节快乐~<br />
           2021/11/25
@@ -456,7 +457,6 @@ import Message from "../components/Message.vue";
 import Profile from "../components/Profile.vue";
 import PlateQualifier from "../components/PlateQualifier.vue";
 import Calculators from "../components/Calculators.vue";
-import ChuniCalculators from "@/components/ChuniCalculators";
 import Tutorial from "../components/Tutorial.vue";
 import Recovery from "../components/Recovery.vue";
 import watchVisible from "../plugins/watchVisible";
@@ -469,7 +469,6 @@ export default {
   components: {
     ChuniOverPowerCalculators,
     ProSettingsChuni,
-    ChuniCalculators,
     ChartTable,
     ChuniTable,
     ViewBadge,
