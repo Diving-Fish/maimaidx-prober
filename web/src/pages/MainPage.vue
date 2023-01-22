@@ -294,6 +294,8 @@
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
+                <chuni-calculators/>
+                <ChuniOverPowerCalculators/>
                 <v-dialog v-model="allModeVisibleChuni" width="500px" :fullscreen="$vuetify.breakpoint.mobile">
                   <template #activator="{ on, attrs }">
                     <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on" color="deep-orange" dark>解锁全曲</v-btn>
@@ -320,6 +322,8 @@
               </div>
               <v-card-title>中二节奏成绩表格
                 <v-spacer />
+                <v-checkbox label="使用高级设置" v-model="proSettingChuni" class="mr-4" @click="$refs.proSettingsChuni.reset()">
+                </v-checkbox>
                 <v-text-field v-model="searchKey" append-icon="mdi-magnify" label="查找乐曲" single-line hide-details
                   class="mb-4"></v-text-field>
               </v-card-title>
@@ -328,6 +332,8 @@
                 <span class="mr-2">无需推分可达到的最高Rating: {{ chuniBestRating.toFixed(4) }}</span>
               </v-card-subtitle>
               <filter-slider ref="filterSliderChuni"></filter-slider>
+              <pro-settings-chuni v-show="proSettingChuni" ref="proSettingsChuni" :music_data="chuni_data"
+                            :music_data_dict="chuni_data_dict" @setHeaders="setHeaders"></pro-settings-chuni>
               <v-card-text>
                 <chuni-table :search="searchKey" :items="chuniRecordDisplay" :music_data_dict="chuni_data_dict">
                 </chuni-table>
@@ -444,20 +450,26 @@ import ViewBadge from "../components/ViewBadge.vue";
 import GBK from "../plugins/gbk";
 import FilterSlider from "../components/FilterSlider.vue";
 import ProSettings from "../components/ProSettings.vue";
+import ProSettingsChuni from "@/components/ProSettingsChuni";
 import Advertisement from "../components/Advertisement.vue";
 import Message from "../components/Message.vue";
 import Profile from "../components/Profile.vue";
 import PlateQualifier from "../components/PlateQualifier.vue";
 import Calculators from "../components/Calculators.vue";
+import ChuniCalculators from "@/components/ChuniCalculators";
 import Tutorial from "../components/Tutorial.vue";
 import Recovery from "../components/Recovery.vue";
 import watchVisible from "../plugins/watchVisible";
+import ChuniOverPowerCalculators from "@/components/ChuniOverPowerCalculators";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 const DEBUG = false;
 export default {
   name: "App",
   components: {
+    ChuniOverPowerCalculators,
+    ProSettingsChuni,
+    ChuniCalculators,
     ChartTable,
     ChuniTable,
     ViewBadge,
@@ -524,6 +536,7 @@ export default {
       allModeVisibleChuni: false,
       exportVisibleChuni: false,
       proSetting: false,
+      proSettingChuni: false,
       chart_combo: {},
       headers: [
         { text: "排名", value: "rank" },
