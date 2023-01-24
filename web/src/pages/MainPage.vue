@@ -1211,6 +1211,7 @@ export default {
             {
               "rank": rank,
               "ds": m.ds[i],
+              "fc": "",
               "title": m.title,
               "level": m.level[i],
               "mid": m.id,
