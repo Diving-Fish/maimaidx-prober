@@ -1,3 +1,10 @@
+"""
+Author: Diving-Fish
+
+这个文件的目录会被反向代理映射到
+https://www.diving-fish.com/api/maimaidxprober/*
+例如 /player/profile 可以通过 https://www.diving-fish.com/api/maimaidxprober/player/profile 访问。
+"""
 import asyncio
 from collections import defaultdict
 from app import app, developer_required, login_required, md5
@@ -46,6 +53,10 @@ def is_new_2(r: Record):
 @app.route("/player/profile", methods=['GET', 'POST'])
 @login_required
 async def profile():
+    """
+    *需要登录
+    更新或获取您的用户资料，取决于请求是 POST 还是 GET。
+    """
     if request.method == 'GET':
         u: Player = g.user
         return {
@@ -115,6 +126,9 @@ def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
 
 @app.route("/music_data", methods=['GET'])
 async def get_music_data():
+    """
+    获取 maimai 的歌曲数据。
+    """
     if request.headers.get('If-None-Match') == '"' + md_cache_eTag + '"':
         resp = await make_response("", 304)
         resp.headers['cache-control'] = "private, max_age=86400"
@@ -129,6 +143,10 @@ async def get_music_data():
 @app.route("/player/records", methods=['GET'])
 @login_required
 async def get_records():
+    """
+    *需要登录
+    获取用户的成绩信息。
+    """
     r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', g.user.id)
     await compute_ra(g.user)
     records = []
@@ -141,6 +159,11 @@ async def get_records():
 @app.route("/dev/player/records", methods=['GET'])
 @developer_required
 async def dev_get_records():
+    """
+    *需要开发者
+    获取某个用户的成绩信息。
+    请求体为 JSON，参数需包含 `username`。
+    """
     username = request.args.get("username", type=str, default="")
     if username == "":
         return {"message": "no such user"}, 400
@@ -159,6 +182,9 @@ async def dev_get_records():
 
 @app.route("/player/test_data", methods=['GET'])
 async def get_test_data():
+    """
+    获取测试用户的成绩数据，调试前端时使用。
+    """
     r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', 293)
     records = []
     for record in r:
@@ -263,6 +289,10 @@ async def query_player():
 
 @app.route("/query/plate", methods=['POST'])
 async def query_plate():
+    """
+    获取某个用户的牌子信息。
+    请求体为 JSON，参数需包含 `username` 或 `qq` 中的一项和 `version`。
+    """
     obj = await request.json
     try:
         if "qq" in obj:
@@ -305,6 +335,11 @@ async def compute_ra(player: Player):
 @app.route("/player/update_records", methods=['POST'])
 @login_required
 async def update_records():
+    """
+    *需要登录
+    更新用户的成绩信息
+    请求体为 JSON List，格式可以参考 `/player/records` 接口返回的数据。
+    """
     global cs_need_update
     cs_need_update = True
     j = await request.get_json()
@@ -378,6 +413,10 @@ async def update_records():
 
 @app.route("/player/update_records_html", methods=['POST'])
 async def update_records_html():
+    """
+    *需要登录
+    通过 html 格式的数据更新您的舞萌 DX 查分器数据。
+    """
     global cs_need_update
     cs_need_update = True
 
@@ -453,6 +492,10 @@ async def update_records_html():
 @app.route("/player/update_record", methods=['POST'])
 @login_required
 async def update_record():
+    """
+    *需要登录
+    更新单曲数据，请求体为 JSON，格式可以参考 `/player/records` 返回的 JSON List 中的一项。
+    """
     # must be update.
     global cs_need_update
     cs_need_update = True
@@ -480,6 +523,10 @@ async def update_record():
 @app.route("/player/delete_records", methods=['DELETE'])
 @login_required
 async def delete_records():
+    """
+    *需要登录
+    清除所有舞萌 DX 的歌曲成绩记录。
+    """
     global cs_need_update
     cs_need_update = True
     nums = NewRecord.delete().where(NewRecord.player == g.user.id).execute()
@@ -491,6 +538,9 @@ async def delete_records():
 
 @app.route("/rating_ranking", methods=['GET'])
 async def rating_ranking():
+    """
+    返回 rating 排行榜（设置隐私的用户不包含在内）。
+    """
     players = Player.select().where((Player.rating != 0) & (Player.privacy == False))
     data = []
     for player in players:
@@ -500,48 +550,11 @@ async def rating_ranking():
     return resp
 
 
-@app.route("/count_view", methods=['GET'])
-async def count_view():
-    v: Views = Views.get()
-    v.prober += 1
-    v.save()
-    return {"views": v.prober}
-
-
-async def message_resp():
-    today_ts = int((time.time() + 8 * 3600) / 86400) * 86400 - 8 * 3600
-    results = Message.select(Message, Player).join(
-        Player).where(Message.ts >= today_ts)
-    l = []
-    for r in results:
-        l.append({"text": r.text, "username": r.player.username,
-                 "ts": r.ts, "nickname": r.nickname})
-    resp = await make_response(json.dumps(l, ensure_ascii=False))
-    resp.headers['content-type'] = "application/json; charset=utf-8"
-    return resp
-
-
-@app.route("/message", methods=['GET'])
-async def message_g():
-    return await message_resp()
-
-
-@app.route("/message", methods=['POST'])
-@login_required
-async def message():
-    if request.method == 'POST':
-        a = Message()
-        a.player = g.user
-        j = await request.get_json()
-        a.text = j["text"]
-        a.nickname = j["nickname"]
-        a.ts = int(time.time())
-        a.save(force_insert=True)
-    return await message_resp()
-
-
 @app.route("/chart_stats", methods=['GET'])
 async def chart_stats():
+    """
+    返回谱面的相对难度等数据。
+    """
     # return {}
     global cs_need_update
     global cs_cache

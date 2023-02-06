@@ -6,7 +6,7 @@ const { default: axios } = require('axios');
 const xmldom = require('xmldom');
 
 const app = express();
-app.use(bodyParser.text({ limit: '4MB' }));
+app.use(bodyParser.text({ limit: '32MB' }));
 app.all("*", function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "content-type");

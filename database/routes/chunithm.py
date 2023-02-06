@@ -1,3 +1,10 @@
+"""
+Author: Diving-Fish
+
+这个文件的目录均为 /chuni/* 的目录，目录会被反向代理映射到
+https://www.diving-fish.com/api/chunithmprober/*
+例如 /chuni/* 可以通过 https://www.diving-fish.com/api/chunithmprober/* 访问。
+"""
 import asyncio
 from audioop import reverse
 from collections import defaultdict
@@ -13,15 +20,24 @@ md_cache = chuni_music_data()
 md_cache_eTag = md5(json.dumps(md_cache))
 md_map = {}
 md_title_map = {}
+md_title_we_map = {}
 chart_id_map = {}
 for music in md_cache:
     md_map[music['id']] = music
-    md_title_map[music['title']] = music
+    if music['id'] >= 8000:
+        md_title_we_map[music['title']] = music
+    else:
+        md_title_map[music['title']] = music
     for i, cid in enumerate(music['cids']):
         chart_id_map[cid] = (i, music)
 
+
 @app.route("/chuni/music_data")
 async def get_music_data_chuni():
+    """
+    获取所有乐曲的数据。
+    """
+
     if request.headers.get('If-None-Match') == '"' + md_cache_eTag + '"':
         resp = await make_response("", 304)
         resp.headers['cache-control'] = "private, max_age=86400"
@@ -36,6 +52,11 @@ async def get_music_data_chuni():
 @app.route("/chuni/player/update_records_html", methods=['POST'])
 @login_required
 async def update_records_chuni():
+    """
+    *需要登录
+    通过 html 格式的数据更新您的中二查分器数据。
+    """
+
     recent = request.args.get("recent", type=int, default=0)
     if recent != 0:
         recent = 1
@@ -55,14 +76,22 @@ async def update_records_chuni():
     if recent == 0:       
         for record in j:
             title = record['title']
-            if title not in md_title_map:
-                continue
-            m = md_title_map[title]
-            cid = m["cids"][record["level"]]
-            dicts[cid] = {
-                "chart": cid, "player": g.user.id, "fc": record["fc"],
-                "score": min(1010000, record["score"]), "recent": False
-            }
+            if record["level"] < 5:
+                if title not in md_title_map:
+                    continue
+                m = md_title_map[title]
+            else:
+                if title not in md_title_we_map:
+                    continue
+                m = md_title_we_map[title]
+            try:
+                cid = m["cids"][record["level"]]
+                dicts[cid] = {
+                    "chart": cid, "player": g.user.id, "fc": record["fc"],
+                    "score": min(1010000, record["score"]), "recent": False
+                }
+            except IndexError:
+                print(m, record["level"])
         rs = ChuniRecord.raw(
             'select * from chunirecord where player_id = %s', g.user.id)
         updates = []
@@ -173,6 +202,11 @@ async def compute_ra(player: Player):
 @app.route("/chuni/player/records")
 @login_required
 async def player_records_chuni():
+    """
+    *需要登录
+    获取用户的成绩数据，以 JSON 格式返回。
+    """
+    
     rs = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', g.user.id)
     rs2 = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', g.user.id)
     await compute_ra(g.user)
@@ -188,6 +222,10 @@ async def player_records_chuni():
 
 @app.route("/chuni/player/test_data")
 async def player_records_chunitest():
+    """
+    获取测试用户的成绩数据，调试前端时使用。
+    """
+
     p = Player.get_by_id(636)
     rs = ChuniRecord.raw('select * from chunirecord where player_id = 636 and recent = 0')
     rs2 = ChuniRecord.raw('select * from chunirecord where player_id = 636 and recent = 1')
@@ -204,6 +242,10 @@ async def player_records_chunitest():
 
 @app.route("/chuni/query/player", methods=['POST'])
 async def query_player_chuni():
+    """
+    通过 QQ 或用户名查询用户的成绩数据，仅返回 b30 + r10 部分。
+    请求体为 JSON 格式，参数需包含 `qq` 或 `username` 中的一项。
+    """
     obj = await request.json
     try:
         if "qq" in obj:
