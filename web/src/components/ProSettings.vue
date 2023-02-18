@@ -300,7 +300,6 @@ export default {
       headers: [],
       headers_default: [
         { text: "排名", value: "rank" },
-        { text: "封面", value: "cover", sortable: false},
         { text: "乐曲名", value: "title" },
         { text: "难度", value: "level", sortable: false },
         { text: "定数", value: "ds" },
