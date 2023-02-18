@@ -111,6 +111,16 @@ func fetchData(req0 *http.Request, cookies []*http.Cookie) {
 func fetchDataChuni(req0 *http.Request, cookies []*http.Cookie) {
 	client := &http.Client{}
 	client.Jar, _ = cookiejar.New(nil)
+	if len(cookies) != 3 {
+		for _, cookie := range req0.Cookies() {
+			if cookie.Name == "userId" || cookie.Name == "friendCodeList" {
+				cookie2 := *cookies[0]
+				cookie2.Name = cookie.Name
+				cookie2.Value = cookie.Value
+				cookies = append(cookies, &cookie2)
+			}
+		}
+	}
 	client.Jar.SetCookies(req0.URL, cookies)
 	hds := req0.Header.Clone()
 	hds.Del("Cookie")
@@ -217,7 +227,7 @@ func main() {
 				if resp.StatusCode == 302 {
 					commandFatal("访问中二节奏的成绩界面出错。")
 				}
-				go fetchDataChuni(ctx.Req, resp.Cookies())
+				go fetchDataChuni(resp.Request, resp.Cookies())
 			}
 			return resp
 		})
