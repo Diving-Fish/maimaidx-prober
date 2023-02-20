@@ -12,6 +12,14 @@
     loading-text="加载中……"
     no-results-text="没有符合条件的条目"
   >
+    <template #item.cover="{ item }">
+      <v-img
+        :src="`https://www.diving-fish.com/covers/${getCoverPathById(item.song_id)}`"
+        width="72px"
+        class="rounded"
+        contain
+      ></v-img>
+    </template>
     <template #item.title="{ item }">
       <v-tooltip top :disabled="!music_data_dict[item.song_id]">
         <template v-slot:activator="{ on, attrs }">
@@ -197,6 +205,11 @@ export default {
     },
   },
   methods: {
+    getCoverPathById: function (songId) {
+      let i = parseInt(songId);
+      if (i > 10000) i -= 10000;
+      return (i + "").padStart(4, '0') + ".png";
+    },
     getLevel(index) {
       return ["#22bb5b", "#fb9c2d", "#f64861", "#9e45e2", "#ba67f8"][index];
     },
