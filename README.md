@@ -159,6 +159,30 @@ http://debugx5.qq.com
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/10.png)
 
+## 方法4：通过Chrome调试工具导入
+
+*该方法仅支持安卓系统，且需要安装Chrome的计算机*
+
+在无法使用前三种方法时，可尝试使用此方法
+
+开启设备上的`USB调试`功能并连接电脑
+
+在电脑上的Chrome打开 chrome://inspect
+
+在手机上确认授权后，即可在此列表中看见自己的设备
+
+![image](https://user-images.githubusercontent.com/22652631/224410009-6b6ebc61-5b49-448f-b312-3b05574e5a5c.png)
+
+完成以上步骤后，在手机上打开舞萌DX主页。此时，此列表中将会出现以下内容
+
+![image](https://user-images.githubusercontent.com/22652631/224410727-3c377d36-1d3e-436e-8437-9d48f46a6455.png)
+
+请点击`inspect`，并在红框标识处粘贴方法3中的代码，并按下回车
+
+![image](https://user-images.githubusercontent.com/22652631/224410943-43d3efc9-fab9-404c-84b8-10c7efd5e0eb.png)
+
+至此，数据导入教程结束，您可以在查分器主页看到您的成绩数据。
+
 ## <span id="FAQ">常见问题（FAQ）</span>
 
 > 为什么我查分器创建了账号，还是没有数据？
