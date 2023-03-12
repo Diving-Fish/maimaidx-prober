@@ -88,6 +88,7 @@ export default {
       fc_filter_items: [
         { text: "空", value: 0},
         { text: "FC", value: "fullcombo"},
+        { text: "FULL CHAIN", value: "fullchain"},
         { text: "AJ", value: "alljustice"},
       ],
       level_filter_items: [
@@ -211,7 +212,7 @@ export default {
       return "grey";
     },
     reset() {
-      this.fc_filter = [0, "fullcombo", "alljustice"];
+      this.fc_filter = [0, "fullcombo","fullchain" , "alljustice"];
       this.level_filter = [0, 1, 2, 3, 4, 5];
       this.rate_filter = ["sssp", "sss", "ssp", "ss", "sp", "s", "aaa", "aa", "a", "bbb", "bb", "b", "c", "d"];
     },

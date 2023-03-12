@@ -93,6 +93,7 @@ export default {
     getName(str) {
       const map = {
         fullcombo: "FC",
+        fullchain: "FULL CHAIN",
         alljustice: "AJ",
       };
       return map[str];
