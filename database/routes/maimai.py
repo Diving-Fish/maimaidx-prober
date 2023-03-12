@@ -162,13 +162,17 @@ async def dev_get_records():
     """
     *需要开发者
     获取某个用户的成绩信息。
-    请求体为 JSON，参数需包含 `username`。
+    请求体为 JSON，参数需包含 `username` 或 `qq`。
     """
     username = request.args.get("username", type=str, default="")
-    if username == "":
+    qq = request.args.get("qq", type=str, default="")
+    if username == "" and qq == "":
         return {"message": "no such user"}, 400
     try:
-        player: Player = Player.get(Player.username == username)
+        if qq == "":
+            player: Player = Player.get(Player.username == username)
+        else:
+            player: Player = Player.get(Player.bind_qq == qq)
     except Exception:
         return {"message": "no such user"}, 400
     r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)

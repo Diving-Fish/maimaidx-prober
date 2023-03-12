@@ -17,7 +17,10 @@
       <view-badge class="ml-3" />
       <a class="ml-3" href="https://space.bilibili.com/10322617"><img
           src="https://shields.io/badge/bilibili-%E6%B0%B4%E9%B1%BC%E5%96%B5%E5%96%B5%E5%96%B5-00A1D6?logo=bilibili&style=flat"></a>
-      <p class="mt-3">欢迎加入查分器交流群：476936821（2群） 981682758（1群），加一个就行了，别都加~</p>
+      <p class="mt-3">欢迎加入查分器交流群：</p>
+      <p>464083009（3群）</p>
+      <p>476936821（2群，已满）</p>
+      <p>981682758（1群，已满）</p>
       <p>代理工具上线！使用微信客户端导入数据，请查看新版本的使用指南。</p>
       <p>想要 10 分钟搭建自己的 maimai QQ 机器人？现在就参考开源项目 <a href="https://github.com/Diving-Fish/mai-bot">mai-bot</a> 吧~</p>
       <p>请开发者打一局 maimai 如何？帮助我们<a href="https://afdian.net/a/divingfish">发发电</a>好不好嘛~</p>
