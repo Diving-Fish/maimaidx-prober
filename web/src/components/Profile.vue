@@ -285,6 +285,8 @@ export default {
             this.plate_upload.version = this.v2n[this.plate[0]];
             this.plate_upload.plate_type = this.t2n[this.plate.substr(1)];
           }
+        }).catch((err) => {
+          this.$message.error(`错误：${err.response.data.message}`)
         });
     },
     delete_records() {

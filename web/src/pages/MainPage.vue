@@ -98,7 +98,6 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
-        <recovery :visible="username == '未登录'" />
         <v-dialog v-model="logoutVisible" width="500px" v-if="username !== '未登录'"
           :fullscreen="$vuetify.breakpoint.mobile">
           <template #activator="{ on, attrs }">
@@ -119,6 +118,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+        <recovery :visible="true" />
         <v-dialog width="1000px" :fullscreen="$vuetify.breakpoint.mobile" v-model="dialogVisible">
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导入数据</v-btn>
