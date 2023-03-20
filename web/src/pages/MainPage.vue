@@ -293,7 +293,7 @@
                       </div>
                     </v-card-text>
                     <v-card-actions>
-                      <v-btn class="mr-4" @click="expertToCSVChuni()">导出</v-btn>
+                      <v-btn class="mr-4" @click="exportToCSVChuni()">导出</v-btn>
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
@@ -1142,10 +1142,10 @@ export default {
         );
       }
     },
-    expertToCSVChuni: function() {
+    exportToCSVChuni: function() {
       let text = "排名,乐曲名,难度,定数,分数,Rating\n";
       const escape = function (value) {
-        if (value.indexOf(",") >= 0) {
+        if (value.indexOf(",") == -1) {
           return value;
         } else {
           return `"${value}"`;
