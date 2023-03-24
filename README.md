@@ -1,6 +1,6 @@
 # 舞萌 DX 查分器
 
-本查分器仅用于推分指导用途，不保证歌曲定数、DX Rating、难度 100% 准确。此外，部分歌曲暂无定数数据，如有准确数据欢迎提供。
+本查分器仅用于推分指导用途，不保证歌曲定数、DX Rating、难度 100% 准确。
 
 ## 使用指南
 
@@ -155,10 +155,6 @@ http://debugx5.qq.com
 
 *如果命令执行未能符合预期，欢迎进群讨论。*
 
-至此，数据导入教程结束，您可以在查分器主页看到您的成绩数据。
-
-![](https://www.diving-fish.com/images/maimaidx-prober/10.png)
-
 ## 方法4：通过Chrome调试工具导入
 
 *该方法仅支持安卓系统，且需要安装Chrome的计算机*
@@ -181,7 +177,9 @@ http://debugx5.qq.com
 
 ![image](https://user-images.githubusercontent.com/22652631/224410943-43d3efc9-fab9-404c-84b8-10c7efd5e0eb.png)
 
-至此，数据导入教程结束，您可以在查分器主页看到您的成绩数据。
+**至此，数据导入教程结束，您可以在查分器主页看到您的成绩数据。**
+
+![](https://www.diving-fish.com/images/maimaidx-prober/10.png)
 
 ## <span id="FAQ">常见问题（FAQ）</span>
 
