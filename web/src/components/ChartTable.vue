@@ -1,188 +1,226 @@
 <template>
-  <v-data-table
-    :items-per-page="limit"
-    :footer-props="{ 'items-per-page-options': [limit, -1] }"
-    :headers="headers"
-    :loading="loading"
-    :items="items"
-    :search="search"
-    sort-by="rank"
-    :custom-filter="chartFilter"
-    no-data-text="没有数据"
-    loading-text="加载中……"
-    no-results-text="没有符合条件的条目"
-  >
-    <template #item.cover="{ item }">
-      <v-img
-        :src="`https://www.diving-fish.com/covers/${getCoverPathById(item.song_id)}`"
-        width="72px"
-        class="rounded"
-        contain
-      ></v-img>
-    </template>
-    <template #item.title="{ item }">
-      <v-tooltip top :disabled="!music_data_dict[item.song_id]">
-        <template v-slot:activator="{ on, attrs }">
-          <span v-bind="attrs" v-on="on">
-            <a
-              v-if="item.type == 'DX'"
+  <div>
+    <v-dialog
+      width="600px"
+      :fullscreen="$vuetify.breakpoint.mobile"
+      v-model="snackbar"
+    >
+      <v-card>
+        <div style="width: 600px; height: 600px; padding: 20px">
+          <div style="width: 560px; height: 560px" ref="chart_div"></div>
+        </div>
+      </v-card>
+    </v-dialog>
+    <v-data-table
+      :items-per-page="limit"
+      :footer-props="{ 'items-per-page-options': [limit, -1] }"
+      :headers="headers"
+      :loading="loading"
+      :items="items"
+      :search="search"
+      sort-by="rank"
+      :custom-filter="chartFilter"
+      no-data-text="没有数据"
+      loading-text="加载中……"
+      no-results-text="没有符合条件的条目"
+    >
+      <template #item.cover="{ item }">
+        <v-img
+          :src="`https://www.diving-fish.com/covers/${getCoverPathById(
+            item.song_id
+          )}`"
+          width="72px"
+          class="rounded"
+          contain
+        ></v-img>
+      </template>
+      <template #item.title="{ item }">
+        <v-tooltip top :disabled="!music_data_dict[item.song_id]">
+          <template v-slot:activator="{ on, attrs }">
+            <span v-bind="attrs" v-on="on">
+              <a
+                v-if="item.type == 'DX'"
+                dark
+                color="blue"
+                style="cursor: default"
+                >DX</a
+              >
+              {{ item.title }}
+              <v-chip v-if="item.fc" :color="getFC(item.fc)" dark>{{
+                getName(item.fc)
+              }}</v-chip>
+              <v-chip v-if="item.fs" :color="getFS(item.fs)" dark>{{
+                getName(item.fs)
+              }}</v-chip>
+            </span>
+          </template>
+          <span v-if="music_data_dict[item.song_id]">
+            id: {{ music_data_dict[item.song_id].id }} <br />
+            Artist: {{ music_data_dict[item.song_id].basic_info.artist }} <br />
+            Version: {{ music_data_dict[item.song_id].basic_info.from }} <br />
+            Genre: {{ music_data_dict[item.song_id].basic_info.genre }} <br />
+            BPM: {{ music_data_dict[item.song_id].basic_info.bpm }} <br />
+          </span>
+        </v-tooltip>
+      </template>
+      <template #item.level="{ item }">
+        <v-tooltip top :disabled="!music_data_dict[item.song_id]">
+          <template v-slot:activator="{ on, attrs }">
+            <v-chip
+              v-bind="attrs"
+              v-on="on"
+              :color="getLevel(item.level_index)"
               dark
-              color="blue"
-              style="cursor: default"
-              >DX</a
             >
-      {{ item.title }}
-      <v-chip v-if="item.fc" :color="getFC(item.fc)" dark>{{
-        getName(item.fc)
-      }}</v-chip>
-      <v-chip v-if="item.fs" :color="getFS(item.fs)" dark>{{
-        getName(item.fs)
-      }}</v-chip>
+              {{ item.level_label }} {{ item.level }}
+            </v-chip>
+          </template>
+          <span v-if="music_data_dict[item.song_id]">
+            Charter:
+            {{ music_data_dict[item.song_id].charts[item.level_index].charter }}
+            <br />
+            Tap:
+            {{
+              music_data_dict[item.song_id].charts[item.level_index].notes[0]
+            }}
+            <br />
+            Hold:
+            {{
+              music_data_dict[item.song_id].charts[item.level_index].notes[1]
+            }}
+            <br />
+            Slide:
+            {{
+              music_data_dict[item.song_id].charts[item.level_index].notes[2]
+            }}
+            <br />
+            <span v-if="music_data_dict[item.song_id].type == 'DX'">
+              Touch:
+              {{
+                music_data_dict[item.song_id].charts[item.level_index].notes[3]
+              }}
+              <br />
+              Break:
+              {{
+                music_data_dict[item.song_id].charts[item.level_index].notes[4]
+              }}
+              <br />
+            </span>
+            <span v-else>
+              Break:
+              {{
+                music_data_dict[item.song_id].charts[item.level_index].notes[3]
+              }}
+              <br />
+            </span>
           </span>
-        </template>
-        <span v-if="music_data_dict[item.song_id]">
-          id: {{ music_data_dict[item.song_id].id }} <br />
-          Artist: {{ music_data_dict[item.song_id].basic_info.artist }} <br />
-          Version: {{ music_data_dict[item.song_id].basic_info.from }} <br />
-          Genre: {{ music_data_dict[item.song_id].basic_info.genre }} <br />
-          BPM: {{ music_data_dict[item.song_id].basic_info.bpm }} <br />
-        </span>
-      </v-tooltip>
-    </template>
-    <template #item.level="{ item }">
-      <v-tooltip top :disabled="!music_data_dict[item.song_id]">
-        <template v-slot:activator="{ on, attrs }">
-          <v-chip
-            v-bind="attrs"
-            v-on="on"
-            :color="getLevel(item.level_index)"
-            dark
-          >
-        {{ item.level_label }} {{ item.level }}
-      </v-chip>
-        </template>
-        <span v-if="music_data_dict[item.song_id]">
-          Charter: {{ music_data_dict[item.song_id].charts[item.level_index].charter }} <br />
-          Tap: {{ music_data_dict[item.song_id].charts[item.level_index].notes[0] }} <br />
-          Hold: {{ music_data_dict[item.song_id].charts[item.level_index].notes[1] }} <br />
-          Slide: {{ music_data_dict[item.song_id].charts[item.level_index].notes[2] }} <br />
-          <span v-if="music_data_dict[item.song_id].type=='DX'">
-            Touch: {{ music_data_dict[item.song_id].charts[item.level_index].notes[3] }} <br />
-            Break: {{ music_data_dict[item.song_id].charts[item.level_index].notes[4] }} <br />
+        </v-tooltip>
+      </template>
+      <template #item.achievements="{ item }">
+        {{ item.achievements.toFixed(4) }}%
+        <v-chip :color="getRate(item.rate)" outlined class="ml-1">{{
+          item.rate.replace("p", "+").toUpperCase()
+        }}</v-chip>
+      </template>
+      <template #item.ra="{ item }">
+        <v-tooltip top>
+          <template v-slot:activator="{ on, attrs }">
+            <span
+              style="color: #4caf50"
+              v-if="item.rank <= limit"
+              v-bind="attrs"
+              v-on="on"
+              >{{ item.ra }}</span
+            >
+            <span v-else v-bind="attrs" v-on="on">{{ item.ra }}</span>
+          </template>
+          <span v-if="!getMoreRa(item).length">已达成本曲最高DX rating。</span>
+          <span v-else v-for="(j, key) in getMoreRa(item)" :key="key">
+            {{ j.ra }}(+{{ j.ra - item.ra }})：{{
+              j.achievements.toFixed(4)
+            }}(+{{ (j.achievements - item.achievements).toFixed(4) }})<br />
           </span>
-          <span v-else>
-            Break: {{ music_data_dict[item.song_id].charts[item.level_index].notes[3] }} <br />
-          </span>
-        </span>
-      </v-tooltip>
-    </template>
-    <template #item.achievements="{ item }">
-      {{ item.achievements.toFixed(4) }}%
-      <v-chip :color="getRate(item.rate)" outlined class="ml-1">{{
-        item.rate.replace("p", "+").toUpperCase()
-      }}</v-chip>
-    </template>
-    <template #item.ra="{ item }">
-      <v-tooltip top>
-        <template v-slot:activator="{ on, attrs }">
-          <span
-            style="color: #4caf50"
-            v-if="item.rank <= limit"
-            v-bind="attrs"
-            v-on="on"
-            >{{ item.ra }}</span
-          >
-          <span v-else v-bind="attrs" v-on="on">{{ item.ra }}</span>
-        </template>
-        <span v-if="!getMoreRa(item).length">已达成本曲最高DX rating。</span>
-        <span v-else v-for="(j, key) in getMoreRa(item)" :key="key">
-          {{ j.ra }}(+{{ j.ra - item.ra }})：{{ j.achievements.toFixed(4) }}(+{{
-            (j.achievements - item.achievements).toFixed(4)
-          }})<br />
-        </span>
-      </v-tooltip>
-    </template>
-    <template #item.tag="{ item }">
-      <v-tooltip top v-if="getTag(item).exists">
-        <template v-slot:activator="{ on, attrs }">
-          <v-chip :color="getTag(item).color" v-bind="attrs" v-on="on">{{
-            getTag(item).value
-          }}</v-chip>
-        </template>
-        在有数据的同难度歌曲中，<br />
-        这首歌曲的 SSS 比例排名为 {{ getTag(item).rank_text }}<br />
-        SSS 人数为：{{ getTag(item).rate_text }}({{
-          getTag(item).rate
-        }}%)<br />
-        平均达成率为：{{ getTag(item).ac }}%
-      </v-tooltip>
-      <v-tooltip top v-else>
-        <template v-slot:activator="{ on, attrs }">
-          <v-chip :color="getTag(item).color" v-bind="attrs" v-on="on">{{
-            getTag(item).value
-          }}</v-chip>
-        </template>
-        数据太少啦……多拉点人用查分器如何？
-      </v-tooltip>
-    </template>
-    <template #header.tag="">
-      相对难度
-      <v-tooltip top>
+        </v-tooltip>
+      </template>
+      <template #item.fit_diff="{ item }">
+        <v-tooltip top>
+          <template v-slot:activator="{ on, attrs }">
+            <span
+              v-bind="attrs"
+              v-on="on"
+              style="cursor: pointer"
+              @click="showChart(item)"
+              >{{ item.fit_diff.toFixed(2) }}</span
+            >
+          </template>
+          点击以查看该谱面的统计信息
+        </v-tooltip>
+      </template>
+      <template #header.fit_diff="">
+        拟合难度
+        <!-- <v-tooltip top>
         <template v-slot:activator="{ on, attrs }">
           <v-icon v-bind="attrs" v-on="on">
             mdi-information-outline
           </v-icon>
         </template>
         <span>相对难度是指某一张谱面的 SSS 比例在同等级谱面中的排名</span>
-      </v-tooltip>
-    </template>
-    <template #item.dxScore="{ item }">
-      {{ item.dxScore }}
-    </template>
-    <template #item.dxScore_perc="{ item }">
-      <v-tooltip top v-if="item.dxScore">
-        <template v-slot:activator="{ on, attrs }">
-          <span v-bind="attrs" v-on="on"
-            >{{ item.dxScore_perc.toFixed(2) }}%
-          <v-chip
-            v-if="item.dxScore_perc >= 85"
-            :color="getDXScore(item).color"
-            outlined
-            class="ml-1"
-            >☆{{ getDXScore(item).star }}</v-chip
-            ></span
+      </v-tooltip> -->
+      </template>
+      <template #item.dxScore="{ item }">
+        {{ item.dxScore }}
+      </template>
+      <template #item.dxScore_perc="{ item }">
+        <v-tooltip top v-if="item.dxScore">
+          <template v-slot:activator="{ on, attrs }">
+            <span v-bind="attrs" v-on="on"
+              >{{ item.dxScore_perc.toFixed(2) }}%
+              <v-chip
+                v-if="item.dxScore_perc >= 85"
+                :color="getDXScore(item).color"
+                outlined
+                class="ml-1"
+                >☆{{ getDXScore(item).star }}</v-chip
+              ></span
+            >
+          </template>
+          DX分数比例为 {{ item.dxScore }}/{{ getDXScore(item).total }}<br />
+          <span v-if="item.dxScore_perc < 97">
+            距离下一个星级（☆{{ getDXScore(item).star + 1 }}，{{
+              getDXScore(item).next
+            }}）还差{{ getDXScore(item).next - item.dxScore }}分</span
           >
-        </template>
-        DX分数比例为 {{ item.dxScore }}/{{ getDXScore(item).total }}<br />
-        <span v-if="item.dxScore_perc < 97">
-          距离下一个星级（☆{{ getDXScore(item).star + 1 }}，{{
-            getDXScore(item).next
-          }}）还差{{ getDXScore(item).next - item.dxScore }}分</span
-        >
-      </v-tooltip>
-      <span v-else> {{ item.dxScore_perc.toFixed(2) }}% </span>
-    </template>
-    <template #item.actions="{ item }">
-      <v-tooltip top>
-        <template v-slot:activator="{ on, attrs }">
-          <v-icon v-bind="attrs" v-on="on" @click="cover(item)">mdi-image-outline</v-icon>
-        </template>
-        查看封面
-      </v-tooltip>
-      <v-tooltip top>
-        <template v-slot:activator="{ on, attrs }">
-          <v-icon v-bind="attrs" v-on="on" @click="modify(item)">mdi-pencil-box-outline</v-icon>
-        </template>
-        编辑分数
-      </v-tooltip>
-      <v-tooltip top>
-        <template v-slot:activator="{ on, attrs }">
-          <v-icon v-bind="attrs" v-on="on" @click="calculator(item)">mdi-calculator-variant-outline</v-icon>
-        </template>
-        填入计算器
-      </v-tooltip>
-    </template>
-  </v-data-table>
+        </v-tooltip>
+        <span v-else> {{ item.dxScore_perc.toFixed(2) }}% </span>
+      </template>
+      <template #item.actions="{ item }">
+        <v-tooltip top>
+          <template v-slot:activator="{ on, attrs }">
+            <v-icon v-bind="attrs" v-on="on" @click="cover(item)"
+              >mdi-image-outline</v-icon
+            >
+          </template>
+          查看封面
+        </v-tooltip>
+        <v-tooltip top>
+          <template v-slot:activator="{ on, attrs }">
+            <v-icon v-bind="attrs" v-on="on" @click="modify(item)"
+              >mdi-pencil-box-outline</v-icon
+            >
+          </template>
+          编辑分数
+        </v-tooltip>
+        <v-tooltip top>
+          <template v-slot:activator="{ on, attrs }">
+            <v-icon v-bind="attrs" v-on="on" @click="calculator(item)"
+              >mdi-calculator-variant-outline</v-icon
+            >
+          </template>
+          填入计算器
+        </v-tooltip>
+      </template>
+    </v-data-table>
+  </div>
 </template>
 
 <script>
@@ -197,7 +235,10 @@ export default {
     music_data_dict: Object,
   },
   data: () => {
-    return {};
+    return {
+      chart: null,
+      snackbar: false,
+    };
   },
   watch: {
     search(n) {
@@ -208,7 +249,7 @@ export default {
     getCoverPathById: function (songId) {
       let i = parseInt(songId);
       if (i > 10000) i -= 10000;
-      return (i + "").padStart(4, '0') + ".png";
+      return (i + "").padStart(4, "0") + ".png";
     },
     getLevel(index) {
       return ["#22bb5b", "#fb9c2d", "#f64861", "#9e45e2", "#ba67f8"][index];
@@ -241,38 +282,145 @@ export default {
       return "";
     },
     getTag(item) {
-      // console.log(this.chart_stats)
-      if (!this.chart_stats[item.song_id]) {
-        return {
-          exists: false,
-          value: "Data Not Enough",
-          color: "grey",
-        };
-      }
-      let elem = this.chart_stats[item.song_id][item.level_index];
-      let tag = elem.tag;
-      let color = "";
-      if (tag == undefined) {
-        tag = "Data Not Enough";
-        color = "grey";
-      }
-      let color_dict = {
-        "Very Easy": "green",
-        Easy: "light-green",
-        Medium: "blue",
-        Hard: "deep-orange",
-        "Very Hard": "red",
-      };
-      color = color_dict[tag];
       return {
-        exists: elem.v != undefined,
-        value: tag,
-        color: color,
-        rank_text: elem.v + 1 + "/" + elem.t,
-        ac: elem.avg ? elem.avg.toFixed(2) : "0.00",
-        rate_text: elem.sssp_count + "/" + elem.count,
-        rate: ((elem.sssp_count * 100) / elem.count).toFixed(2),
+        value: this.chart_stats.charts[item.song_id][item.level_index].fit_diff,
       };
+    },
+    showChart(item) {
+      console.log(item);
+      const chart_stat =
+        this.chart_stats.charts[item.song_id][item.level_index];
+      // const diff_stat = this.chart_stats.diff_data[item.difficulty];
+      const ach_name_map = [
+        "D",
+        "C",
+        "B",
+        "BB",
+        "BBB",
+        "A",
+        "AA",
+        "AAA",
+        "S",
+        "S+",
+        "SS",
+        "SS+",
+        "SSS",
+        "SSS+",
+      ];
+      const fc_name_map = ["Not FC", "FC", "FC+", "AP", "AP+"];
+      const ach_data = () => {
+        let data = [];
+        for (let i = 0; i < 14; i++) {
+          data.push({
+            value: chart_stat.dist[i],
+            name: ach_name_map[i],
+          });
+        }
+        return data;
+      };
+      const fc_data = () => {
+        let data = [];
+        for (let i = 0; i < 5; i++) {
+          data.push({
+            value: chart_stat.fc_dist[i],
+            name: fc_name_map[i],
+          });
+        }
+        return data;
+      };
+      this.snackbar = true;
+      let option = {
+        title: {
+          text: `谱面 ${item.title} ${item.type} ${item.level_label} 数据分布`,
+          left: "center",
+        },
+        tooltip: {
+          trigger: "item",
+        },
+        legend: {
+          orient: "vertical",
+          left: "left",
+        },
+        series: [
+          {
+            name: "达成率等级",
+            type: "pie",
+            radius: "40%",
+            data: ach_data(),
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: "rgba(0, 0, 0, 0.5)",
+              },
+            },
+            labelLine: {
+              normal: {
+                length: 60,
+              },
+            },
+            itemStyle: {
+              normal: {
+                color: function (colors) {
+                  var colorList = [
+                    "#B0BEC5",
+                    "#90A4AE",
+                    "#607D8B",
+                    "#546E7A",
+                    "#455A64",
+                    "#FF8A65",
+                    "#FF5722",
+                    "#E64A19",
+                    "#FFD54F",
+                    "#FFA000",
+                    "#4DB6AC",
+                    "#00796B",
+                    "#64B5F6",
+                    "#1976D2",
+                  ];
+                  return colorList[colors.dataIndex];
+                },
+              },
+            },
+          },
+          {
+            name: "全连等级",
+            type: "pie",
+            radius: ["40%", "50%"],
+            data: fc_data(),
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: "rgba(0, 0, 0, 0.5)",
+              },
+            },
+            itemStyle: {
+              normal: {
+                color: function (colors) {
+                  var colorList = [
+                    "#607D8B",
+                    "#4CAF50",
+                    "#43A047",
+                    "#FF9800",
+                    "#FB8C00",
+                  ];
+                  return colorList[colors.dataIndex];
+                },
+              },
+            },
+          },
+        ],
+      };
+      if (this.chart === null) {
+        let that = this;
+        setTimeout(() => {
+          that.chart = this.$echarts.init(this.$refs.chart_div);
+          that.chart.setOption(option);
+        }, 100);
+      } else {
+        this.chart.setOption(option);
+      }
     },
     getDXScore(item) {
       let star =
@@ -343,11 +491,11 @@ export default {
               l = mid + 1;
             }
           }
-            if (curr_ach4 > ach4)
-              more_ra.push({
-                ra: curr_max_ra,
-                achievements: ans / 10000,
-              });
+          if (curr_ach4 > ach4)
+            more_ra.push({
+              ra: curr_max_ra,
+              achievements: ans / 10000,
+            });
         }
       }
       return more_ra;
@@ -374,7 +522,10 @@ export default {
           "^" + this.music_data_dict[item.song_id].basic_info.artist + "$",
           "bpm" + this.music_data_dict[item.song_id].basic_info.bpm + "$",
           "^" + this.music_data_dict[item.song_id].basic_info.bpm + "$",
-          "^" + this.music_data_dict[item.song_id].charts[item.level_index].charter + "$",
+          "^" +
+            this.music_data_dict[item.song_id].charts[item.level_index]
+              .charter +
+            "$",
           "^" + item.ra + "$",
           "^" + item.ds + "$",
         ].map((info) => info.toLocaleLowerCase());

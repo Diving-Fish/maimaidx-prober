@@ -548,7 +548,7 @@ export default {
         { text: "定数", value: "ds" },
         { text: "达成率", value: "achievements" },
         { text: "DX Rating", value: "ra" },
-        { text: "相对难度", value: "tag" },
+        { text: "拟合难度", value: "fit_diff" },
         { text: "操作", value: "actions", sortable: false },
       ],
     };
@@ -972,15 +972,10 @@ export default {
       } else {
         record.rate = "sssp";
       }
-      if (!this.chart_stats[record.song_id]) {
-        record.tag = 0.5;
+      if (!this.chart_stats.charts[record.song_id]) {
+        record.fit_diff = 0.5;
       } else {
-        let elem = this.chart_stats[record.song_id][record.level_index];
-        if (elem.t) {
-          record.tag = (elem.v + 0.5) / elem.t;
-        } else {
-          record.tag = 0.5;
-        }
+        record.fit_diff = this.chart_stats.charts[record.song_id][record.level_index].fit_diff
       }
       if (!this.chart_combo[record.song_id]) {
         record.dxScore_perc = 0;
