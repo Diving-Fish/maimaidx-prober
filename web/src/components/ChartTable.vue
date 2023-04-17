@@ -13,7 +13,7 @@
           </v-btn>
         </div>
         <div
-          :style="`width: ${width}px; height: ${height - 70}px; padding: 10px`"
+          :style="`width: ${width}px; height: ${width + 150}px; padding: 10px`"
         >
           <div
             :style="`width: ${width - 20}px; height: ${
