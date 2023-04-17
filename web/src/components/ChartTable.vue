@@ -6,8 +6,76 @@
       v-model="snackbar"
     >
       <v-card>
-        <div style="width: 600px; height: 600px; padding: 20px">
-          <div style="width: 560px; height: 560px" ref="chart_div"></div>
+        <div style="display: flex">
+          <v-spacer />
+          <v-btn icon @click="snackbar = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+        <div
+          :style="`width: ${width}px; height: ${height - 70}px; padding: 10px`"
+        >
+          <div
+            :style="`width: ${width - 20}px; height: ${
+              $vuetify.breakpoint.mobile ? width + 60 : width - 80
+            }px`"
+            ref="chart_div"
+          ></div>
+          <div
+            :style="`width: ${width - 20}px; padding-left: 20px`"
+            v-if="item"
+            class="dialog"
+          >
+            <p>
+              <span>平均达成率：{{ chart_stat.avg.toFixed(2) }}% (</span>
+              <span
+                :style="
+                  chart_stat.avg - diff_stat.achievements >= 0
+                    ? 'color: #4CAF50'
+                    : 'color: #F44336'
+                "
+                >{{ chart_stat.avg - diff_stat.achievements >= 0 ? "+" : ""
+                }}{{
+                  (chart_stat.avg - diff_stat.achievements).toFixed(2)
+                }}%</span
+              >
+              <span>)</span>
+              <v-tooltip top>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-icon v-bind="attrs" v-on="on" color="grey lighten-1"
+                    >mdi-help-circle</v-icon
+                  >
+                </template>
+                <span
+                  >括号内为此谱面与难度为 {{ item.level}} 的谱面达成率平均值的差</span
+                >
+              </v-tooltip>
+            </p>
+            <p>平均 DX 分数：{{ chart_stat.avg_dx.toFixed(1) }}</p>
+            <p>
+              谱面成绩标准差：
+              <span v-if="chart_stat.std_dev < 3.6">正常</span>
+              <span v-else-if="chart_stat.std_dev < 4.2" style="color: #ffc107"
+                >较高</span
+              >
+              <span v-else-if="chart_stat.std_dev < 4.8" style="color: #ff9800"
+                >高</span
+              >
+              <span v-else style="color: #f44336">极高</span>
+              <span> ({{ chart_stat.std_dev.toFixed(2) }})</span>
+              <v-tooltip top>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-icon v-bind="attrs" v-on="on" color="grey lighten-1"
+                    >mdi-help-circle</v-icon
+                  >
+                </template>
+                <span
+                  >标准差越大，成绩分布越分散，可能说明是个人差曲或者越级较多（只统计距离平均成绩差距低于
+                  10% 的成绩）</span
+                >
+              </v-tooltip>
+            </p>
+          </div>
         </div>
       </v-card>
     </v-dialog>
@@ -238,7 +306,18 @@ export default {
     return {
       chart: null,
       snackbar: false,
+      width: 600,
+      height: 720,
+      item: null,
+      chart_stat: null,
+      diff_stat: null,
     };
+  },
+  created: function () {
+    if (this.$vuetify.breakpoint.mobile) {
+      this.width = screen.width;
+      this.height = screen.height;
+    }
   },
   watch: {
     search(n) {
@@ -287,10 +366,9 @@ export default {
       };
     },
     showChart(item) {
-      console.log(item);
-      const chart_stat =
-        this.chart_stats.charts[item.song_id][item.level_index];
-      // const diff_stat = this.chart_stats.diff_data[item.difficulty];
+      this.item = item;
+      this.chart_stat = this.chart_stats.charts[item.song_id][item.level_index];
+      this.diff_stat = this.chart_stats.diff_data[item.level];
       const ach_name_map = [
         "D",
         "C",
@@ -312,7 +390,7 @@ export default {
         let data = [];
         for (let i = 0; i < 14; i++) {
           data.push({
-            value: chart_stat.dist[i],
+            value: this.chart_stat.dist[i] / this.chart_stat.cnt,
             name: ach_name_map[i],
           });
         }
@@ -322,7 +400,7 @@ export default {
         let data = [];
         for (let i = 0; i < 5; i++) {
           data.push({
-            value: chart_stat.fc_dist[i],
+            value: this.chart_stat.fc_dist[i] / this.chart_stat.cnt,
             name: fc_name_map[i],
           });
         }
@@ -331,15 +409,15 @@ export default {
       this.snackbar = true;
       let option = {
         title: {
-          text: `谱面 ${item.title} ${item.type} ${item.level_label} 数据分布`,
+          text: `${item.title} ${item.type} ${item.level_label}`,
           left: "center",
         },
         tooltip: {
           trigger: "item",
         },
         legend: {
-          orient: "vertical",
-          left: "left",
+          orient: "horizontal",
+          bottom: 20,
         },
         series: [
           {
@@ -347,6 +425,7 @@ export default {
             type: "pie",
             radius: "40%",
             data: ach_data(),
+            top: "-10%",
             emphasis: {
               itemStyle: {
                 shadowBlur: 10,
@@ -382,12 +461,33 @@ export default {
                 },
               },
             },
+            tooltip: {
+              trigger: "item",
+              formatter: (params) => {
+                const diff =
+                  Math.round(
+                    (params.value - this.diff_stat.dist[params.dataIndex]) *
+                      10000
+                  ) / 100;
+                return `${params.seriesName} <br /> <b>${
+                  params.data.name
+                }</b> ${(params.value * 100).toFixed(2)}% 
+                 (<span style="${
+                   diff >= 0 ? "color: #4CAF50" : "color: #F44336"
+                 }">${diff >= 0 ? "+" : ""}${diff}%</span>)
+                 <br />同难度平均值：${
+                   Math.round(this.diff_stat.dist[params.dataIndex] * 10000) /
+                   100
+                 }% <br />`;
+              },
+            },
           },
           {
             name: "全连等级",
             type: "pie",
             radius: ["40%", "50%"],
             data: fc_data(),
+            top: "-10%",
             emphasis: {
               itemStyle: {
                 shadowBlur: 10,
@@ -407,6 +507,25 @@ export default {
                   ];
                   return colorList[colors.dataIndex];
                 },
+              },
+            },
+            tooltip: {
+              trigger: "item",
+              formatter: (params) => {
+                const diff =
+                  (params.value - this.diff_stat.fc_dist[params.dataIndex]) *
+                  100;
+                return `${params.seriesName} <br /> <b>${
+                  params.data.name
+                }</b> ${(params.value * 100).toFixed(2)}% 
+                 (<span style="${
+                   diff >= 0 ? "color: #4CAF50" : "color: #F44336"
+                 }">${diff >= 0 ? "+" : ""}${diff.toFixed(2)}%</span>)
+                 <br />同难度平均值：${
+                   Math.round(
+                     this.diff_stat.fc_dist[params.dataIndex] * 10000
+                   ) / 100
+                 }% <br />`;
               },
             },
           },
@@ -539,3 +658,10 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.dialog p {
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+</style>
