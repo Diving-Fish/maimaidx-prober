@@ -406,6 +406,13 @@ export default {
         }
         return data;
       };
+      const sum_arr = (arr, start, end) => {
+        let sum = 0;
+        for (let i = start; i < end; i++) {
+          sum += arr[i];
+        }
+        return sum;
+      };
       this.snackbar = true;
       let option = {
         title: {
@@ -469,16 +476,22 @@ export default {
                     (params.value - this.diff_stat.dist[params.dataIndex]) *
                       10000
                   ) / 100;
-                return `${params.seriesName} <br /> <b>${
+                const sum_per = sum_arr(this.chart_stat.dist, params.dataIndex, 14) / this.chart_stat.cnt;
+                const sum_diff = Math.round(
+                  (sum_per - sum_arr(this.diff_stat.dist, params.dataIndex, 14)) * 10000) / 100;
+                return `${params.seriesName}（<span style="color: #607D8B">斜杠后为合计值</span>）<br /> <b>${
                   params.data.name
-                }</b> ${(params.value * 100).toFixed(2)}% 
-                 (<span style="${
-                   diff >= 0 ? "color: #4CAF50" : "color: #F44336"
-                 }">${diff >= 0 ? "+" : ""}${diff}%</span>)
+                }</b> ${(params.value * 100).toFixed(2)}%/${(sum_per * 100).toFixed(2)}%
                  <br />同难度平均值：${
                    Math.round(this.diff_stat.dist[params.dataIndex] * 10000) /
                    100
-                 }% <br />`;
+                 }%/${Math.round(sum_arr(this.diff_stat.dist, params.dataIndex, 14) * 10000) /
+                   100}%<br />
+                 <b>Diff:</b> <span style="${
+                   diff >= 0 ? "color: #4CAF50" : "color: #F44336"
+                 }">${diff >= 0 ? "+" : ""}${diff.toFixed(2)}%</span>/<span style="${
+                   sum_diff >= 0 ? "color: #4CAF50" : "color: #F44336"
+                 }">${sum_diff >= 0 ? "+" : ""}${sum_diff.toFixed(2)}%</span> <br />`;
               },
             },
           },
@@ -515,17 +528,26 @@ export default {
                 const diff =
                   (params.value - this.diff_stat.fc_dist[params.dataIndex]) *
                   100;
-                return `${params.seriesName} <br /> <b>${
+                const sum_per = sum_arr(this.chart_stat.fc_dist, params.dataIndex, 5) / this.chart_stat.cnt;
+                const sum_diff = Math.round(
+                  (sum_per - sum_arr(this.diff_stat.fc_dist, params.dataIndex, 5)) * 10000) / 100;
+                return `${params.seriesName}（<span style="color: #607D8B">斜杠后为合计值</span>）<br /> <b>${
                   params.data.name
-                }</b> ${(params.value * 100).toFixed(2)}% 
-                 (<span style="${
-                   diff >= 0 ? "color: #4CAF50" : "color: #F44336"
-                 }">${diff >= 0 ? "+" : ""}${diff.toFixed(2)}%</span>)
+                }</b> ${(params.value * 100).toFixed(2)}%/${(sum_per * 100).toFixed(2)}%
                  <br />同难度平均值：${
                    Math.round(
                      this.diff_stat.fc_dist[params.dataIndex] * 10000
                    ) / 100
-                 }% <br />`;
+                 }%/${
+                    Math.round(
+                      sum_arr(this.diff_stat.fc_dist, params.dataIndex, 5) * 10000
+                    ) / 100
+                  }%<br />
+                <b>Diff: </b><span style="${
+                   diff >= 0 ? "color: #4CAF50" : "color: #F44336"
+                 }">${diff >= 0 ? "+" : ""}${diff.toFixed(2)}%</span>/<span style="${
+                   sum_diff >= 0 ? "color: #4CAF50" : "color: #F44336"
+                 }">${sum_diff >= 0 ? "+" : ""}${sum_diff.toFixed(2)}%</span> <br />`;
               },
             },
           },
