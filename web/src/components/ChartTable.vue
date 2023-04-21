@@ -211,18 +211,23 @@
         </v-tooltip>
       </template>
       <template #item.fit_diff="{ item }">
-        <v-tooltip top>
+        <v-tooltip top v-if="chart_stats.charts[item.song_id] && chart_stats.charts[item.song_id][item.level_index]">
           <template v-slot:activator="{ on, attrs }">
             <span
               v-bind="attrs"
               v-on="on"
-              style="cursor: pointer"
+              style="cursor: pointer;"
               @click="showChart(item)"
               >{{ item.fit_diff.toFixed(2) }}</span
             >
           </template>
           点击以查看该谱面的统计信息
         </v-tooltip>
+        <span
+          v-else
+          style="cursor: pointer; color: #f44336"
+          >{{ item.ds.toFixed(2) }}</span
+        >
       </template>
       <template #header.fit_diff="">
         拟合难度
@@ -360,12 +365,8 @@ export default {
       if (str.startsWith("ssp")) return "amber darken-2";
       return "";
     },
-    getTag(item) {
-      return {
-        value: this.chart_stats.charts[item.song_id][item.level_index].fit_diff,
-      };
-    },
     showChart(item) {
+      if (this.chart_stats.charts[item.song_id] == undefined) return;
       this.item = item;
       this.chart_stat = this.chart_stats.charts[item.song_id][item.level_index];
       this.diff_stat = this.chart_stats.diff_data[item.level];
