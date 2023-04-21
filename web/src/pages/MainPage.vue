@@ -972,8 +972,8 @@ export default {
       } else {
         record.rate = "sssp";
       }
-      if (!this.chart_stats.charts[record.song_id]) {
-        record.fit_diff = 0.5;
+      if (!this.chart_stats.charts[record.song_id] || !this.chart_stats.charts[record.song_id][record.level_index].fit_diff) {
+        record.fit_diff = record.ds;
       } else {
         record.fit_diff = this.chart_stats.charts[record.song_id][record.level_index].fit_diff
       }
