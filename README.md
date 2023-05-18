@@ -130,24 +130,21 @@ http://debugx5.qq.com
 
 将以下代码复制粘贴至下方command输入框，然后把`USERNAME`和`PASSWORD`改为你自己的查分器用户名和密码，点击右侧OK按钮：
 
-``` javascript
-((u,p)=>[0,1,2,3,4].forEach((diff)=>{
- $.ajax({
-  url: 'https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff='+diff,
-  type: 'GET',
-  async: false,
-  success: (res) => {
-   console.log(res.match("错误"));
-   $.ajax({
-    url: 'https://www.diving-fish.com/api/pageparser/page',
-    type: 'POST',
-    data: "<login><u>"+u+"</u><p>"+p+"</p></login>" + res.match(/<html.*>([\s\S]*)<\/html>/)[1].replace(/\s+/g,' '),
-    contentType: 'text/plain',
-    success: (res) => console.log(res)
-   });
-  }
- });
-}))
+```javascript
+((u,p)=>[0,1,2,3,4].reduce(async(promise, diff)=>{
+  await promise
+  var diffName = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:Master'][diff]
+  var url = 'https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff='+diff
+  return fetch(url)
+  .then(r => {if(r.url!=url)throw new Error(diffName+' 获取分数出错');return r.text()})
+  .then(res => fetch('https://www.diving-fish.com/api/pageparser/page', {
+    method: 'POST',
+    headers:(new Headers({'Content-Type':'text/plain'})),
+    body: "<login><u>"+u+"</u><p>"+p+"</p></login>" + res.match(/<html.*>([\s\S]*)<\/html>/)[1].replace(/\s+/g,' ')
+  }))
+  .then(r => r.json())
+  .then(res => {console.log(diffName, res.message, res);if(res.message!='success')throw new Error(diffName+' 上传分数出错')})
+}, Promise.resolve()))
 ("USERNAME", "PASSWORD");
 ```
 
@@ -168,6 +165,11 @@ http://debugx5.qq.com
 在手机上确认授权后，即可在此列表中看见自己的设备
 
 ![image](https://user-images.githubusercontent.com/22652631/224410009-6b6ebc61-5b49-448f-b312-3b05574e5a5c.png)
+
+之后，在手机微信上需打开成功一次如下网址，才能正常使用inspect功能
+
+> http://debugxweb.qq.com/?inspector=true
+
 
 完成以上步骤后，在手机上打开舞萌DX主页。此时，此列表中将会出现以下内容
 
