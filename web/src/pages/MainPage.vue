@@ -248,7 +248,7 @@
                 <v-tabs-items v-model="tab">
                   <v-tab-item key="sd">
                     <chart-table @cover="coverRow" @edit="editRow" @calculator="calculatorRow" :search="searchKey"
-                      :items="sdDisplay" :limit="25" :loading="loading" :chart_stats="chart_stats" :headers="headers"
+                      :items="sdDisplay" :limit="35" :loading="loading" :chart_stats="chart_stats" :headers="headers"
                       :music_data_dict="music_data_dict" sort-by="achievements" :key="JSON.stringify(headers)">
                     </chart-table>
                   </v-tab-item>
@@ -466,7 +466,7 @@ import watchVisible from "../plugins/watchVisible";
 import ChuniOverPowerCalculators from "@/components/ChuniOverPowerCalculators";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
-const DEBUG = false;
+const DEBUG = true;
 export default {
   name: "App",
   components: {
@@ -625,7 +625,7 @@ export default {
     },
     sdRa: function () {
       let ret = 0;
-      for (let i = 0; i < Math.min(this.sdData.length, 25); i++) {
+      for (let i = 0; i < Math.min(this.sdData.length, 35); i++) {
         ret += this.sdData[i].ra;
       }
       return ret;
@@ -899,6 +899,41 @@ export default {
           this.$message.error(err.response.data.message);
         });
     },
+    get_idx(ach) {
+      return [
+        50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 200,
+      ].findIndex((i) => ach < i);
+    },
+    get_l(idx) {
+      return [0, 5, 6, 7, 7.5, 8.5, 9.5, 10.5, 12.5, 12.7, 13, 13.2, 13.5, 14][
+        idx
+      ];
+    },
+    get_idx_b50(ach) {
+      return [
+        50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 200,
+      ].findIndex((i) => ach < i);
+    },
+    get_l_b50(idx) {
+      return [7, 8, 9.6, 11.2, 12, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4][
+        idx
+      ];
+    },
+    get_min_ach(idx) {
+      return [0, 50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 101][
+        idx
+      ];
+    },
+    get_ra(ds, ach) {
+      return Math.floor(
+        (ds * this.get_l(this.get_idx(ach)) * Math.min(100.5, ach)) / 100
+      );
+    },
+    get_ra_b50(ds, ach) {
+      return Math.floor(
+        (ds * this.get_l_b50(this.get_idx_b50(ach)) * Math.min(100.5, ach)) / 100
+      );
+    },
     computeRecord: function (record) {
       if (this.music_data_dict[record.song_id])
         record.ds = this.music_data_dict[record.song_id].ds[record.level_index];
@@ -911,36 +946,7 @@ export default {
         }
       }
       record.level_label = this.level_label[record.level_index];
-      let l = 14;
-      const rate = record.achievements;
-      if (rate < 50) {
-        l = 0;
-      } else if (rate < 60) {
-        l = 5;
-      } else if (rate < 70) {
-        l = 6;
-      } else if (rate < 75) {
-        l = 7;
-      } else if (rate < 80) {
-        l = 7.5;
-      } else if (rate < 90) {
-        l = 8.5;
-      } else if (rate < 94) {
-        l = 9.5;
-      } else if (rate < 97) {
-        l = 10.5;
-      } else if (rate < 98) {
-        l = 12.5;
-      } else if (rate < 99) {
-        l = 12.7;
-      } else if (rate < 99.5) {
-        l = 13;
-      } else if (rate < 100) {
-        l = 13.2;
-      } else if (rate < 100.5) {
-        l = 13.5;
-      }
-      record.ra = Math.floor(record.ds * (Math.min(100.5, rate) / 100) * l);
+      record.ra = this.get_ra_b50(record.ds, record.achievements);
       if (isNaN(record.ra)) record.ra = 0;
       // Update Rate
       if (record.achievements < 50) {

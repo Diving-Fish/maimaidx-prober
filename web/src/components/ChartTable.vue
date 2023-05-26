@@ -590,6 +590,16 @@ export default {
         idx
       ];
     },
+    get_idx_b50(ach) {
+      return [
+        50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 200,
+      ].findIndex((i) => ach < i);
+    },
+    get_l_b50(idx) {
+      return [7, 8, 9.6, 11.2, 12, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4][
+        idx
+      ];
+    },
     get_min_ach(idx) {
       return [0, 50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 101][
         idx
@@ -598,6 +608,11 @@ export default {
     get_ra(ds, ach) {
       return Math.floor(
         (ds * this.get_l(this.get_idx(ach)) * Math.min(100.5, ach)) / 100
+      );
+    },
+    get_ra_b50(ds, ach) {
+      return Math.floor(
+        (ds * this.get_l_b50(this.get_idx_b50(ach)) * Math.min(100.5, ach)) / 100
       );
     },
     getMoreRa(item) {
