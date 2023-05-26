@@ -466,7 +466,7 @@ import watchVisible from "../plugins/watchVisible";
 import ChuniOverPowerCalculators from "@/components/ChuniOverPowerCalculators";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
-const DEBUG = true;
+const DEBUG = false;
 export default {
   name: "App",
   components: {
