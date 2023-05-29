@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"regexp"
@@ -10,14 +11,20 @@ import (
 )
 
 type proxyContext struct {
-	prober  *proberAPIClient
-	verbose bool
+	prober       *proberAPIClient
+	verbose      bool
+	fatalHandler func(error)
 }
 
-func newProxyContext(prober *proberAPIClient, verbose bool) *proxyContext {
+func newProxyContext(
+	prober *proberAPIClient,
+	fatalHandler func(error),
+	verbose bool,
+) *proxyContext {
 	return &proxyContext{
-		prober:  prober,
-		verbose: verbose,
+		prober:       prober,
+		verbose:      verbose,
+		fatalHandler: fatalHandler,
 	}
 }
 
@@ -30,7 +37,7 @@ func (p *proxyContext) handleResponse(resp *http.Response, ctx *goproxy.ProxyCtx
 	if regexp.MustCompile("^/maimai-mobile/home.*").MatchString(path) {
 		resp.Body = io.NopCloser(strings.NewReader("<p>正在获取您的舞萌 DX 乐曲数据，请稍候……这可能需要花费数秒，具体进度可以在代理服务器的命令行窗口查看。</p><p>此页面仅用于提示您成功访问了代理服务器，您可以立即关闭此窗口。</p>"))
 		if resp.StatusCode == 302 {
-			commandFatal("访问舞萌 DX 的成绩界面出错。")
+			p.fatalHandler(errors.New("访问舞萌 DX 的成绩界面出错。"))
 		}
 		go p.prober.fetchData(resp.Request, resp.Cookies())
 	}
@@ -38,7 +45,7 @@ func (p *proxyContext) handleResponse(resp *http.Response, ctx *goproxy.ProxyCtx
 	if regexp.MustCompile("^/mobile/home.*").MatchString(path) {
 		resp.Body = io.NopCloser(strings.NewReader("<p>正在获取您的中二节奏乐曲数据，请稍候……这可能需要花费数秒，具体进度可以在代理服务器的命令行窗口查看。</p><p>此页面仅用于提示您成功访问了代理服务器，您可以立即关闭此窗口。</p>"))
 		if resp.StatusCode == 302 {
-			commandFatal("访问中二节奏的成绩界面出错。")
+			p.fatalHandler(errors.New("访问中二节奏的成绩界面出错。"))
 		}
 		go p.prober.fetchDataChuni(resp.Request, resp.Cookies())
 	}

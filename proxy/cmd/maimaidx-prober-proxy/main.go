@@ -14,20 +14,6 @@ import (
 	"github.com/elazarl/goproxy"
 )
 
-var (
-	// this is a hack that'll be removed in a later refactor
-	spm *systemProxyManager
-)
-
-func commandFatal(prompt string) {
-	if spm != nil {
-		spm.rollback()
-	}
-	fmt.Printf("%s请按 Enter 键继续……", prompt)
-	bufio.NewReader(os.Stdin).ReadString('\n')
-	os.Exit(0)
-}
-
 func patchGoproxyCert() {
 	certPath := "cert.crt"
 	privateKeyPath := "key.pem"
@@ -42,21 +28,29 @@ func main() {
 	configPath := flag.String("config", "config.json", "path to config.json file")
 	flag.Parse()
 
+	spm := newSystemProxyManager(*addr)
+
+	commandFatal := func(err error) {
+		spm.rollback()
+		fmt.Printf("%s\n请按 Enter 键继续……", err.Error())
+		bufio.NewReader(os.Stdin).ReadString('\n')
+		os.Exit(0)
+	}
+
 	cfg, err := initConfig(*configPath)
 	if err != nil {
-		commandFatal(err.Error())
+		commandFatal(err)
 	}
 
 	apiClient, err := newProberAPIClient(&cfg)
 	if err != nil {
-		commandFatal(err.Error())
+		commandFatal(err)
 	}
-	proxyCtx := newProxyContext(apiClient, *verbose)
+	proxyCtx := newProxyContext(apiClient, commandFatal, *verbose)
 
 	fmt.Println("使用此软件则表示您同意共享您在微信公众号舞萌 DX、中二节奏中的数据。")
 	fmt.Println("您可以在微信客户端访问微信公众号舞萌 DX、中二节奏的个人信息主页进行分数导入，如需退出请直接关闭程序或按下 Ctrl + C")
 
-	spm = newSystemProxyManager(*addr)
 	spm.apply()
 
 	// 搞个抓SIGINT的东西，×的时候可以关闭代理
