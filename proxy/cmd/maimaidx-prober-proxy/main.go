@@ -24,16 +24,17 @@ import (
 	"github.com/Diving-Fish/maimaidx-prober/proxy/lib"
 )
 
+type WorkingMode int
+
 const (
-	MODE_UPDATE = 0
-	MODE_EXPORT = 1 // only for debug or other
+	MODE_UPDATE WorkingMode = 0
+	MODE_EXPORT WorkingMode = 1 // only for debug or other
 )
 
 var (
 	ProxyEnable   uint64 = 39
 	ProxyServer          = "rollback"
 	AutoConfigURL        = "rollback"
-	mode                 = MODE_UPDATE
 )
 
 func commandFatal(prompt string) {
@@ -44,8 +45,9 @@ func commandFatal(prompt string) {
 }
 
 type proberAPIClient struct {
-	cl  http.Client
-	jwt *http.Cookie
+	cl   http.Client
+	jwt  *http.Cookie
+	mode WorkingMode
 }
 
 func mustNewProberAPIClient(cfg *config) *proberAPIClient {
@@ -68,8 +70,9 @@ func mustNewProberAPIClient(cfg *config) *proberAPIClient {
 	fmt.Println("登录成功，代理已开启到127.0.0.1:8033")
 
 	return &proberAPIClient{
-		cl:  http.Client{},
-		jwt: resp.Cookies()[0],
+		cl:   http.Client{},
+		jwt:  resp.Cookies()[0],
+		mode: cfg.getWorkingMode(),
 	}
 }
 
@@ -103,9 +106,10 @@ func (c *proberAPIClient) fetchData(req0 *http.Request, cookies []*http.Cookie) 
 		fmt.Printf("正在导入 %s 难度……", labels[i])
 		req, _ := http.NewRequest("GET", "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(i), nil)
 		resp, _ := c.cl.Do(req)
-		if mode == MODE_UPDATE {
+		switch c.mode {
+		case MODE_UPDATE:
 			c.commit(resp.Body)
-		} else if mode == MODE_EXPORT {
+		case MODE_EXPORT:
 			r, _ := io.ReadAll(resp.Body)
 			os.WriteFile(fmt.Sprintf("mai-diff%d.html", i), r, 0644)
 			fmt.Println("已导出到文件")
@@ -162,7 +166,8 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 		}
 		req, _ := http.NewRequest("GET", "https://chunithm.wahlap.com/mobile"+urls[i], nil)
 		resp, _ := c.cl.Do(req)
-		if mode == MODE_UPDATE {
+		switch c.mode {
+		case MODE_UPDATE:
 			url2 := "https://www.diving-fish.com/api/chunithmprober/player/update_records_html"
 			if i == 6 {
 				url2 += "?recent=1"
@@ -171,7 +176,7 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 			req2.AddCookie(c.jwt)
 			c.cl.Do(req2)
 			fmt.Println("导入成功")
-		} else if mode == MODE_EXPORT {
+		case MODE_EXPORT:
 			r, _ := io.ReadAll(resp.Body)
 			os.WriteFile(fmt.Sprintf("chuni-diff%d.html", i), r, 0644)
 			fmt.Println("已导出到文件")
@@ -183,6 +188,13 @@ type config struct {
 	UserName string `json:"username"`
 	Password string `json:"password"`
 	Mode     string `json:"mode,omitempty"`
+}
+
+func (c *config) getWorkingMode() WorkingMode {
+	if c.Mode == "export" {
+		return MODE_EXPORT
+	}
+	return MODE_UPDATE
 }
 
 func initConfig(path string) config {
@@ -198,10 +210,6 @@ func initConfig(path string) config {
 	err = json.Unmarshal(b, &obj)
 	if err != nil {
 		commandFatal(fmt.Sprintf("配置文件格式有误，无法解析：请检查 %s 文件的内容", path))
-	}
-
-	if obj.Mode == "export" {
-		mode = MODE_EXPORT
 	}
 
 	return obj
