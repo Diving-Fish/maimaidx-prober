@@ -40,7 +40,7 @@ func (p *proxyContext) handleResponse(resp *http.Response, ctx *goproxy.ProxyCtx
 		if resp.StatusCode == 302 {
 			p.fatalHandler(errors.New("访问舞萌 DX 的成绩界面出错。"))
 		}
-		go p.prober.fetchData(resp.Request, resp.Cookies())
+		go p.prober.fetchDataMaimai(resp.Request, resp.Cookies())
 
 	case strings.HasPrefix(path, "/mobile/home"):
 		resp.Body = io.NopCloser(strings.NewReader("<p>正在获取您的中二节奏乐曲数据，请稍候……这可能需要花费数秒，具体进度可以在代理服务器的命令行窗口查看。</p><p>此页面仅用于提示您成功访问了代理服务器，您可以立即关闭此窗口。</p>"))
