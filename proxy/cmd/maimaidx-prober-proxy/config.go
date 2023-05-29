@@ -8,11 +8,11 @@ import (
 	"github.com/Diving-Fish/maimaidx-prober/proxy/lib"
 )
 
-type WorkingMode int
+type workingMode int
 
 const (
-	MODE_UPDATE WorkingMode = 0
-	MODE_EXPORT WorkingMode = 1 // only for debug or other
+	workingModeUpdate workingMode = 0
+	workingModeExport workingMode = 1 // only for debug or other
 )
 
 type config struct {
@@ -21,11 +21,11 @@ type config struct {
 	Mode     string `json:"mode,omitempty"`
 }
 
-func (c *config) getWorkingMode() WorkingMode {
+func (c *config) getWorkingMode() workingMode {
 	if c.Mode == "export" {
-		return MODE_EXPORT
+		return workingModeExport
 	}
-	return MODE_UPDATE
+	return workingModeUpdate
 }
 
 func initConfig(path string) (config, error) {

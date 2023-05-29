@@ -17,7 +17,7 @@ import (
 type proberAPIClient struct {
 	cl   http.Client
 	jwt  *http.Cookie
-	mode WorkingMode
+	mode workingMode
 }
 
 func newProberAPIClient(cfg *config) (*proberAPIClient, error) {
@@ -77,9 +77,9 @@ func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Co
 		req, _ := http.NewRequest(http.MethodGet, "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(i), nil)
 		resp, _ := c.cl.Do(req)
 		switch c.mode {
-		case MODE_UPDATE:
+		case workingModeUpdate:
 			c.commit(resp.Body)
-		case MODE_EXPORT:
+		case workingModeExport:
 			r, _ := io.ReadAll(resp.Body)
 			os.WriteFile(fmt.Sprintf("mai-diff%d.html", i), r, 0644)
 			fmt.Println("已导出到文件")
@@ -137,7 +137,7 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 		req, _ := http.NewRequest(http.MethodGet, "https://chunithm.wahlap.com/mobile"+urls[i], nil)
 		resp, _ := c.cl.Do(req)
 		switch c.mode {
-		case MODE_UPDATE:
+		case workingModeUpdate:
 			url2 := "https://www.diving-fish.com/api/chunithmprober/player/update_records_html"
 			if i == 6 {
 				url2 += "?recent=1"
@@ -146,7 +146,7 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 			req2.AddCookie(c.jwt)
 			c.cl.Do(req2)
 			fmt.Println("导入成功")
-		case MODE_EXPORT:
+		case workingModeExport:
 			r, _ := io.ReadAll(resp.Body)
 			os.WriteFile(fmt.Sprintf("chuni-diff%d.html", i), r, 0644)
 			fmt.Println("已导出到文件")
