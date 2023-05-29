@@ -37,7 +37,7 @@ func newProberAPIClient(cfg *config) (*proberAPIClient, error) {
 		return nil, errors.New("登录凭据错误")
 	}
 
-	fmt.Println("登录成功，代理已开启到127.0.0.1:8033")
+	fmt.Println("登录成功")
 
 	return &proberAPIClient{
 		cl:   http.Client{},

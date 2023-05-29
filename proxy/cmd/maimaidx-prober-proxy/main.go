@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -65,5 +66,12 @@ func main() {
 
 	patchGoproxyCert()
 	srv := proxyCtx.makeProxyServer()
+
+	if host, _, err := net.SplitHostPort(*addr); err == nil && host == "" {
+		// hack
+		*addr = "127.0.0.1" + *addr
+	}
+	fmt.Printf("代理已开启到 %s\n", *addr)
+
 	log.Fatal(http.ListenAndServe(*addr, srv))
 }
