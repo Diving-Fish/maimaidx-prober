@@ -49,7 +49,7 @@ func newProberAPIClient(cfg *config) (*proberAPIClient, error) {
 func (c *proberAPIClient) commit(data io.Reader) {
 	resp2, _ := http.Post("http://www.diving-fish.com:8089/page", "text/plain", data)
 	b, _ := io.ReadAll(resp2.Body)
-	req, _ := http.NewRequest("POST", "https://www.diving-fish.com/api/maimaidxprober/player/update_records", bytes.NewReader(b))
+	req, _ := http.NewRequest(http.MethodPost, "https://www.diving-fish.com/api/maimaidxprober/player/update_records", bytes.NewReader(b))
 	req.Header.Add("Content-Type", "application/json")
 	req.AddCookie(c.jwt)
 	c.cl.Do(req)
@@ -74,7 +74,7 @@ func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Co
 	}
 	for i := 0; i < 5; i++ {
 		fmt.Printf("正在导入 %s 难度……", labels[i])
-		req, _ := http.NewRequest("GET", "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(i), nil)
+		req, _ := http.NewRequest(http.MethodGet, "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(i), nil)
 		resp, _ := c.cl.Do(req)
 		switch c.mode {
 		case MODE_UPDATE:
@@ -129,12 +129,12 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 				"genre": {"99"},
 				"token": {cookies[0].Value},
 			}
-			req, _ := http.NewRequest("POST", "https://chunithm.wahlap.com/mobile"+postUrls[i], strings.NewReader(formData.Encode()))
+			req, _ := http.NewRequest(http.MethodPost, "https://chunithm.wahlap.com/mobile"+postUrls[i], strings.NewReader(formData.Encode()))
 			req.Header = hds
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			_, _ = c.cl.Do(req)
 		}
-		req, _ := http.NewRequest("GET", "https://chunithm.wahlap.com/mobile"+urls[i], nil)
+		req, _ := http.NewRequest(http.MethodGet, "https://chunithm.wahlap.com/mobile"+urls[i], nil)
 		resp, _ := c.cl.Do(req)
 		switch c.mode {
 		case MODE_UPDATE:
@@ -142,7 +142,7 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 			if i == 6 {
 				url2 += "?recent=1"
 			}
-			req2, _ := http.NewRequest("POST", url2, resp.Body)
+			req2, _ := http.NewRequest(http.MethodPost, url2, resp.Body)
 			req2.AddCookie(c.jwt)
 			c.cl.Do(req2)
 			fmt.Println("导入成功")
