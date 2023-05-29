@@ -42,7 +42,10 @@ func main() {
 	configPath := flag.String("config", "config.json", "path to config.json file")
 	flag.Parse()
 
-	cfg := initConfig(*configPath)
+	cfg, err := initConfig(*configPath)
+	if err != nil {
+		commandFatal(err.Error())
+	}
 
 	apiClient, err := newProberAPIClient(&cfg)
 	if err != nil {
