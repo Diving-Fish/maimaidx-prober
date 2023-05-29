@@ -20,7 +20,9 @@ var (
 )
 
 func commandFatal(prompt string) {
-	spm.rollback()
+	if spm != nil {
+		spm.rollback()
+	}
 	fmt.Printf("%s请按 Enter 键继续……", prompt)
 	bufio.NewReader(os.Stdin).ReadString('\n')
 	os.Exit(0)
@@ -42,7 +44,10 @@ func main() {
 
 	cfg := initConfig(*configPath)
 
-	apiClient := mustNewProberAPIClient(&cfg)
+	apiClient, err := newProberAPIClient(&cfg)
+	if err != nil {
+		commandFatal(err.Error())
+	}
 	proxyCtx := newProxyContext(apiClient, *verbose)
 
 	fmt.Println("使用此软件则表示您同意共享您在微信公众号舞萌 DX、中二节奏中的数据。")

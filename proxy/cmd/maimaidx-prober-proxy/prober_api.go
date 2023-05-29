@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,21 +20,21 @@ type proberAPIClient struct {
 	mode WorkingMode
 }
 
-func mustNewProberAPIClient(cfg *config) *proberAPIClient {
+func newProberAPIClient(cfg *config) (*proberAPIClient, error) {
 	body := map[string]interface{}{
 		"username": cfg.UserName,
 		"password": cfg.Password,
 	}
 	b, err := json.Marshal(&body)
 	if err != nil {
-		commandFatal("配置文件读取出错，请按照教程指示填写")
+		return nil, fmt.Errorf("配置文件读取出错，请按照教程指示填写: %w", err)
 	}
 	resp, err := http.Post("https://www.diving-fish.com/api/maimaidxprober/login", "application/json", bytes.NewReader(b))
 	if err != nil {
-		commandFatal("登录失败")
+		return nil, fmt.Errorf("登录失败: %w", err)
 	}
 	if resp.StatusCode != 200 {
-		commandFatal("登录凭据错误")
+		return nil, errors.New("登录凭据错误")
 	}
 
 	fmt.Println("登录成功，代理已开启到127.0.0.1:8033")
@@ -42,7 +43,7 @@ func mustNewProberAPIClient(cfg *config) *proberAPIClient {
 		cl:   http.Client{},
 		jwt:  resp.Cookies()[0],
 		mode: cfg.getWorkingMode(),
-	}
+	}, nil
 }
 
 func (c *proberAPIClient) commit(data io.Reader) {
