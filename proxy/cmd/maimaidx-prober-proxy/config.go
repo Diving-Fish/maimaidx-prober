@@ -28,20 +28,20 @@ func (c *config) getWorkingMode() WorkingMode {
 	return MODE_UPDATE
 }
 
-func initConfig(path string) config {
+func initConfig(path string) (config, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		// First run
 		lib.GenerateCert()
 		os.WriteFile(path, []byte("{\"username\": \"\", \"password\": \"\"}"), 0644)
-		commandFatal(fmt.Sprintf("初次使用请填写 %s 文件，并依据教程完成根证书的安装。", path))
+		return config{}, fmt.Errorf("初次使用请填写 %s 文件，并依据教程完成根证书的安装。", path)
 	}
 
 	var obj config
 	err = json.Unmarshal(b, &obj)
 	if err != nil {
-		commandFatal(fmt.Sprintf("配置文件格式有误，无法解析：请检查 %s 文件的内容", path))
+		return config{}, fmt.Errorf("配置文件格式有误，无法解析：%w。请检查 %s 文件的内容", err, path)
 	}
 
-	return obj
+	return obj, nil
 }
