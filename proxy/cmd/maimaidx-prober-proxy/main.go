@@ -175,24 +175,43 @@ func fetchDataChuni(req0 *http.Request, cookies []*http.Cookie) {
 	}
 }
 
-func main() {
-	verbose := flag.Bool("v", false, "should every proxy request be logged to stdout")
-	addr := flag.String("addr", ":8033", "proxy listen address")
-	flag.Parse()
+type config struct {
+	UserName string `json:"username"`
+	Password string `json:"password"`
+	Mode     string `json:"mode,omitempty"`
+}
 
-	b, err := os.ReadFile("config.json")
+func initConfig(path string) config {
+	b, err := os.ReadFile(path)
 	if err != nil {
 		// First run
 		lib.GenerateCert()
-		os.WriteFile("config.json", []byte("{\"username\": \"\", \"password\": \"\"}"), 0644)
-		commandFatal("初次使用请填写config.json文件，并依据教程完成根证书的安装。")
+		os.WriteFile(path, []byte("{\"username\": \"\", \"password\": \"\"}"), 0644)
+		commandFatal(fmt.Sprintf("初次使用请填写 %s 文件，并依据教程完成根证书的安装。", path))
 	}
-	obj := map[string]interface{}{}
-	json.Unmarshal(b, &obj)
-	if obj["mode"] != nil && obj["mode"].(string) == "export" {
+
+	var obj config
+	err = json.Unmarshal(b, &obj)
+	if err != nil {
+		commandFatal(fmt.Sprintf("配置文件格式有误，无法解析：请检查 %s 文件的内容", path))
+	}
+
+	if obj.Mode == "export" {
 		mode = MODE_EXPORT
 	}
-	tryLogin(obj["username"].(string), obj["password"].(string))
+
+	return obj
+}
+
+func main() {
+	verbose := flag.Bool("v", false, "should every proxy request be logged to stdout")
+	addr := flag.String("addr", ":8033", "proxy listen address")
+	configPath := flag.String("config", "config.json", "path to config.json file")
+	flag.Parse()
+
+	cfg := initConfig(*configPath)
+
+	tryLogin(cfg.UserName, cfg.Password)
 	applySystemProxySettings()
 	// 搞个抓SIGINT的东西，×的时候可以关闭代理
 	c := make(chan os.Signal)
