@@ -56,7 +56,7 @@ func (c *proberAPIClient) commit(data io.Reader) {
 	fmt.Println("导入成功")
 }
 
-func (c *proberAPIClient) fetchData(req0 *http.Request, cookies []*http.Cookie) {
+func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Cookie) {
 	c.cl.Jar, _ = cookiejar.New(nil)
 	if len(cookies) != 2 {
 		for _, cookie := range req0.Cookies() {
