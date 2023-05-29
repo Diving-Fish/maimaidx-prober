@@ -586,16 +586,6 @@ export default {
       ].findIndex((i) => ach < i);
     },
     get_l(idx) {
-      return [0, 5, 6, 7, 7.5, 8.5, 9.5, 10.5, 12.5, 12.7, 13, 13.2, 13.5, 14][
-        idx
-      ];
-    },
-    get_idx_b50(ach) {
-      return [
-        50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 200,
-      ].findIndex((i) => ach < i);
-    },
-    get_l_b50(idx) {
       return [7, 8, 9.6, 11.2, 12, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4][
         idx
       ];
@@ -608,11 +598,6 @@ export default {
     get_ra(ds, ach) {
       return Math.floor(
         (ds * this.get_l(this.get_idx(ach)) * Math.min(100.5, ach)) / 100
-      );
-    },
-    get_ra_b50(ds, ach) {
-      return Math.floor(
-        (ds * this.get_l_b50(this.get_idx_b50(ach)) * Math.min(100.5, ach)) / 100
       );
     },
     getMoreRa(item) {
