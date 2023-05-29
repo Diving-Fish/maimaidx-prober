@@ -15,13 +15,12 @@ import (
 )
 
 var (
-	ProxyEnable   uint64 = 39
-	ProxyServer          = "rollback"
-	AutoConfigURL        = "rollback"
+	// this is a hack that'll be removed in a later refactor
+	spm *systemProxyManager
 )
 
 func commandFatal(prompt string) {
-	rollbackSystemProxySettings()
+	spm.rollback()
 	fmt.Printf("%s请按 Enter 键继续……", prompt)
 	bufio.NewReader(os.Stdin).ReadString('\n')
 	os.Exit(0)
@@ -49,15 +48,15 @@ func main() {
 	fmt.Println("使用此软件则表示您同意共享您在微信公众号舞萌 DX、中二节奏中的数据。")
 	fmt.Println("您可以在微信客户端访问微信公众号舞萌 DX、中二节奏的个人信息主页进行分数导入，如需退出请直接关闭程序或按下 Ctrl + C")
 
-	applySystemProxySettings()
+	spm = newSystemProxyManager(*addr)
+	spm.apply()
+
 	// 搞个抓SIGINT的东西，×的时候可以关闭代理
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		for range c {
-			if ProxyEnable != 39 {
-				rollbackSystemProxySettings()
-			}
+			spm.rollback()
 			os.Exit(0)
 		}
 	}()
