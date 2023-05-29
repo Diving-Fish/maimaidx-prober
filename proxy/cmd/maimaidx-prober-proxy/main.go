@@ -48,10 +48,10 @@ type proberAPIClient struct {
 	jwt *http.Cookie
 }
 
-func mustNewProberAPIClient(username string, password string) *proberAPIClient {
+func mustNewProberAPIClient(cfg *config) *proberAPIClient {
 	body := map[string]interface{}{
-		"username": username,
-		"password": password,
+		"username": cfg.UserName,
+		"password": cfg.Password,
 	}
 	b, err := json.Marshal(&body)
 	if err != nil {
@@ -215,7 +215,7 @@ func main() {
 
 	cfg := initConfig(*configPath)
 
-	apiClient := mustNewProberAPIClient(cfg.UserName, cfg.Password)
+	apiClient := mustNewProberAPIClient(&cfg)
 
 	applySystemProxySettings()
 	// 搞个抓SIGINT的东西，×的时候可以关闭代理
