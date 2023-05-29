@@ -176,6 +176,10 @@ func fetchDataChuni(req0 *http.Request, cookies []*http.Cookie) {
 }
 
 func main() {
+	verbose := flag.Bool("v", false, "should every proxy request be logged to stdout")
+	addr := flag.String("addr", ":8033", "proxy listen address")
+	flag.Parse()
+
 	b, err := os.ReadFile("config.json")
 	if err != nil {
 		// First run
@@ -231,9 +235,6 @@ func main() {
 			}
 			return resp
 		})
-	verbose := flag.Bool("v", false, "should every proxy request be logged to stdout")
-	addr := flag.String("addr", ":8033", "proxy listen address")
-	flag.Parse()
 	proxy.Verbose = *verbose
 	log.Fatal(http.ListenAndServe(*addr, proxy))
 }
