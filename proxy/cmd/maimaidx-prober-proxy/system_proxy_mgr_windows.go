@@ -13,33 +13,33 @@ import (
 )
 
 type systemProxyManager struct {
-	ProxyEnable   uint64
-	ProxyServer   string
-	AutoConfigURL string
+	proxyEnable   uint64
+	proxyServer   string
+	autoConfigURL string
 	addr          string
 }
 
 func newSystemProxyManager(addr string) *systemProxyManager {
 	return &systemProxyManager{
-		ProxyEnable:   39,
-		ProxyServer:   "rollback",
-		AutoConfigURL: "rollback",
+		proxyEnable:   39,
+		proxyServer:   "rollback",
+		autoConfigURL: "rollback",
 		addr:          addr,
 	}
 }
 
 func (s *systemProxyManager) rollback() {
-	if s.ProxyEnable == 39 {
+	if s.proxyEnable == 39 {
 		return
 	}
 	key, _, _ := registry.CreateKey(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings`, registry.ALL_ACCESS)
 	defer key.Close()
-	key.SetDWordValue("ProxyEnable", uint32(s.ProxyEnable))
-	if s.ProxyServer != "rollback" {
-		key.SetStringValue("ProxyServer", s.ProxyServer)
+	key.SetDWordValue("ProxyEnable", uint32(s.proxyEnable))
+	if s.proxyServer != "rollback" {
+		key.SetStringValue("ProxyServer", s.proxyServer)
 	}
-	if s.AutoConfigURL != "rollback" {
-		key.SetStringValue("AutoConfigURL", s.AutoConfigURL)
+	if s.autoConfigURL != "rollback" {
+		key.SetStringValue("AutoConfigURL", s.autoConfigURL)
 	}
 	_, _ = lib.InternetOptionSettingsChanged()
 }
@@ -62,7 +62,7 @@ func (s *systemProxyManager) apply() {
 	}
 	key, _, _ := registry.CreateKey(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings`, registry.ALL_ACCESS)
 	defer key.Close()
-	s.ProxyEnable, _, err = key.GetIntegerValue("ProxyEnable")
+	s.proxyEnable, _, err = key.GetIntegerValue("ProxyEnable")
 	if err != nil {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
 		s.rollback()
@@ -74,7 +74,7 @@ func (s *systemProxyManager) apply() {
 		s.rollback()
 		return
 	}
-	s.ProxyServer, _, err = key.GetStringValue("ProxyServer")
+	s.proxyServer, _, err = key.GetStringValue("ProxyServer")
 	if err != nil {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
 		s.rollback()
@@ -86,10 +86,10 @@ func (s *systemProxyManager) apply() {
 		s.rollback()
 		return
 	}
-	s.AutoConfigURL, _, err = key.GetStringValue("AutoConfigURL")
+	s.autoConfigURL, _, err = key.GetStringValue("AutoConfigURL")
 	if err != nil {
 		if err == syscall.ENOENT {
-			s.AutoConfigURL = "rollback"
+			s.autoConfigURL = "rollback"
 		} else {
 			fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
 			s.rollback()
