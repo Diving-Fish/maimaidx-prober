@@ -44,6 +44,7 @@ func commandFatal(prompt string) {
 }
 
 type proberAPIClient struct {
+	cl  http.Client
 	jwt *http.Cookie
 }
 
@@ -67,6 +68,7 @@ func mustNewProberAPIClient(username string, password string) *proberAPIClient {
 	fmt.Println("登录成功，代理已开启到127.0.0.1:8033")
 
 	return &proberAPIClient{
+		cl:  http.Client{},
 		jwt: resp.Cookies()[0],
 	}
 }
@@ -77,14 +79,12 @@ func (c *proberAPIClient) commit(data io.Reader) {
 	req, _ := http.NewRequest("POST", "https://www.diving-fish.com/api/maimaidxprober/player/update_records", bytes.NewReader(b))
 	req.Header.Add("Content-Type", "application/json")
 	req.AddCookie(c.jwt)
-	client := &http.Client{}
-	client.Do(req)
+	c.cl.Do(req)
 	fmt.Println("导入成功")
 }
 
 func (c *proberAPIClient) fetchData(req0 *http.Request, cookies []*http.Cookie) {
-	client := &http.Client{}
-	client.Jar, _ = cookiejar.New(nil)
+	c.cl.Jar, _ = cookiejar.New(nil)
 	if len(cookies) != 2 {
 		for _, cookie := range req0.Cookies() {
 			if cookie.Name == "userId" {
@@ -95,14 +95,14 @@ func (c *proberAPIClient) fetchData(req0 *http.Request, cookies []*http.Cookie) 
 			}
 		}
 	}
-	client.Jar.SetCookies(req0.URL, cookies)
+	c.cl.Jar.SetCookies(req0.URL, cookies)
 	labels := []string{
 		"Basic", "Advanced", "Expert", "Master", "Re: MASTER",
 	}
 	for i := 0; i < 5; i++ {
 		fmt.Printf("正在导入 %s 难度……", labels[i])
 		req, _ := http.NewRequest("GET", "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(i), nil)
-		resp, _ := client.Do(req)
+		resp, _ := c.cl.Do(req)
 		if mode == MODE_UPDATE {
 			c.commit(resp.Body)
 		} else if mode == MODE_EXPORT {
@@ -114,8 +114,7 @@ func (c *proberAPIClient) fetchData(req0 *http.Request, cookies []*http.Cookie) 
 }
 
 func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Cookie) {
-	client := &http.Client{}
-	client.Jar, _ = cookiejar.New(nil)
+	c.cl.Jar, _ = cookiejar.New(nil)
 	if len(cookies) != 3 {
 		for _, cookie := range req0.Cookies() {
 			if cookie.Name == "userId" || cookie.Name == "friendCodeList" {
@@ -126,7 +125,7 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 			}
 		}
 	}
-	client.Jar.SetCookies(req0.URL, cookies)
+	c.cl.Jar.SetCookies(req0.URL, cookies)
 	hds := req0.Header.Clone()
 	hds.Del("Cookie")
 	labels := []string{
@@ -159,10 +158,10 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 			req, _ := http.NewRequest("POST", "https://chunithm.wahlap.com/mobile"+postUrls[i], strings.NewReader(formData.Encode()))
 			req.Header = hds
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			_, _ = client.Do(req)
+			_, _ = c.cl.Do(req)
 		}
 		req, _ := http.NewRequest("GET", "https://chunithm.wahlap.com/mobile"+urls[i], nil)
-		resp, _ := client.Do(req)
+		resp, _ := c.cl.Do(req)
 		if mode == MODE_UPDATE {
 			url2 := "https://www.diving-fish.com/api/chunithmprober/player/update_records_html"
 			if i == 6 {
@@ -170,7 +169,7 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 			}
 			req2, _ := http.NewRequest("POST", url2, resp.Body)
 			req2.AddCookie(c.jwt)
-			client.Do(req2)
+			c.cl.Do(req2)
 			fmt.Println("导入成功")
 		} else if mode == MODE_EXPORT {
 			r, _ := io.ReadAll(resp.Body)
