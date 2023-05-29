@@ -27,12 +27,18 @@ func main() {
 	verbose := flag.Bool("v", false, "should every proxy request be logged to stdout")
 	addr := flag.String("addr", ":8033", "proxy listen address")
 	configPath := flag.String("config", "config.json", "path to config.json file")
+	noEditGlobalProxy := flag.Bool("no-edit-global-proxy", false, "don't edit the global proxy settings")
 	flag.Parse()
 
-	spm := newSystemProxyManager(*addr)
+	var spm *systemProxyManager
+	if !*noEditGlobalProxy {
+		spm = newSystemProxyManager(*addr)
+	}
 
 	commandFatal := func(err error) {
-		spm.rollback()
+		if spm != nil {
+			spm.rollback()
+		}
 		fmt.Printf("%s\n请按 Enter 键继续……", err.Error())
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		os.Exit(0)
@@ -52,14 +58,18 @@ func main() {
 	fmt.Println("使用此软件则表示您同意共享您在微信公众号舞萌 DX、中二节奏中的数据。")
 	fmt.Println("您可以在微信客户端访问微信公众号舞萌 DX、中二节奏的个人信息主页进行分数导入，如需退出请直接关闭程序或按下 Ctrl + C")
 
-	spm.apply()
+	if spm != nil {
+		spm.apply()
+	}
 
 	// 搞个抓SIGINT的东西，×的时候可以关闭代理
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		for range c {
-			spm.rollback()
+			if spm != nil {
+				spm.rollback()
+			}
 			os.Exit(0)
 		}
 	}()
