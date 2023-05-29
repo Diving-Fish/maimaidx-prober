@@ -4,13 +4,18 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os/exec"
 )
 
-type systemProxyManager struct{}
+type systemProxyManager struct {
+	addr string
+}
 
 func newSystemProxyManager(addr string) *systemProxyManager {
-	return &systemProxyManager{}
+	return &systemProxyManager{
+		addr: addr,
+	}
 }
 
 func (s *systemProxyManager) rollback() {
@@ -19,14 +24,23 @@ func (s *systemProxyManager) rollback() {
 }
 
 func (s *systemProxyManager) apply() {
-	cmd := exec.Command("networksetup", "-setwebproxy", "Wi-Fi", "127.0.0.1", "8033")
-	err := cmd.Run()
+	host, port, err := net.SplitHostPort(s.addr)
+	if err != nil {
+		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
+		return
+	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+
+	cmd := exec.Command("networksetup", "-setwebproxy", "Wi-Fi", host, port)
+	err = cmd.Run()
 	if err != nil {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
 		s.rollback()
 		return
 	}
-	cmd2 := exec.Command("networksetup", "-setsecurewebproxy", "Wi-Fi", "127.0.0.1", "8033")
+	cmd2 := exec.Command("networksetup", "-setsecurewebproxy", "Wi-Fi", host, port)
 	err = cmd2.Run()
 	if err != nil {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
