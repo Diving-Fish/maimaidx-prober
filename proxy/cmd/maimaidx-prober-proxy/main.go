@@ -36,8 +36,6 @@ var (
 	mode                 = MODE_UPDATE
 )
 
-var jwt *http.Cookie
-
 func commandFatal(prompt string) {
 	rollbackSystemProxySettings()
 	fmt.Printf("%s请按 Enter 键继续……", prompt)
@@ -45,7 +43,11 @@ func commandFatal(prompt string) {
 	os.Exit(0)
 }
 
-func tryLogin(username string, password string) {
+type proberAPIClient struct {
+	jwt *http.Cookie
+}
+
+func mustNewProberAPIClient(username string, password string) *proberAPIClient {
 	body := map[string]interface{}{
 		"username": username,
 		"password": password,
@@ -61,23 +63,26 @@ func tryLogin(username string, password string) {
 	if resp.StatusCode != 200 {
 		commandFatal("登录凭据错误")
 	}
-	cookies := resp.Cookies()
-	jwt = cookies[0]
+
 	fmt.Println("登录成功，代理已开启到127.0.0.1:8033")
+
+	return &proberAPIClient{
+		jwt: resp.Cookies()[0],
+	}
 }
 
-func commit(data io.Reader) {
+func (c *proberAPIClient) commit(data io.Reader) {
 	resp2, _ := http.Post("http://www.diving-fish.com:8089/page", "text/plain", data)
 	b, _ := io.ReadAll(resp2.Body)
 	req, _ := http.NewRequest("POST", "https://www.diving-fish.com/api/maimaidxprober/player/update_records", bytes.NewReader(b))
 	req.Header.Add("Content-Type", "application/json")
-	req.AddCookie(jwt)
+	req.AddCookie(c.jwt)
 	client := &http.Client{}
 	client.Do(req)
 	fmt.Println("导入成功")
 }
 
-func fetchData(req0 *http.Request, cookies []*http.Cookie) {
+func (c *proberAPIClient) fetchData(req0 *http.Request, cookies []*http.Cookie) {
 	client := &http.Client{}
 	client.Jar, _ = cookiejar.New(nil)
 	if len(cookies) != 2 {
@@ -99,7 +104,7 @@ func fetchData(req0 *http.Request, cookies []*http.Cookie) {
 		req, _ := http.NewRequest("GET", "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(i), nil)
 		resp, _ := client.Do(req)
 		if mode == MODE_UPDATE {
-			commit(resp.Body)
+			c.commit(resp.Body)
 		} else if mode == MODE_EXPORT {
 			r, _ := io.ReadAll(resp.Body)
 			os.WriteFile(fmt.Sprintf("mai-diff%d.html", i), r, 0644)
@@ -108,7 +113,7 @@ func fetchData(req0 *http.Request, cookies []*http.Cookie) {
 	}
 }
 
-func fetchDataChuni(req0 *http.Request, cookies []*http.Cookie) {
+func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Cookie) {
 	client := &http.Client{}
 	client.Jar, _ = cookiejar.New(nil)
 	if len(cookies) != 3 {
@@ -164,7 +169,7 @@ func fetchDataChuni(req0 *http.Request, cookies []*http.Cookie) {
 				url2 += "?recent=1"
 			}
 			req2, _ := http.NewRequest("POST", url2, resp.Body)
-			req2.AddCookie(jwt)
+			req2.AddCookie(c.jwt)
 			client.Do(req2)
 			fmt.Println("导入成功")
 		} else if mode == MODE_EXPORT {
@@ -211,7 +216,8 @@ func main() {
 
 	cfg := initConfig(*configPath)
 
-	tryLogin(cfg.UserName, cfg.Password)
+	apiClient := mustNewProberAPIClient(cfg.UserName, cfg.Password)
+
 	applySystemProxySettings()
 	// 搞个抓SIGINT的东西，×的时候可以关闭代理
 	c := make(chan os.Signal)
@@ -243,14 +249,14 @@ func main() {
 				if resp.StatusCode == 302 {
 					commandFatal("访问舞萌 DX 的成绩界面出错。")
 				}
-				go fetchData(resp.Request, resp.Cookies())
+				go apiClient.fetchData(resp.Request, resp.Cookies())
 			}
 			if regexp.MustCompile("^/mobile/home.*").MatchString(path) {
 				resp.Body = io.NopCloser(strings.NewReader("<p>正在获取您的中二节奏乐曲数据，请稍候……这可能需要花费数秒，具体进度可以在代理服务器的命令行窗口查看。</p><p>此页面仅用于提示您成功访问了代理服务器，您可以立即关闭此窗口。</p>"))
 				if resp.StatusCode == 302 {
 					commandFatal("访问中二节奏的成绩界面出错。")
 				}
-				go fetchDataChuni(resp.Request, resp.Cookies())
+				go apiClient.fetchDataChuni(resp.Request, resp.Cookies())
 			}
 			return resp
 		})
