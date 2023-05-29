@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"syscall"
 
 	"golang.org/x/sys/windows/registry"
@@ -15,6 +16,7 @@ type systemProxyManager struct {
 	ProxyEnable   uint64
 	ProxyServer   string
 	AutoConfigURL string
+	addr          string
 }
 
 func newSystemProxyManager(addr string) *systemProxyManager {
@@ -22,6 +24,7 @@ func newSystemProxyManager(addr string) *systemProxyManager {
 		ProxyEnable:   39,
 		ProxyServer:   "rollback",
 		AutoConfigURL: "rollback",
+		addr:          addr,
 	}
 }
 
@@ -42,7 +45,17 @@ func (s *systemProxyManager) rollback() {
 }
 
 func (s *systemProxyManager) apply() {
-	_, err := lib.InternetOptionSettingsChanged()
+	host, port, err := net.SplitHostPort(s.addr)
+	if err != nil {
+		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
+		return
+	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	newProxyServerStr := host + ":" + port
+
+	_, err = lib.InternetOptionSettingsChanged()
 	if err != nil {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
 		return
@@ -67,7 +80,7 @@ func (s *systemProxyManager) apply() {
 		s.rollback()
 		return
 	}
-	err = key.SetStringValue("ProxyServer", "127.0.0.1:8033")
+	err = key.SetStringValue("ProxyServer", newProxyServerStr)
 	if err != nil {
 		fmt.Println("自动修改代理设置失败。请尝试手动修改代理。")
 		s.rollback()
