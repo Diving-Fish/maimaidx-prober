@@ -13,7 +13,6 @@ jobs:
     steps:
       -
         name: Create prod page
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: curl "http://www.diving-fish.com:8333/ci/production?sha=${{ github.event.inputs.sha256 }}&token=${{ secrets.CI_TOKEN }}"
   build:
     name: Build binary CI
