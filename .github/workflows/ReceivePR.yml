@@ -12,14 +12,11 @@ jobs:
     steps:        
       - uses: actions/checkout@v2
 
-      # imitation of a build process
-      - name: Build
-        run: /bin/bash ./build.sh
-
       - name: Save PR sha
         run: |
           mkdir -p ./pr
           echo ${{ github.event.number }} > ./pr/NR
+          
       - uses: actions/upload-artifact@v2
         with:
           name: pr
