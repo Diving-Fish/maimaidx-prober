@@ -64,21 +64,15 @@ jobs:
       -
         name: Build and push
         uses: docker/build-push-action@v4
-        needs:
-          - getsha
         with:
           context: "{{defaultContext}}:web"
           push: true
           tags: divingfish/maimaidx-prober:${{ steps.getsha.outputs }}
       - 
         name: Create test page
-        needs:
-          - getsha
         run: curl "http://www.diving-fish.com:8333/ci/tag?sha=${{ steps.getsha.outputs }}&token=${{ secrets.CI_TOKEN }}"
       - 
         name: Test page notice
-        needs:
-          - getsha
         run: echo "Your test page can be viewed at https://www.diving-fish.com/maimaidx/prober-test/${{ steps.getsha.outputs }}"
 
 
