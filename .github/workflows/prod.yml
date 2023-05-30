@@ -1,6 +1,10 @@
-name: Prober CI
-run-name: Prober CI
-on: [push, pull_request]
+name: Build Production
+run-name: Build Production
+on:
+  workflow_dispatch:
+    inputs:
+      sha256:
+        required: true
 jobs:
   webpage:
     name: Build webpage CI
@@ -8,31 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      -
-        name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          context: "{{defaultContext}}:web"
-          push: true
-          tags: divingfish/maimaidx-prober:${{ github.sha }}
-      - run: curl "http://www.diving-fish.com:8333/ci/tag?sha=${{ github.sha }}&token=${{ secrets.CI_TOKEN }}"
-      - run: echo "Your test page can be viewed at https://www.diving-fish.com/maimaidx/prober-test/${{ github.sha }}"
-      - name: Comment PR
-        uses: thollander/actions-comment-pull-request@v2
-        if: github.event_name == 'pull_request'
-        with:
-          message: Your test page can be viewed at https://www.diving-fish.com/maimaidx/prober-test/${{ github.sha }}
+        name: Create prod page
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: curl "http://www.diving-fish.com:8333/ci/production?sha=${{ github.event.inputs.sha256 }}&token=${{ secrets.CI_TOKEN }}"
   build:
     name: Build binary CI
     runs-on: ubuntu-latest
@@ -64,8 +46,7 @@ jobs:
           if $IS_PR ; then echo $PR_PROMPT; fi
           export BINARY_NAME="$BINARY_PREFIX"$GOOS"_$GOARCH$BINARY_SUFFIX"
           export CGO_ENABLED=0
-          export LD_FLAGS="-w -s -X github.com/Mrs4s/go-cqhttp/internal/base.Version=${COMMIT_ID::7}"
-          go build -o "output/$BINARY_NAME" -trimpath -ldflags "$LD_FLAGS" ./proxy/cmd/maimaidx-prober-proxy/
+          go build -o "output/$BINARY_NAME" -trimpath ./proxy/cmd/maimaidx-prober-proxy/
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         if: ${{ !github.head_ref }}

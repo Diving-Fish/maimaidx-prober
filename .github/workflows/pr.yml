@@ -1,0 +1,37 @@
+name: Prober CI
+run-name: Prober CI
+on:
+  push:
+    branches:
+      - "*"
+jobs:
+  webpage:
+    name: Build webpage CI
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: "{{defaultContext}}:web"
+          push: true
+          tags: divingfish/maimaidx-prober:${{ github.sha }}
+      - 
+        name: Create test page
+        run: curl "http://www.diving-fish.com:8333/ci/tag?sha=${{ github.sha }}&token=${{ secrets.CI_TOKEN }}"
+      - 
+        name: Test page notice
+        run: echo "Your test page can be viewed at https://www.diving-fish.com/maimaidx/prober-test/${{ github.sha }}"
