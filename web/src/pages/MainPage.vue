@@ -3,7 +3,7 @@
     <v-container fluid :style="$vuetify.breakpoint.mobile ? 'padding:0px' : ''">
       <div
         :style="$vuetify.breakpoint.mobile ? '' : 'display: flex; align-items: flex-end; justify-content: space-between'">
-        <h1>舞萌 DX | 中二节奏查分器</h1>
+        <h1>舞萌 DX</h1>
         <profile :available_plates="available_plates" ref="profile" />
       </div>
       <v-divider class="mt-4 mb-4" />
