@@ -26,9 +26,20 @@ jobs:
           context: "{{defaultContext}}:web"
           push: true
           tags: divingfish/maimaidx-prober:${{ github.sha }}
-      - run: curl "http://www.diving-fish.com:8333/ci/tag?sha=${{ github.sha }}&token=${{ secrets.CI_TOKEN }}"
-      - run: echo "Your test page can be viewed at https://www.diving-fish.com/maimaidx/prober-test/${{ github.sha }}"
-      - name: Comment PR
+      - 
+        name: Create test page
+        if: github.ref != 'refs/heads/main'
+        run: curl "http://www.diving-fish.com:8333/ci/tag?sha=${{ github.sha }}&token=${{ secrets.CI_TOKEN }}"
+      - 
+        name: Create prod page
+        if: github.ref == 'refs/heads/main'
+        run: curl "http://www.diving-fish.com:8333/ci/production?sha=${{ github.sha }}&token=${{ secrets.CI_TOKEN }}"
+      - 
+        name: Test page notice
+        if: github.ref != 'refs/heads/main'
+        run: echo "Your test page can be viewed at https://www.diving-fish.com/maimaidx/prober-test/${{ github.sha }}"
+      - 
+        name: Comment PR
         uses: thollander/actions-comment-pull-request@v2
         if: github.event_name == 'pull_request'
         with:
