@@ -2,9 +2,10 @@ name: Prober CI
 run-name: Prober CI
 on:
   push:
-    branches: [ '*' ]
+    branches: [ main ]
   pull_request_target:
-    types: [labeled]
+    types: [ closed ]
+    branches: [ main ]
 jobs:
   webpage:
     name: Build webpage CI
@@ -31,23 +32,9 @@ jobs:
           push: true
           tags: divingfish/maimaidx-prober:${{ github.sha }}
       - 
-        name: Create test page
-        if: github.ref != 'refs/heads/main'
-        run: curl "http://www.diving-fish.com:8333/ci/tag?sha=${{ github.sha }}&token=${{ secrets.CI_TOKEN }}"
-      - 
         name: Create prod page
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: curl "http://www.diving-fish.com:8333/ci/production?sha=${{ github.sha }}&token=${{ secrets.CI_TOKEN }}"
-      - 
-        name: Test page notice
-        if: github.ref != 'refs/heads/main'
-        run: echo "Your test page can be viewed at https://www.diving-fish.com/maimaidx/prober-test/${{ github.sha }}"
-      - 
-        name: Comment PR
-        uses: thollander/actions-comment-pull-request@v2
-        if: github.event_name == 'pull_request'
-        with:
-          message: Your test page can be viewed at https://www.diving-fish.com/maimaidx/prober-test/${{ github.sha }}
   build:
     name: Build binary CI
     runs-on: ubuntu-latest
