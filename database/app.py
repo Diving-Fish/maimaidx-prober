@@ -18,6 +18,7 @@ config = ...
 db_url = ...
 jwt_secret = ...
 mail_config = ...
+ci_token = ...
 
 
 with open('config.json', encoding='utf-8') as fr:
@@ -25,6 +26,7 @@ with open('config.json', encoding='utf-8') as fr:
     db_url = config["database_url"]
     jwt_secret = config["jwt_secret"]
     mail_config = config["mail"]
+    ci_token = config["ci_token"]
 
 
 @app.after_request
@@ -84,6 +86,17 @@ def developer_required(f):
         if xip != "":
             remote_addr = xip
         DeveloperLog.create(developer=dev, function=f.__name__, remote_addr=remote_addr, timestamp=time.time_ns())
+        return await f(*args, **kwargs)
+
+    return func
+
+
+def ci_access_required(f):
+    @wraps(f)
+    async def func(*args, **kwargs):
+        token = request.args.get("token", type=str, default="")
+        if token != ci_token:
+            return "ERROR", 403
         return await f(*args, **kwargs)
 
     return func

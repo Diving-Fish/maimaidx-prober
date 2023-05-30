@@ -1,6 +1,7 @@
 import routes.public
 import routes.maimai
 import routes.chunithm
+import routes.ci
 from app import app
 import asyncio
 
