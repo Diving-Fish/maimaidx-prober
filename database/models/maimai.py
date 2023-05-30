@@ -38,59 +38,33 @@ class NewRecord(BaseModel):
     fs = CharField()
 
 
-class Record(BaseModel):
-    player = ForeignKeyField(Player)
-    title = CharField()
-    level = CharField()
-    level_index = IntegerField()
-    type = CharField()
-    achievements = DoubleField()
-    dxScore = IntegerField()
-    rate = CharField()
-    fc = CharField()
-    fs = CharField()
-    ds = DoubleField()
-    level_label = CharField()
-    ra = IntegerField()
-
-    def json(self, md: Optional[List] = None):
-        data = {
-            "title": self.title,
-            "level": self.level,
-            "level_index": self.level_index,
-            "level_label": self.level_label,
-            "type": self.type,
-            "dxScore": self.dxScore,
-            "achievements": self.achievements,
-            "rate": self.rate,
-            "fc": self.fc,
-            "fs": self.fs,
-            "ra": self.ra,
-            "ds": self.ds
-        }
-        if md:
-            for m in md:
-                if m['title'] == self.title:
-                    data["song_id"] = m['id']
-                    break
-        return data
-
-    def json_output(self):
-        return {
-            "title": self.title,
-            "level": self.level,
-            "level_index": self.level_index,
-            "type": self.type,
-            "dxScore": self.dxScore,
-            "achievements": self.achievements,
-            "rate": self.rate,
-            "fc": self.fc,
-            "fs": self.fs
-        }
+# class RecordAnalysis(BaseModel):
+#     chart = ForeignKeyField(Chart)
+#     count = IntegerField()
+#     avg = DoubleField()
+#     avg_dx_score = IntegerField()
+#     d_count = IntegerField()
+#     c_count = IntegerField()
+#     b_count = IntegerField()
+#     bb_count = IntegerField()
+#     bbb_count = IntegerField()
+#     a_count = IntegerField()
+#     aa_count = IntegerField()
+#     aaa_count = IntegerField()
+#     s_count = IntegerField()
+#     sp_count = IntegerField()
+#     ss_count = IntegerField()
+#     ssp_count = IntegerField()
+#     sss_count = IntegerField()
+#     sssp_count = IntegerField()
+#     fc_count = IntegerField()
+#     fcp_count = IntegerField()
+#     ap_count = IntegerField()
+#     app_count = IntegerField()
 
 
 db.create_tables([Music, NewRecord, Chart, Player, EmailReset,
-                 Record, FeedBack, Views, Message, Developer, DeveloperLog, RequestLog])
+                 FeedBack, Views, Message, Developer, DeveloperLog, RequestLog])
 
 
 def get_idx(achievements):

@@ -6,12 +6,15 @@ https://www.diving-fish.com/api/maimaidxprober/*
 例如 /player/profile 可以通过 https://www.diving-fish.com/api/maimaidxprober/player/profile 访问。
 """
 import asyncio
+import time
 from collections import defaultdict
 from app import app, developer_required, login_required, md5
 from quart import Quart, request, g, make_response
 from tools._jwt import *
 from models.maimai import *
 import tools.page_parser as page_parser
+import tools.maimai_analysis_curve as maimai_analysis
+from tools.analysis_template import return_template
 
 
 cs_need_update = True
@@ -38,13 +41,6 @@ page_parser.get_ds = get_ds
 
 def is_new(r: Dict):
     t = (r["title"], r["type"])
-    if t in md_title_type_map:
-        return md_title_type_map[t]["is_new"]
-    return False
-
-
-def is_new_2(r: Record):
-    t = (r.title, r.type)
     if t in md_title_type_map:
         return md_title_type_map[t]["is_new"]
     return False
@@ -332,6 +328,7 @@ async def compute_ra(player: Player):
     for t in dx:
         rating += int(t.ra)
     player.rating = rating
+    player.access_time = time.time()
     player.save()
     return rating
 
@@ -559,7 +556,6 @@ async def chart_stats():
     """
     返回谱面的相对难度等数据。
     """
-    # return {}
     global cs_need_update
     global cs_cache
     global cs_cache_eTag
@@ -568,66 +564,70 @@ async def chart_stats():
             resp = await make_response("", 304)
             resp.headers['cache-control'] = "private, max_age=86400"
             return resp
-        resp = await make_response(json.dumps(cs_cache, ensure_ascii=False))
+        resp = await make_response(json.dumps(cs_cache, ensure_ascii=False, default=float))
         resp.headers['ETag'] = '"' + cs_cache_eTag + '"';
         resp.headers['content-type'] = "application/json; charset=utf-8"
         resp.headers['cache-control'] = "private, max_age=86400"
         return resp
+    cursor2 = NewRecord.raw('''select c.difficulty as diff,
+        SUM(recordanalysis.sum_achievements) / SUM(recordanalysis.cnt) as ach,
+        SUM(recordanalysis.d) / SUM(recordanalysis.cnt) as d,
+        SUM(recordanalysis.c) / SUM(recordanalysis.cnt) as c,
+        SUM(recordanalysis.b) / SUM(recordanalysis.cnt) as b,
+        SUM(recordanalysis.bb) / SUM(recordanalysis.cnt) as bb,
+        SUM(recordanalysis.bbb) / SUM(recordanalysis.cnt) as bbb,
+        SUM(recordanalysis.a) / SUM(recordanalysis.cnt) as a,
+        SUM(recordanalysis.aa) / SUM(recordanalysis.cnt) as aa,
+        SUM(recordanalysis.aaa) / SUM(recordanalysis.cnt) as aaa,
+        SUM(recordanalysis.s) / SUM(recordanalysis.cnt) as s,
+        SUM(recordanalysis.sp) / SUM(recordanalysis.cnt) as sp,
+        SUM(recordanalysis.ss) / SUM(recordanalysis.cnt) as ss,
+        SUM(recordanalysis.ssp) / SUM(recordanalysis.cnt) as ssp,
+        SUM(recordanalysis.sss) / SUM(recordanalysis.cnt) as sss,
+        SUM(recordanalysis.sssp) / SUM(recordanalysis.cnt) as sssp,
+        SUM(recordanalysis.fc) / SUM(recordanalysis.cnt) as fc,
+        SUM(recordanalysis.fcp) / SUM(recordanalysis.cnt) as fcp,
+        SUM(recordanalysis.ap) / SUM(recordanalysis.cnt) as ap,
+        SUM(recordanalysis.app) / SUM(recordanalysis.cnt) as app
+        from recordanalysis join chart c on recordanalysis.chart_id = c.id group by c.difficulty;''')
+    diff_data = {}
+    for elem in cursor2:
+        diff_data[elem.diff] = {
+            "achievements": elem.ach,
+            "dist": [elem.d, elem.c, elem.b, elem.bb, elem.bbb, elem.a, elem.aa, elem.aaa, elem.s, elem.sp, elem.ss, elem.ssp, elem.sss, elem.sssp],
+            "fc_dist": [1 - float(elem.fc) - float(elem.fcp) - float(elem.ap) - float(elem.app), float(elem.fc), elem.fcp, elem.ap, elem.app]
+        }
+
     cursor = NewRecord.raw(
-        'select newrecord.chart_id, count(*) as cnt, avg(achievements) as `avg`,'
-        ' sum(case when achievements >= 100 then 1 else 0 end) as sssp_count from newrecord group by chart_id'
+        '''select recordanalysis.*, rst.std_dev as std_dev, c2.music_id as mid, c2.level as level, c2.difficulty as diff from recordanalysis
+        join record_stddev_table rst on recordanalysis.chart_id = rst.c
+        join chart c2 on recordanalysis.chart_id = c2.id;'''
     )
-    data = defaultdict(lambda: [{}, {}, {}, {}, {}])
+    charts = []
+    charts = defaultdict(lambda: [{}, {}, {}, {}, {}])
     for elem in cursor:
-        data[elem.chart.music.id][elem.chart.level] = {"count": elem.cnt,
-                                                                                  "avg": elem.avg,
-                                                                                  "sssp_count": int(elem.sssp_count)
-                                                                                  }
-    level_dict = defaultdict(lambda: [])
-    md = md_cache
-    for elem in md:
-        key = elem['id']
-        for i in range(len(elem['ds'])):
-            elem2 = {
-                "key": key,
-                "level_index": i,
-                "count": 1,
-                "avg": 0,
-                "sssp_count": 0
-            }
-            for _k in data[key][i]:
-                elem2[_k] = data[key][i][_k]
-            if elem2['count'] >= 30:
-                level_dict[elem['level'][i]].append(elem2)
-    for level in level_dict:
-        level_dict[level].sort(
-            key=lambda x: x['sssp_count'] / x['count'], reverse=True)
-        ln = len(level_dict[level])
-        for i in range(ln):
-            elem = level_dict[level][i]
-            rate = ((i + 0.5) / ln)
-            if elem['count'] < 30:
-                continue
-            if rate <= 0.1:
-                elem['tag'] = 'Very Easy'
-            elif rate <= 0.3:
-                elem['tag'] = 'Easy'
-            elif rate < 0.7:
-                elem['tag'] = 'Medium'
-            elif rate < 0.9:
-                elem['tag'] = 'Hard'
-            else:
-                elem['tag'] = 'Very Hard'
-            elem['v'] = i
-            elem['t'] = ln
-            level_index = elem['level_index']
-            key = elem['key']
-            del elem['key']
-            del elem['level_index']
-            data[key][level_index] = elem
+        data2 = diff_data[elem.diff]
+        charts[elem.mid][elem.level] = {
+            "cnt": elem.cnt,
+            "diff": elem.diff,
+            "fit_diff": maimai_analysis.get_diff(
+                elem.diff,
+                elem.sum_achievements / elem.cnt - data2["achievements"],
+                ((elem.s + elem.sp + elem.ss + elem.ssp + elem.sss + elem.sssp) / elem.cnt - sum(data2["dist"][8:])) / sum(data2["dist"][8:]),
+                ((elem.sss + elem.sssp) / elem.cnt - sum(data2["dist"][12:])) / sum(data2["dist"][12:]),
+                (elem.sssp / elem.cnt - data2["dist"][13]) / data2["dist"][13],
+                ),
+            "avg": elem.sum_achievements / elem.cnt,
+            "avg_dx": elem.sum_dx_score / elem.cnt,
+            "std_dev": elem.std_dev,
+            "dist": [elem.d, elem.c, elem.b, elem.bb, elem.bbb, elem.a, elem.aa, elem.aaa, elem.s, elem.sp, elem.ss, elem.ssp, elem.sss, elem.sssp],
+            "fc_dist": [elem.cnt - int(elem.fc) - int(elem.fcp) - int(elem.ap) - int(elem.app), int(elem.fc), elem.fcp, elem.ap, elem.app]
+        }
+
+    data = {"charts": charts, "diff_data": diff_data}
     cs_cache = data
-    cs_cache_eTag = md5(json.dumps(cs_cache, ensure_ascii=False))
+    cs_cache_eTag = md5(json.dumps(cs_cache, ensure_ascii=False, default=float))
     cs_need_update = False
-    resp = await make_response(json.dumps(data, ensure_ascii=False))
+    resp = await make_response(json.dumps(data, ensure_ascii=False, default=float))
     resp.headers['content-type'] = "application/json; charset=utf-8"
     return resp

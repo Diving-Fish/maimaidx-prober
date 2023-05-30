@@ -39,6 +39,7 @@ class Player(BaseModel):
     privacy = BooleanField()
     user_id = IntegerField()
     user_data = TextField()
+    access_time = BigIntegerField()
 
 
 class Developer(BaseModel):

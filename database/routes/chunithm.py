@@ -6,6 +6,7 @@ https://www.diving-fish.com/api/chunithmprober/*
 例如 /chuni/* 可以通过 https://www.diving-fish.com/api/chunithmprober/* 访问。
 """
 import asyncio
+import time
 from audioop import reverse
 from collections import defaultdict
 from math import floor
@@ -73,6 +74,7 @@ async def update_records_chuni():
         return {
                 "message": str(e)
             }, 400
+    print(j)
     if recent == 0:       
         for record in j:
             title = record['title']
@@ -101,6 +103,8 @@ async def update_records_chuni():
                 r.fc = dicts[r.chart_id]["fc"]
                 updates.append(r)
                 del dicts[r.chart_id]
+        print(dicts)
+        print(updates)
         if len(dicts) > 0:
             ChuniRecord.insert_many(dicts.values()).execute()
         if len(updates) > 0:
@@ -196,6 +200,7 @@ async def compute_ra(player: Player):
     for record in r10:
         total += single_ra(record)
     player.chuni_rating = total / 40
+    player.access_time = time.time()
     player.save()
     
 
