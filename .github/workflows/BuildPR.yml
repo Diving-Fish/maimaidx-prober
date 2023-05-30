@@ -1,14 +1,54 @@
-name: Prober CI
+name: Build PR
 run-name: Prober CI
+# read-write repo token
+# access to secrets
 on:
-  pull_request_target:
-    types: [ labeled ]
+  workflow_run:
+    workflows: ["Receive PR"]
+    types:
+      - completed
+
 jobs:
   webpage:
     name: Build webpage CI
     permissions: write-all
     runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
     steps:
+      - name: 'Download artifact'
+        uses: actions/github-script@v3.1.0
+        with:
+          script: |
+            var artifacts = await github.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: ${{github.event.workflow_run.id }},
+            });
+            var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "pr"
+            })[0];
+            var download = await github.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: matchArtifact.id,
+               archive_format: 'zip',
+            });
+            var fs = require('fs');
+            fs.writeFileSync('${{github.workspace}}/pr.zip', Buffer.from(download.data));
+      - run: unzip pr.zip
+
+      - name: GetSHA
+        id: getsha
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            var fs = require('fs');
+            var sha = fs.readFileSync('./NR');
+            return sha
+
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -24,17 +64,24 @@ jobs:
       -
         name: Build and push
         uses: docker/build-push-action@v4
+        needs:
+          - getsha
         with:
           context: "{{defaultContext}}:web"
           push: true
-          tags: divingfish/maimaidx-prober:${{ github.sha }}
+          tags: divingfish/maimaidx-prober:${{ steps.getsha.outputs }}
       - 
         name: Create test page
-        run: curl "http://www.diving-fish.com:8333/ci/tag?sha=${{ github.sha }}&token=${{ secrets.CI_TOKEN }}"
+        needs:
+          - getsha
+        run: curl "http://www.diving-fish.com:8333/ci/tag?sha=${{ steps.getsha.outputs }}&token=${{ secrets.CI_TOKEN }}"
       - 
         name: Test page notice
-        run: echo "Your test page can be viewed at https://www.diving-fish.com/maimaidx/prober-test/${{ github.sha }}"
-      
+        needs:
+          - getsha
+        run: echo "Your test page can be viewed at https://www.diving-fish.com/maimaidx/prober-test/${{ steps.getsha.outputs }}"
+
+
   build:
     name: Build binary CI
     runs-on: ubuntu-latest
@@ -73,4 +120,4 @@ jobs:
         if: ${{ !github.head_ref }}
         with:
           name: ${{ matrix.goos }}_${{ matrix.goarch }}
-          path: output/
+          path: output/            
