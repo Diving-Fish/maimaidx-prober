@@ -2,10 +2,8 @@ name: Prober CI
 run-name: Prober CI
 on:
   push:
-    branches: [ main ]
-  pull_request_target:
-    types: [ closed ]
-    branches: [ main ]
+    branches:
+      - main
 jobs:
   webpage:
     name: Build webpage CI
