@@ -185,9 +185,7 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		for range c {
-			if ProxyEnable != 39 {
-				rollbackSystemProxySettings()
-			}
+			rollbackSystemProxySettings()
 			os.Exit(0)
 		}
 	}()
