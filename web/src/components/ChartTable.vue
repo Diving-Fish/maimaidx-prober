@@ -333,8 +333,8 @@ export default {
   methods: {
     getCoverPathById: function (songId) {
       let i = parseInt(songId);
-      if (i > 10000) i -= 10000;
-      return (i + "").padStart(4, "0") + ".png";
+      if (i > 10000 && i <= 11000) i -= 10000;
+      return (i + "").padStart(5, "0") + ".png";
     },
     getLevel(index) {
       return ["#22bb5b", "#fb9c2d", "#f64861", "#9e45e2", "#ba67f8"][index];

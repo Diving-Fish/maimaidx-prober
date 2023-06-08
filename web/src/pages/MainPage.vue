@@ -687,8 +687,8 @@ export default {
     },
     getCoverPathById: function (songId) {
       let i = parseInt(songId);
-      if (i > 10000) i -= 10000;
-      return (i + "").padStart(4, '0') + ".png";
+      if (i > 10000 && i <= 11000) i -= 10000;
+      return (i + "").padStart(5, '0') + ".png";
     },
     editRow: function (record) {
       this.currentUpdate = record;
