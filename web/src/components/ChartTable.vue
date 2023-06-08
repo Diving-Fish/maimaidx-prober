@@ -297,6 +297,7 @@
 </template>
 
 <script>
+import ScoreCoefficient from '../scripts/ScoreCoefficient.js'
 export default {
   props: {
     items: Array,
@@ -580,29 +581,15 @@ export default {
         next: next,
       };
     },
-    get_idx(ach) {
-      return [
-        50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 200,
-      ].findIndex((i) => ach < i);
-    },
-    get_l(idx) {
-      return [7, 8, 9.6, 11.2, 12, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4][
-        idx
-      ];
-    },
     get_min_ach(idx) {
       return [0, 50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 101][
         idx
       ];
     },
-    get_ra(ds, ach) {
-      return Math.floor(
-        (ds * this.get_l(this.get_idx(ach)) * Math.min(100.5, ach)) / 100
-      );
-    },
     getMoreRa(item) {
+      let coeff = new ScoreCoefficient(item.achievements)
       let ds = item.ds;
-      let idx = this.get_idx(item.achievements);
+      let idx = coeff.idx;
       let ach4 = Math.round(item.achievements * 10000);
       let min_idx = Math.max(idx, 7);
       let min_ach4 = Math.round(this.get_min_ach(min_idx) * 10000);
@@ -611,22 +598,22 @@ export default {
       let more_ra = [];
       for (let curr_ach4 = min_ach4; curr_ach4 < max_ach4; curr_ach4 += 2500) {
         // console.log(curr_ach4, JSON.stringify(more_ra));
-        let curr_min_ra = this.get_ra(ds, curr_ach4 / 10000);
-        if (curr_min_ra > this.get_ra(ds, (curr_ach4 - 1) / 10000)) {
+        let curr_min_ra = new ScoreCoefficient(curr_ach4 / 10000).ra(ds);
+        if (curr_min_ra > new ScoreCoefficient((curr_ach4 - 1) / 10000).ra(ds)) {
           if (curr_ach4 > ach4)
             more_ra.push({
               ra: curr_min_ra,
               achievements: curr_ach4 / 10000,
             });
         }
-        let curr_max_ra = this.get_ra(ds, (curr_ach4 + 2499) / 10000);
+        let curr_max_ra = new ScoreCoefficient((curr_ach4 + 2499) / 10000).ra(ds);
         if (curr_max_ra > curr_min_ra) {
           let l = curr_ach4,
             r = curr_ach4 + 2499,
             ans = r;
           while (r >= l) {
             let mid = Math.floor((r + l) / 2);
-            if (this.get_ra(ds, mid / 10000) > curr_min_ra) {
+            if (new ScoreCoefficient(mid / 10000).ra(ds) > curr_min_ra) {
               ans = mid;
               r = mid - 1;
             } else {

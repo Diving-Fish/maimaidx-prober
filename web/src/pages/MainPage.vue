@@ -243,7 +243,7 @@
               <v-card-text>
                 <v-tabs v-model="tab">
                   <v-tab key="sd">旧乐谱</v-tab>
-                  <v-tab key="dx">DX 2022</v-tab>
+                  <v-tab key="dx">DX 2023</v-tab>
                 </v-tabs>
                 <v-tabs-items v-model="tab">
                   <v-tab-item key="sd">
@@ -464,6 +464,7 @@ import Tutorial from "../components/Tutorial.vue";
 import Recovery from "../components/Recovery.vue";
 import watchVisible from "../plugins/watchVisible";
 import ChuniOverPowerCalculators from "@/components/ChuniOverPowerCalculators";
+import ScoreCoefficient from '../scripts/ScoreCoefficient';
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 const DEBUG = false;
@@ -899,41 +900,6 @@ export default {
           this.$message.error(err.response.data.message);
         });
     },
-    get_idx(ach) {
-      return [
-        50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 200,
-      ].findIndex((i) => ach < i);
-    },
-    get_l(idx) {
-      return [0, 5, 6, 7, 7.5, 8.5, 9.5, 10.5, 12.5, 12.7, 13, 13.2, 13.5, 14][
-        idx
-      ];
-    },
-    get_idx_b50(ach) {
-      return [
-        50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 200,
-      ].findIndex((i) => ach < i);
-    },
-    get_l_b50(idx) {
-      return [7, 8, 9.6, 11.2, 12, 13.6, 15.2, 16.8, 20.0, 20.3, 20.8, 21.1, 21.6, 22.4][
-        idx
-      ];
-    },
-    get_min_ach(idx) {
-      return [0, 50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 101][
-        idx
-      ];
-    },
-    get_ra(ds, ach) {
-      return Math.floor(
-        (ds * this.get_l(this.get_idx(ach)) * Math.min(100.5, ach)) / 100
-      );
-    },
-    get_ra_b50(ds, ach) {
-      return Math.floor(
-        (ds * this.get_l_b50(this.get_idx_b50(ach)) * Math.min(100.5, ach)) / 100
-      );
-    },
     computeRecord: function (record) {
       if (this.music_data_dict[record.song_id])
         record.ds = this.music_data_dict[record.song_id].ds[record.level_index];
@@ -946,7 +912,7 @@ export default {
         }
       }
       record.level_label = this.level_label[record.level_index];
-      record.ra = this.get_ra_b50(record.ds, record.achievements);
+      record.ra = new ScoreCoefficient(record.achievements).ra(record.ds);
       if (isNaN(record.ra)) record.ra = 0;
       // Update Rate
       if (record.achievements < 50) {
