@@ -52,5 +52,7 @@ def get_diff(difficulty, diff_ach, diff_s, diff_sss, diff_sssp):
         diff = int(difficulty[:-1]) + 0.75
     else:
         diff = int(difficulty) + 0.25
+    if difficulty not in diff_weights:
+        return 0
     weight = diff_weights[difficulty]
     return diff - achievement_curve(float(diff_ach)) * weight[0] - percent_curve(float(diff_s)) * weight[1] - percent_curve(float(diff_sss)) * weight[2] - percent_curve(float(diff_sssp)) * weight[3] 

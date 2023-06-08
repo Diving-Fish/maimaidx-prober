@@ -198,8 +198,7 @@ def get_dx_and_sd(player):
     l1 = []
     l2 = []
     for r in l:
-        setattr(r, 'ra', r.ds * get_l(r.achievements)
-                * min(100.5, r.achievements) / 100)
+        setattr(r, 'ra', ScoreCoefficient(r.achievements).ra(r.ds))
         if r.is_new:
             l2.append(r)
         else:
@@ -214,8 +213,7 @@ def get_dx_and_sd_for50(player):
     l1 = []
     l2 = []
     for r in l:
-        setattr(r, 'ra', r.ds * get_l(r.achievements)
-                * min(100.5, r.achievements) / 100)
+        setattr(r, 'ra', ScoreCoefficient(r.achievements).ra(r.ds))
         if r.is_new:
             l2.append(r)
         else:
@@ -264,7 +262,7 @@ async def query_player():
         sd, dx = get_dx_and_sd_for50(p)
     else:
         sd, dx = get_dx_and_sd(p)
-    asyncio.create_task(compute_ra(p))
+    await compute_ra(p)
     nickname = p.nickname
     if nickname == "":
         nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
@@ -322,7 +320,7 @@ async def query_plate():
 
 async def compute_ra(player: Player):
     rating = 0
-    sd, dx = get_dx_and_sd(player)
+    sd, dx = get_dx_and_sd_for50(player)
     for t in sd:
         rating += int(t.ra)
     for t in dx:

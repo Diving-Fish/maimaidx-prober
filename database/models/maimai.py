@@ -2,7 +2,7 @@ from models.base import *
 
 
 class Music(BaseModel):
-    id = CharField(primary_key=True)
+    id = IntegerField(primary_key=True)
     title = CharField()
     type = CharField()
     artist = CharField()
@@ -66,21 +66,36 @@ class NewRecord(BaseModel):
 db.create_tables([Music, NewRecord, Chart, Player, EmailReset,
                  FeedBack, Views, Message, Developer, DeveloperLog, RequestLog])
 
+SCORE_COEFFICIENT_TABLE = [
+    [0, 0, 'd'],
+    [50, 8, 'c'],
+    [60, 9.6, 'b'],
+    [70, 11.2, 'bb'],
+    [75, 12.0, 'bbb'],
+    [80, 13.6, 'a'],
+    [90, 15.2, 'aa'],
+    [94, 16.8, 'aaa'],
+    [97, 20, 's'],
+    [98, 20.3, 'sp'],
+    [99, 20.8, 'ss'],
+    [99.5, 21.1, 'ssp'],
+    [99.9999, 21.4, 'ssp'],
+    [100, 21.6, 'sss'],
+    [100.4999, 22.2, 'sss'],
+    [100.5, 22.4, 'sssp']
+]
 
-def get_idx(achievements):
-    t = (50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 200)
-    for i in range(len(t)):
-        if achievements < t[i]:
-            break
-    return i
+class ScoreCoefficient:
+    def __init__(self, achievements):
+        for i in range(len(SCORE_COEFFICIENT_TABLE)):
+            if i == len(SCORE_COEFFICIENT_TABLE) - 1 or achievements < SCORE_COEFFICIENT_TABLE[i + 1][0]:
+                self.r = SCORE_COEFFICIENT_TABLE[i][2]
+                self.c = SCORE_COEFFICIENT_TABLE[i][1]
+                self.a = achievements
+                return
 
-
-def get_l(rate):
-    return [0, 5, 6, 7, 7.5, 8.5, 9.5, 10.5, 12.5, 12.7, 13, 13.2, 13.5, 14][get_idx(rate)]
-
-
-def get_rate(rate):
-    return ["d", "c", "b", "bb", "bbb", "a", "aa", "aaa", "s", "sp", "ss", "ssp", "sss", "sssp"][get_idx(rate)]
+    def ra(self, ds):
+        return int(self.c * ds * min(100.5, self.a) / 100)
 
 
 def get_plate_name(version, plate_type):
@@ -117,10 +132,10 @@ def record_json(record: NewRecord):
         "type": record.type,
         "dxScore": record.dxScore,
         "achievements": record.achievements,
-        "rate": get_rate(record.achievements),
+        "rate": ScoreCoefficient(record.achievements).r,
         "fc": record.fc,
         "fs": record.fs,
-        "ra": int(get_l(record.achievements) * min(record.achievements, 100.5) * record.ds / 100),
+        "ra": ScoreCoefficient(record.achievements).ra(record.ds),
         "ds": record.ds,
         "song_id": record.id
     }
@@ -140,7 +155,7 @@ def record_json_output(record: NewRecord):
         "type": music.type,
         "dxScore": record.dxScore,
         "achievements": record.achievements,
-        "rate": get_rate(record.achievements),
+        "rate": ScoreCoefficient(record.achievements).r,
         "fc": record.fc,
         "fs": record.fs,
     }
