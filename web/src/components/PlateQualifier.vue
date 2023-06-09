@@ -1,7 +1,7 @@
 <template>
   <v-dialog
     v-model="visible"
-    :width="masOnly ? 500 : 1000"
+    :width="masOnly ? 600 : 1000"
     :fullscreen="$vuetify.breakpoint.mobile"
   >
     <template #activator="{ on, attrs }">
@@ -32,10 +32,10 @@
           <v-icon color="orange">mdi-check-bold</v-icon>=All Perfect
         </div>
         <div class="mt-2">
-          <v-icon color="green">mdi-check-bold</v-icon>{{total_1}}/{{filtered.length * (masOnly ? 1 : 4)}}
-          <v-icon color="blue">mdi-check-bold</v-icon>{{total_2}}/{{filtered.length * (masOnly ? 1 : 4)}}
-          <v-icon color="purple">mdi-check-bold</v-icon>{{total_4}}/{{filtered.length * (masOnly ? 1 : 4)}}
-          <v-icon color="orange">mdi-check-bold</v-icon>{{total_8}}/{{filtered.length * (masOnly ? 1 : 4)}}
+          <v-icon color="green">mdi-check-bold</v-icon>{{total_1}}/{{filtered_length}}
+          <v-icon color="blue">mdi-check-bold</v-icon>{{total_2}}/{{filtered_length}}
+          <v-icon color="purple">mdi-check-bold</v-icon>{{total_4}}/{{filtered_length}}
+          <v-icon color="orange">mdi-check-bold</v-icon>{{total_8}}/{{filtered_length}}
         </div>
         <v-data-table
           :headers="masOnly ? headerMas : headers"
@@ -84,6 +84,21 @@
               >mdi-check-bold</v-icon
             >
           </template>
+          <template #item.rem_pq="{ item }">
+            <span v-if="item.rem_pq === -1">
+              <v-icon color="grey" v-if="item.rem_pq & 1">mdi-close-circle</v-icon>
+            </span>
+            <span v-else>
+              <v-icon color="green" v-if="item.rem_pq & 1">mdi-check-bold</v-icon>
+              <v-icon color="blue" v-if="item.rem_pq & 2">mdi-check-bold</v-icon>
+              <v-icon color="purple" v-if="item.rem_pq & 4"
+                >mdi-check-bold</v-icon
+              >
+              <v-icon color="orange" v-if="item.rem_pq & 8"
+                >mdi-check-bold</v-icon
+              >
+            </span>
+          </template>
         </v-data-table>
       </v-card-text>
     </v-card>
@@ -91,6 +106,7 @@
 </template>
 
 <script>
+import Vue from 'vue';
 import watchVisible from '../plugins/watchVisible';
 export default {
   props: {
@@ -107,14 +123,14 @@ export default {
         { text: "Basic", value: "bas_pq" },
         { text: "Advanced", value: "adv_pq" },
         { text: "Expert", value: "exp_pq" },
-        { text: "Master", value: "mst_pq" },
+        { text: "Master", value: "mst_pq" }
       ],
       headerMas: [
         { text: "曲名", value: "title", width: 250 },
         // { text: "Basic", value: "bas_pq"},
         // { text: "Advanced", value: "adv_pq"},
         // { text: "Expert", value: "exp_pq"},
-        { text: "Master", value: "mst_pq" },
+        { text: "Master", value: "mst_pq" }
       ],
       masOnly: true,
     };
@@ -148,30 +164,54 @@ export default {
           })
         )
       );
-      const l = ["bas_pq", "adv_pq", "exp_pq", "mst_pq"];
-      for (let i = 0; i < 4; i++) {
-        for (let data of this.music_data) {
-          data[l[i]] = this.sum_pq(data.id, i);
-          // console.log(data[l[i]]);
+      this.versions.push('ALL FiNALE');
+      (async () => {
+        const l = ["bas_pq", "adv_pq", "exp_pq", "mst_pq"];
+        for (let i = 0; i < 4; i++) {
+          for (let data of this.music_data) {
+            data[l[i]] = this.sum_pq(data.id, i);
+            // console.log(data[l[i]]);
+          }
         }
-      }
-      // console.log(this.available_plates())
+        for (let data of this.music_data) {
+          if (data.level.length == 5) {
+            data['rem_pq'] = this.sum_pq(data.id, 4);
+          } else {
+            data['rem_pq'] = -1;
+          }
+        }
+      })();
+      console.log(this.available_plates())
       // console.log(this.music_data);
+    },
+    filter_version: function(version) {
+      if (version == "ALL FiNALE") {
+        return this.music_data.filter((elem) => {
+          return ["maimai PLUS","maimai GreeN","maimai GreeN PLUS","maimai ORANGE","maimai ORANGE PLUS","maimai PiNK",
+          "maimai PiNK PLUS","maimai MURASAKi","maimai MURASAKi PLUS","maimai MiLK","MiLK PLUS","maimai FiNALE"].indexOf(elem.basic_info.from) != -1;
+        });
+      }
+      return this.music_data.filter((elem) => {
+        return elem.basic_info.from == version;
+      });
     },
     available_plates: function () {
       // a method called by others.
       // Just verify master level.
       let res = {};
       for (const ver of this.versions) {
-        if (ver == "maimai でらっくす PLUS" || ver == "maimai でらっくす Splash")
+        if (ver == "maimai でらっくす FESTiVAL")
           continue;
-        const d = this.music_data
-          .filter((elem) => {
-            return (elem.basic_info.from == ver && elem.title != "ジングルベル");
-          })
+        let d = this.filter_version(ver).filter((elem) => elem.title != 'ジングルベル')
           .map((elem) => {
             return elem.mst_pq;
           });
+        if (ver == "ALL FiNALE") {
+          d = d.concat(this.filter_version(ver).filter((elem) => elem.title != 'ジングルベル')
+            .map((elem) => {
+              return elem.rem_pq;
+            }));
+        }
         res[ver] = 15;
         for (const v of d) {
           for (const i of [1, 2, 4, 8]) {
@@ -182,17 +222,40 @@ export default {
       res["maimai PLUS"] &= res["maimai"];
       if (res["maimai PLUS"] & 2) res["maimai PLUS"] -= 2; // SSS plate not available in maimai PLUS version
       delete res.maimai;
-      return res;
+      let res2 = []
+      for (const key in res) {
+        if (key.startsWith('maimai でらっくす')) {
+          res2[key + ' PLUS'] = res[key];
+        }
+      }
+      return Object.assign(res2, res);
     },
   },
   watch:{
     visible: watchVisible("visible", "PlateQualifier"),
+    version: function (newVal, oldVal) {
+      if (newVal == oldVal) return;
+      if (newVal == 'ALL FiNALE') {
+        this.headers.push({ text: "Re:MASTER", value: "rem_pq" })
+        this.headerMas.push({ text: "Re:MASTER", value: "rem_pq" })
+      } else if (oldVal == 'ALL FiNALE') {
+        Vue.delete(this.headers, 5)
+        Vue.delete(this.headerMas, 2)
+      }
+    },
   },
   computed: {
+    filtered_length: function() {
+      let len = this.filtered.length * (this.masOnly ? 1 : 4);
+      if (this.version == 'ALL FiNALE') {
+        for (const data of this.filtered) {
+          if (data.level.length == 5) len++;
+        }
+      }
+      return len;
+    },
     filtered: function () {
-      return this.music_data.filter((elem) => {
-        return elem.basic_info.from == this.version;
-      });
+      return this.filter_version(this.version);
     },
     total_8: function () {
       let sum = 0;
@@ -203,6 +266,7 @@ export default {
           if (md.adv_pq & 8) sum++;
           if (md.exp_pq & 8) sum++;
         }
+        if (this.version == 'ALL FiNALE' && (md.rem_pq & 8) && md.rem_pq !== -1) sum++;
       }
       return sum;
     },
@@ -215,6 +279,7 @@ export default {
           if (md.adv_pq & 4) sum++;
           if (md.exp_pq & 4) sum++;
         }
+        if (this.version == 'ALL FiNALE' && (md.rem_pq & 4) && md.rem_pq !== -1) sum++;
       }
       return sum;
     },
@@ -227,6 +292,7 @@ export default {
           if (md.adv_pq & 2) sum++;
           if (md.exp_pq & 2) sum++;
         }
+        if (this.version == 'ALL FiNALE' && (md.rem_pq & 2) && md.rem_pq !== -1) sum++;
       }
       return sum;
     },
@@ -239,6 +305,7 @@ export default {
           if (md.adv_pq & 1) sum++;
           if (md.exp_pq & 1) sum++;
         }
+        if (this.version == 'ALL FiNALE' && (md.rem_pq & 1) && md.rem_pq !== -1) sum++;
       }
       return sum;
     },

@@ -39,7 +39,23 @@ class Player(BaseModel):
     privacy = BooleanField()
     user_id = IntegerField()
     user_data = TextField()
+    user_general_data = TextField()
     access_time = BigIntegerField()
+
+    def user_json(self):
+        try:
+            j = json.loads(self.user_general_data)
+        except Exception:
+            j = None
+        return {
+            "username": self.username,
+            "nickname": self.nickname,
+            "additional_rating": self.additional_rating,
+            "bind_qq": self.bind_qq,
+            "privacy": self.privacy,
+            "plate": self.plate,
+            "user_general_data": j
+        }
 
 
 class Developer(BaseModel):

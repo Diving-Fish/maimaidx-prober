@@ -69,18 +69,25 @@ def login_required(f):
     return func
 
 
+def is_developer(token):
+    if token == "":
+        return False, {"status": "error", "msg": "请先联系水鱼申请开发者token"}, 400
+    try:
+        dev: Developer = Developer.get(Developer.token == token)
+    except Exception:
+        return False, {"status": "error", "msg": "开发者token有误"}, 400
+    if not dev.available:
+        return False, {"status": "error", "msg": "开发者token被禁用"}, 400
+    return True, {}, 200
+
+
 def developer_required(f):
     @wraps(f)
     async def func(*args, **kwargs):
         token = request.headers.get("developer-token", default="")
-        if token == "":
-            return {"status": "error", "msg": "请先联系水鱼申请开发者token"}, 400
-        try:
-            dev: Developer = Developer.get(Developer.token == token)
-        except Exception:
-            return {"status": "error", "msg": "开发者token有误"}, 400
-        if not dev.available:
-            return {"status": "error", "msg": "开发者token被禁用"}, 400
+        res = is_developer(token)
+        if not res[0]:
+            return res[1], res[2]
         remote_addr = request.remote_addr
         xip = request.headers.get("X-Real-IP", default="")
         if xip != "":

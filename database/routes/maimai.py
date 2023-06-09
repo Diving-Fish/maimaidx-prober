@@ -8,7 +8,7 @@ https://www.diving-fish.com/api/maimaidxprober/*
 import asyncio
 import time
 from collections import defaultdict
-from app import app, developer_required, login_required, md5
+from app import app, developer_required, login_required, md5, is_developer
 from quart import Quart, request, g, make_response
 from tools._jwt import *
 from models.maimai import *
@@ -55,14 +55,7 @@ async def profile():
     """
     if request.method == 'GET':
         u: Player = g.user
-        return {
-            "username": u.username,
-            "nickname": u.nickname,
-            "additional_rating": u.additional_rating,
-            "bind_qq": u.bind_qq,
-            "privacy": u.privacy,
-            "plate": u.plate
-        }
+        return u.user_json()
     else:
         try:
             obj = await request.json
@@ -90,16 +83,11 @@ async def profile():
             for key in obj:
                 if key in ("nickname", "bind_qq", "additional_rating", "privacy"):
                     g.user.__setattr__(key, obj[key])
+                if key == "user_general_data":
+                    g.user.__setattr__(key, json.dumps(obj[key]))
             g.user.save()
             u: Player = g.user
-            return {
-                "username": u.username,
-                "nickname": u.nickname,
-                "additional_rating": u.additional_rating,
-                "bind_qq": u.bind_qq,
-                "privacy": u.privacy,
-                "plate": u.plate
-            }
+            return u.user_json()
         except Exception as e:
             print(e)
             return {
@@ -117,7 +105,6 @@ def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
         return True, plate_name
     except Exception:
         return False, ""
-
 
 
 @app.route("/music_data", methods=['GET'])
@@ -267,10 +254,10 @@ async def query_player():
     if nickname == "":
         nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
     try:
-        user_data = json.loads(p.user_data)
+        user_general_data = json.loads(p.user_general_data)
     except Exception:
-        user_data = None
-    return {
+        user_general_data = None
+    obj = {
         "username": p.username,
         "rating": p.rating,
         "additional_rating": p.additional_rating,
@@ -280,9 +267,16 @@ async def query_player():
             "sd": [record_json(c) for c in sd],
             "dx": [record_json(c) for c in dx]
         },
-        "user_id": p.user_id,
-        "user_data": user_data
+        "user_general_data": user_general_data,
     }
+    if is_developer(request.headers.get("developer-token", default=""))[0]:
+        try:
+            user_data = json.loads(p.user_data)
+        except Exception:
+            user_data = None
+        obj["user_id"] = p.user_id
+        obj["user_data"] = user_data
+    return obj
 
 
 @app.route("/query/plate", methods=['POST'])
