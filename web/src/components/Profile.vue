@@ -49,8 +49,6 @@
                   :items="ratings"
                   item-text="label"
                   item-value="ra"
-                  :hint="`段位分为 ${select.ra}`"
-                  persistent-hint
                   return-object
                   single-line
                 ></v-select>
@@ -216,6 +214,7 @@ export default {
         "maimai MiLK",
         "MiLK PLUS",
         "maimai FiNALE",
+        "ALL FiNALE",
         "maimai でらっくす",
         "maimai でらっくす PLUS",
         "maimai でらっくす Splash",
@@ -356,6 +355,7 @@ export default {
       ["maimai MiLK", "白"],
       ["MiLK PLUS", "雪"],
       ["maimai FiNALE", "輝"],
+      ["ALL FiNALE", "舞"],
       ["maimai でらっくす", "熊"],
       ["maimai でらっくす PLUS", "華"],
       ["maimai でらっくす Splash", "爽"],
