@@ -4,22 +4,9 @@ const xpath = require("xpath")
 const dom = require("xmldom").DOMParser;
 const { default: axios } = require('axios');
 const xmldom = require('xmldom');
-
-const app = express();
-app.use(bodyParser.text({ limit: '4MB' }));
-app.all("*", function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "content-type");
-  res.header("Access-Control-Allow-Methods", "DELETE,PUT,POST,GET,OPTIONS");
-  if (req.method.toLowerCase() == 'options')
-    res.send(200);
-  else
-    next();
-});
-const port = 8089;
+const fs = require("fs")
 
 music_data = []
-
 axios.get("https://www.diving-fish.com/api/maimaidxprober/music_data").then(resp => {
   music_data = resp.data
 })
@@ -196,45 +183,167 @@ const pageToRecordList = function (pageData) {
   }
 }
 
-app.post('/page', (req, res) => {
-  if (req.body.startsWith("<login>")) {
-    const loginCredentials = req.body.slice(7, req.body.indexOf("</login>"));
-    let xml = new dom().parseFromString(loginCredentials);
-    const u = xml.getElementsByTagName('u')[0].textContent;
-    const p = xml.getElementsByTagName('p')[0].textContent;
-    axios.post('https://www.diving-fish.com/api/maimaidxprober/login', {
-      username: u,
-      password: p
-    }).then(async resp => {
-      const token = resp.headers['set-cookie'][0];
-      const cookiePayload = token.slice(0, token.indexOf(';'));
-      let records = pageToRecordList(req.body);
-      for (let record of records) {
-        computeRecord(record);
-      }
-      await axios.post('https://www.diving-fish.com/api/maimaidxprober/player/update_records', records, {
-        headers: {
-          'cookie': cookiePayload
+/**
+ * 好友对战 html 解析函数, 格式：
+ * <login><u>{username}</u><p>{password}</p></login>
+ * <dxscorevs>{dx对战页面的html}</dxscorevs>
+ * <achievementsvs>{<achievement对战页面的html}</achievementsvs>
+ * 
+ * author @bakapiano
+ */
+const friendVSPageToRecordList = function (pageData) {
+  const recordMap = {}
+  const labels = ["basic", "advanced", "expert", "master", "remaster"];
+  labels.forEach(label => { recordMap[label] = {} })
+  const doc = new dom({
+    locator: {},
+    errorHandler: {
+      warning: function (w) { },
+      error: function (e) { },
+      fatalError: function (e) { console.error(e) }
+    }
+  }).parseFromString(pageData);
+
+  ["dxscorevs", "achievementsvs"].forEach(pageType => {
+    for (const label of labels) {
+      const elements = xpath.select(
+        `//div[@class="music_${label}_score_back w_450 m_15 p_3 f_0"]`,
+        doc
+      );
+      if (elements.length === 0) continue;
+
+      const parseElement = (e) => {
+        const result = {}
+        result.title = e.getElementsByTagName('div')[2].textContent.trim()
+        result.level = e.getElementsByTagName('div')[1].textContent.trim()
+        result.type = ""
+        result.level_index = labels.indexOf(label)
+        result.type = e.getElementsByTagName("img")[1].getAttribute("src").toString().trim().endsWith("standard.png") ? "SD" : "DX"
+        
+        const fcNode = e
+          .getElementsByTagName('tbody')[0]
+          .getElementsByTagName("tr")[1]
+          .getElementsByTagName("td")[1]
+          .getElementsByTagName("img")[1]
+        const fsNode = e
+          .getElementsByTagName('tbody')[0]
+          .getElementsByTagName("tr")[1]
+          .getElementsByTagName("td")[1]
+          .getElementsByTagName("img")[0]
+        const rateNode = e
+          .getElementsByTagName('tbody')[0]
+          .getElementsByTagName("tr")[1]
+          .getElementsByTagName("td")[1]
+          .getElementsByTagName("img")[2]
+        result.rate = rateNode
+          .getAttribute("src")
+          .match("_icon_(.*).png")[1],
+        result.fc = fcNode
+          .getAttribute("src")
+          .match("_icon_(.*).png")[1]
+          .replace("back", "")
+        result.fs = fsNode
+          .getAttribute("src")
+          .match("_icon_(.*).png")[1]
+          .replace("back", "")
+
+        const scoreString = e
+          .getElementsByTagName('tbody')[0]
+          .getElementsByTagName("tr")[0]
+          .getElementsByTagName("td")[2]
+          .textContent
+          .replace(",", "")
+          .replace("%", "")
+          .trim()
+        if (scoreString === "―") return 
+
+        if (pageType === "dxscorevs") {
+          result.dxScore = parseInt(scoreString)
+          recordMap[label][result.title] = result
+        } else {
+          result.achievements = parseFloat(scoreString)
+          recordMap[label][result.title].achievements = result.achievements
         }
-      })
-      res.send({
-        'message': 'success'
-      })
-    }).catch((err) => {
-      console.log(err);
-      res.status(401).send({
-        'message': 'login failed'
-      })
+
+        // console.log(result, scoreString)
+      }
+  
+      elements.forEach(parseElement);
+      break;
+    }
+  })
+
+  const results = []
+  Object.values(recordMap).forEach((map) => {
+    Object.values(map).forEach((record) => {
+      results.push(record)
     })
-  } else {
-    let records = pageToRecordList(req.body);
+  })
+  return results
+}
+// return friendVSPageToRecordList(fs.readFileSync("C:\\Users\\Administrator\\Desktop\\data.html").toString())
+
+const getLoginedUploader = async (body) => {
+  const loginCredentials = body.slice(7, body.indexOf("</login>"));
+  let xml = new dom().parseFromString(loginCredentials);
+  const u = xml.getElementsByTagName('u')[0].textContent;
+  const p = xml.getElementsByTagName('p')[0].textContent;
+  
+  const resp = await axios.post('https://www.diving-fish.com/api/maimaidxprober/login', {
+    username: u,
+    password: p
+  })
+  const token = resp.headers['set-cookie'][0];
+  const cookiePayload = token.slice(0, token.indexOf(';'));
+
+  return async (records) => {
+    await axios.post('https://www.diving-fish.com/api/maimaidxprober/player/update_records', records, {
+      headers: {
+        'cookie': cookiePayload
+      }
+    })
+  }
+}
+
+const serve = (pageParser) => {
+  return async (req, res) => {
+    let records = pageParser(req.body);
     for (let record of records) {
       computeRecord(record);
     }
-    res.send(records);
+    
+    if (req.body.startsWith("<login>")) {
+      let upload = null
+      try {
+        upload = await getLoginedUploader(req.body)
+      }
+      catch(err) {
+        console.log(err);
+        res.status(401).send({'message': 'login failed'})
+        return
+      }
+  
+      await upload(records)
+      res.send({'message': 'success'})
+    } else {
+      res.send(records);
+    }
   }
-})
+}
 
-app.listen(port, () => {
-  console.log(`Listening at http://localhost:${port}`)
-})
+const app = express();
+app.use(bodyParser.text({ limit: '4MB' }));
+app.all("*", function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "content-type");
+  res.header("Access-Control-Allow-Methods", "DELETE,PUT,POST,GET,OPTIONS");
+  if (req.method.toLowerCase() == 'options')
+    res.send(200);
+  else
+    next();
+});
+const port = 8089;
+
+app.post("/page/friendVS", serve(friendVSPageToRecordList))
+app.post('/page', serve(pageToRecordList))
+app.listen(port, () => {console.log(`Listening at http://localhost:${port}`)})
