@@ -319,8 +319,7 @@ const serve = (pageParser) => {
       }
     }
     catch (err) {
-      res.status(400).send({ message: "login failed" });
-      res.send({ message: "Failed to parse body" });
+      res.status(400).send({ message: "Failed to parse body" });
       return
     }
 
