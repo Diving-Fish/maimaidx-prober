@@ -380,6 +380,7 @@
 </template>
 
 <script>
+import ScoreCoefficient from '../scripts/ScoreCoefficient';
 import watchVisible from '../plugins/watchVisible';
 export default {
   data: () => {
@@ -577,25 +578,10 @@ export default {
       }
       this.total_list = total_list;
     },
-    get_idx(ach) {
-      return [
-        50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 200,
-      ].findIndex((i) => ach < i);
-    },
-    get_l(idx) {
-      return [0, 5, 6, 7, 7.5, 8.5, 9.5, 10.5, 12.5, 12.7, 13, 13.2, 13.5, 14][
-        idx
-      ];
-    },
     get_min_ach(idx) {
       return [0, 50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 101][
         idx
       ];
-    },
-    get_ra(ds, ach) {
-      return Math.floor(
-        (ds * this.get_l(this.get_idx(ach)) * Math.min(100.5, ach)) / 100
-      );
     },
     fill(item) {
       Object.assign(this.note_total, item.note_total);
@@ -700,22 +686,22 @@ export default {
           curr_ach4 += 2500
         ) {
           // console.log(curr_ach4, JSON.stringify(more_ra));
-          let curr_min_ra = this.get_ra(ds, curr_ach4 / 10000);
-          if (curr_min_ra > this.get_ra(ds, (curr_ach4 - 1) / 10000)) {
+          let curr_min_ra = new ScoreCoefficient(curr_ach4 / 10000).ra(ds);
+          if (curr_min_ra > new ScoreCoefficient((curr_ach4 - 1) / 10000).ra(ds)) {
             more_ra.push({
               ds: ds,
               achievements: curr_ach4 / 10000,
               rating: curr_min_ra,
             });
           }
-          let curr_max_ra = this.get_ra(ds, (curr_ach4 + 2499) / 10000);
+          let curr_max_ra = new ScoreCoefficient((curr_ach4 + 2499) / 10000).ra(ds);
           if (curr_max_ra > curr_min_ra) {
             let l = curr_ach4,
               r = curr_ach4 + 2499,
               ans = r;
             while (r >= l) {
               let mid = Math.floor((r + l) / 2);
-              if (this.get_ra(ds, mid / 10000) > curr_min_ra) {
+              if (new ScoreCoefficient(mid / 10000).ra(ds) > curr_min_ra) {
                 ans = mid;
                 r = mid - 1;
               } else {
@@ -737,13 +723,13 @@ export default {
         let more_ra = [];
         for (let ds1 = 10; ds1 <= 150; ds1++) {
           let ds = ds1 / 10;
-          if (this.get_ra(ds, 101) < rating) continue;
+          if (new ScoreCoefficient(101).ra(ds) < rating) continue;
           let l = 0,
             r = 1010000,
             ans = r;
           while (r >= l) {
             let mid = Math.floor((r + l) / 2);
-            if (this.get_ra(ds, mid / 10000) >= rating) {
+            if (new ScoreCoefficient(mid / 10000).ra(ds) >= rating) {
               ans = mid;
               r = mid - 1;
             } else {
@@ -757,7 +743,7 @@ export default {
             more_ra.push({
               ds: ds,
               achievements: ans / 10000,
-              rating: this.get_ra(ds, ans / 10000),
+              rating: new ScoreCoefficient(ans / 10000).ra(ds),
             });
         }
         more_ra.sort((a, b) => b.achievements - a.achievements);
@@ -770,7 +756,7 @@ export default {
           more_ra.push({
             ds: ds,
             achievements: +this.achievements_input,
-            rating: this.get_ra(ds, +this.achievements_input),
+            rating: new ScoreCoefficient(+this.achievements_input).ra(ds)
           });
         }
         more_ra.sort((a, b) => b.ds - a.ds);

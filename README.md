@@ -1,12 +1,12 @@
 # 舞萌 DX 查分器
 
-本查分器仅用于推分指导用途，不保证歌曲定数、DX Rating、难度 100% 准确。此外，部分歌曲暂无定数数据，如有准确数据欢迎提供。
+本查分器仅用于推分指导用途，不保证歌曲定数、DX Rating、难度 100% 准确。
 
 ## 使用指南
 
 *开始之前，建议您先注册一个查分器账户。借由此账户，您可以快捷地利用代理工具导入您的成绩数据。*
 
-如果你在使用过程中遇到任何问题，请先查阅本文末尾的[FAQ](#FAQ)。如果FAQ不能解决您的问题，并且您无法通过查阅其他资料自行解决，欢迎加入舞萌DX查分器交流群（981682758）询问。
+如果你在使用过程中遇到任何问题，请先查阅本文末尾的[FAQ](#FAQ)。如果FAQ不能解决您的问题，并且您无法通过查阅其他资料自行解决，欢迎加入舞萌DX查分器交流群（464083009）询问。
 
 ### 方法1：通过代理工具导入数据（推荐）
 
@@ -130,24 +130,21 @@ http://debugx5.qq.com
 
 将以下代码复制粘贴至下方command输入框，然后把`USERNAME`和`PASSWORD`改为你自己的查分器用户名和密码，点击右侧OK按钮：
 
-``` javascript
-((u,p)=>[0,1,2,3,4].forEach((diff)=>{
- $.ajax({
-  url: 'https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff='+diff,
-  type: 'GET',
-  async: false,
-  success: (res) => {
-   console.log(res.match("错误"));
-   $.ajax({
-    url: 'https://www.diving-fish.com/api/pageparser/page',
-    type: 'POST',
-    data: "<login><u>"+u+"</u><p>"+p+"</p></login>" + res.match(/<html.*>([\s\S]*)<\/html>/)[1].replace(/\s+/g,' '),
-    contentType: 'text/plain',
-    success: (res) => console.log(res)
-   });
-  }
- });
-}))
+```javascript
+((u,p)=>[0,1,2,3,4].reduce(async(promise, diff)=>{
+  await promise
+  var diffName = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:Master'][diff]
+  var url = 'https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff='+diff
+  return fetch(url)
+  .then(r => {if(r.url!=url)throw new Error(diffName+' 获取分数出错');return r.text()})
+  .then(res => fetch('https://www.diving-fish.com/api/pageparser/page', {
+    method: 'POST',
+    headers:(new Headers({'Content-Type':'text/plain'})),
+    body: "<login><u>"+u+"</u><p>"+p+"</p></login>" + res.match(/<html.*>([\s\S]*)<\/html>/)[1].replace(/\s+/g,' ')
+  }))
+  .then(r => r.json())
+  .then(res => {console.log(diffName, res.message, res);if(res.message!='success')throw new Error(diffName+' 上传分数出错')})
+}, Promise.resolve()))
 ("USERNAME", "PASSWORD");
 ```
 
@@ -155,7 +152,34 @@ http://debugx5.qq.com
 
 *如果命令执行未能符合预期，欢迎进群讨论。*
 
-至此，数据导入教程结束，您可以在查分器主页看到您的成绩数据。
+## 方法4：通过Chrome调试工具导入
+
+*该方法仅支持安卓系统，且需要安装Chrome的计算机*
+
+在无法使用前三种方法时，可尝试使用此方法
+
+开启设备上的`USB调试`功能并连接电脑
+
+在电脑上的Chrome打开 chrome://inspect
+
+在手机上确认授权后，即可在此列表中看见自己的设备
+
+![image](https://user-images.githubusercontent.com/22652631/224410009-6b6ebc61-5b49-448f-b312-3b05574e5a5c.png)
+
+之后，在手机微信上需打开成功一次如下网址，才能正常使用inspect功能
+
+> http://debugxweb.qq.com/?inspector=true
+
+
+完成以上步骤后，在手机上打开舞萌DX主页。此时，此列表中将会出现以下内容
+
+![image](https://user-images.githubusercontent.com/22652631/224410727-3c377d36-1d3e-436e-8437-9d48f46a6455.png)
+
+请点击`inspect`，并在红框标识处粘贴方法3中的代码，并按下回车
+
+![image](https://user-images.githubusercontent.com/22652631/224410943-43d3efc9-fab9-404c-84b8-10c7efd5e0eb.png)
+
+**至此，数据导入教程结束，您可以在查分器主页看到您的成绩数据。**
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/10.png)
 
@@ -181,13 +205,9 @@ http://debugx5.qq.com
 
 程序在退出时没能关闭你的系统代理。进入你的系统代理服务器设置并关闭即可。
 
-#### 请作者打一局maimai？
+### 捐赠
 
-<details>
-<summary>点击展开收款码</summary>
-<img style="width: 48%" src="https://www.diving-fish.com/images/qrcode/alipay_qrcode.jpg">
-<img style="width: 50%" src="https://www.diving-fish.com/images/qrcode/wechat_qrcode.jpg">
-</details>
+爱发电：https://afdian.net/a/divingfish
 
 ### License & Disclaimer
 

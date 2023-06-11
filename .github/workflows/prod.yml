@@ -1,0 +1,17 @@
+name: Build Production
+run-name: Build Production
+on:
+  workflow_dispatch:
+    inputs:
+      sha256:
+        required: true
+jobs:
+  webpage:
+    name: Build webpage CI
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Create prod page
+        run: curl "http://www.diving-fish.com:8333/ci/production?sha=${{ github.event.inputs.sha256 }}&token=${{ secrets.CI_TOKEN }}"
+  

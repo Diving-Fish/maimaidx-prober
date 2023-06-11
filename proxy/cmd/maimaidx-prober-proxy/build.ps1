@@ -1,4 +1,4 @@
-$version = "1.1.2"
+$version = "1.2.1"
 $filename = "maimaidx-prober-proxy-windows-$version.exe"
 go env -w CGO_ENABLED=1
 go env -w GOOS=windows
