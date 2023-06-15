@@ -207,7 +207,6 @@ const friendVSPageToRecordList = function (pageData) {
         doc
       );
       if (elements.length === 0) continue;
-
       const parseElement = (e) => {
         const result = {};
         result.title = e.getElementsByTagName("div")[2].textContent.trim();
@@ -222,22 +221,20 @@ const friendVSPageToRecordList = function (pageData) {
           .endsWith("standard.png")
           ? "SD"
           : "DX";
-
+        
         const fcNode = e
-          .getElementsByTagName("tbody")[0]
           .getElementsByTagName("tr")[1]
           .getElementsByTagName("td")[1]
           .getElementsByTagName("img")[1];
         const fsNode = e
-          .getElementsByTagName("tbody")[0]
           .getElementsByTagName("tr")[1]
           .getElementsByTagName("td")[1]
           .getElementsByTagName("img")[0];
         const rateNode = e
-          .getElementsByTagName("tbody")[0]
           .getElementsByTagName("tr")[1]
           .getElementsByTagName("td")[1]
           .getElementsByTagName("img")[2];
+          
         (result.rate = rateNode.getAttribute("src").match("_icon_(.*).png")[1]),
           (result.fc = fcNode
             .getAttribute("src")
@@ -249,7 +246,6 @@ const friendVSPageToRecordList = function (pageData) {
           .replace("back", "");
 
         const scoreString = e
-          .getElementsByTagName("tbody")[0]
           .getElementsByTagName("tr")[0]
           .getElementsByTagName("td")[2]
           .textContent.replace(",", "")
@@ -312,11 +308,13 @@ const getLoginedUploader = async (body) => {
 const serve = (pageParser) => {
   return async (req, res) => {
     // Try parse records
+    let records = undefined
     try {
-      let records = pageParser(req.body);
+      records = pageParser(req.body);
       for (let record of records) {
         computeRecord(record);
       }
+      if (records === undefined) throw new Error("Records is undefined")
     }
     catch (err) {
       res.status(400).send({ message: "Failed to parse body" });
@@ -333,8 +331,11 @@ const serve = (pageParser) => {
         res.status(401).send({ message: "login failed" });
         return;
       }
-
-      await upload(records);
+      
+      try {
+        await upload(records);
+      }
+      catch (_err) {}
       res.send({ message: "success" });
     } else {
       res.send(records);
