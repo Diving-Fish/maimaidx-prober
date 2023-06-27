@@ -49,8 +49,8 @@ func newProberAPIClient(cfg *config, networkTimeout int) (*proberAPIClient, erro
 	}, nil
 }
 
-func (c *proberAPIClient) commit(data io.Reader) {
-	resp2, _ := http.Post("http://www.diving-fish.com:8089/page", "text/plain", data)
+func (c *proberAPIClient) commit(data []byte) {
+	resp2, _ := http.Post("http://www.diving-fish.com:8089/page", "text/plain", bytes.NewReader(data))
 	b, _ := io.ReadAll(resp2.Body)
 	req, _ := http.NewRequest(http.MethodPost, "https://www.diving-fish.com/api/maimaidxprober/player/update_records", bytes.NewReader(b))
 	req.Header.Add("Content-Type", "application/json")
@@ -77,11 +77,13 @@ func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Co
 	for _, i := range c.maiDiffs {
 		Log(LogLevelInfo, "正在导入 %s 难度……", labels[i])
 		var resp *http.Response
+		var respText []byte
 		for {
 			req, _ := http.NewRequest(http.MethodGet, "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(i), nil)
 			var err error
+			var timeoutErr error
 			resp, err = c.cl.Do(req)
-			_, timeoutErr := io.ReadAll(resp.Body)
+			respText, timeoutErr = io.ReadAll(resp.Body)
 			if err == nil && resp != nil && timeoutErr == nil {
 				break
 			}
@@ -93,11 +95,10 @@ func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Co
 		}
 		switch c.mode {
 		case workingModeUpdate:
-			c.commit(resp.Body)
+			c.commit(respText)
 			Log(LogLevelInfo, "导入成功")
 		case workingModeExport:
-			r, _ := io.ReadAll(resp.Body)
-			os.WriteFile(fmt.Sprintf("mai-diff%d.html", i), r, 0644)
+			os.WriteFile(fmt.Sprintf("mai-diff%d.html", i), respText, 0644)
 			Log(LogLevelInfo, "已导出到文件")
 		}
 	}
