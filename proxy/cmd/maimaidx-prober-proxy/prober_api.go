@@ -12,15 +12,17 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type proberAPIClient struct {
-	cl   http.Client
-	jwt  *http.Cookie
-	mode workingMode
+	cl       http.Client
+	jwt      *http.Cookie
+	mode     workingMode
+	maiDiffs []int
 }
 
-func newProberAPIClient(cfg *config) (*proberAPIClient, error) {
+func newProberAPIClient(cfg *config, networkTimeout int) (*proberAPIClient, error) {
 	body := map[string]interface{}{
 		"username": cfg.UserName,
 		"password": cfg.Password,
@@ -37,12 +39,13 @@ func newProberAPIClient(cfg *config) (*proberAPIClient, error) {
 		return nil, errors.New("登录凭据错误")
 	}
 
-	fmt.Println("登录成功")
+	Log(LogLevelInfo, "登录成功")
 
 	return &proberAPIClient{
-		cl:   http.Client{},
-		jwt:  resp.Cookies()[0],
-		mode: cfg.getWorkingMode(),
+		cl:       http.Client{Timeout: time.Duration(networkTimeout) * time.Second},
+		jwt:      resp.Cookies()[0],
+		mode:     cfg.getWorkingMode(),
+		maiDiffs: cfg.MaiIntDiffs,
 	}, nil
 }
 
@@ -53,7 +56,6 @@ func (c *proberAPIClient) commit(data io.Reader) {
 	req.Header.Add("Content-Type", "application/json")
 	req.AddCookie(c.jwt)
 	c.cl.Do(req)
-	fmt.Println("导入成功")
 }
 
 func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Cookie) {
@@ -72,17 +74,31 @@ func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Co
 	labels := []string{
 		"Basic", "Advanced", "Expert", "Master", "Re: MASTER",
 	}
-	for i := 0; i < 5; i++ {
-		fmt.Printf("正在导入 %s 难度……", labels[i])
-		req, _ := http.NewRequest(http.MethodGet, "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(i), nil)
-		resp, _ := c.cl.Do(req)
+	for _, i := range c.maiDiffs {
+		Log(LogLevelInfo, "正在导入 %s 难度……", labels[i])
+		var resp *http.Response
+		for {
+			req, _ := http.NewRequest(http.MethodGet, "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(i), nil)
+			var err error
+			resp, err = c.cl.Do(req)
+			_, timeoutErr := io.ReadAll(resp.Body)
+			if err == nil && resp != nil && timeoutErr == nil {
+				break
+			}
+			if err != nil {
+				Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+			} else if timeoutErr != nil {
+				Log(LogLevelWarning, "从 Wahlap 服务器获取数据超时，正在重试……您也可以使用命令行参数 -timeout 120 来调整超时时间为 120 秒（默认为 30 秒）")
+			}
+		}
 		switch c.mode {
 		case workingModeUpdate:
 			c.commit(resp.Body)
+			Log(LogLevelInfo, "导入成功")
 		case workingModeExport:
 			r, _ := io.ReadAll(resp.Body)
 			os.WriteFile(fmt.Sprintf("mai-diff%d.html", i), r, 0644)
-			fmt.Println("已导出到文件")
+			Log(LogLevelInfo, "已导出到文件")
 		}
 	}
 }
@@ -123,7 +139,7 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 	}
 
 	for i := 0; i < 7; i++ {
-		fmt.Printf("正在导入 %s……", labels[i])
+		Log(LogLevelInfo, "正在导入 %s……", labels[i])
 		if i < 5 {
 			formData := url.Values{
 				"genre": {"99"},
@@ -145,11 +161,11 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 			req2, _ := http.NewRequest(http.MethodPost, url2, resp.Body)
 			req2.AddCookie(c.jwt)
 			c.cl.Do(req2)
-			fmt.Println("导入成功")
+			Log(LogLevelInfo, "导入成功")
 		case workingModeExport:
 			r, _ := io.ReadAll(resp.Body)
 			os.WriteFile(fmt.Sprintf("chuni-diff%d.html", i), r, 0644)
-			fmt.Println("已导出到文件")
+			Log(LogLevelInfo, "已导出到文件")
 		}
 	}
 }

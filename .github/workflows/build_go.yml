@@ -34,12 +34,19 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           IS_PR: ${{ !!github.head_ref }}
+          IS_TAG: ${{ startsWith(github.ref, 'refs/tags/') }}
+          TAG_NAME: ${{ replace(github.ref, 'refs/tags/', '') }}
         run: |
           if [ $GOOS = "windows" ]; then export BINARY_SUFFIX="$BINARY_SUFFIX.exe"; fi
           if $IS_PR ; then echo $PR_PROMPT; fi
-          export BINARY_NAME="$BINARY_PREFIX"$GOOS"_$GOARCH$BINARY_SUFFIX"
+          export BINARY_NAME="$BINARY_PREFIX"proxy_$GOOS"_$GOARCH"
           export CGO_ENABLED=0
-          go build -o "output/$BINARY_NAME" -trimpath ./proxy/cmd/maimaidx-prober-proxy/
+          if $IS_TAG
+          then
+            go build -ldflags "-X main.version=$TAG_NAME" -o "output/$BINARY_NAME$TAG_NAME$BINARY_SUFFIX" -trimpath ./proxy/cmd/maimaidx-prober-proxy/
+          else
+            go build -o "output/$BINARY_NAME$BINARY_SUFFIX" -trimpath ./proxy/cmd/maimaidx-prober-proxy/
+          fi
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         if: ${{ !github.head_ref }}

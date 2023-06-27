@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/elazarl/goproxy"
@@ -28,7 +29,10 @@ func main() {
 	addr := flag.String("addr", ":8033", "proxy listen address")
 	configPath := flag.String("config", "config.json", "path to config.json file")
 	noEditGlobalProxy := flag.Bool("no-edit-global-proxy", false, "don't edit the global proxy settings")
+	networkTimeout := flag.Int("timeout", 30, "timeout when connect to servers")
+	maiDiffStr := flag.String("mai-diffs", "", "mai diffs to import")
 	flag.Parse()
+	checkUpdate()
 
 	var spm *systemProxyManager
 	if !*noEditGlobalProxy {
@@ -39,7 +43,8 @@ func main() {
 		if spm != nil {
 			spm.rollback()
 		}
-		fmt.Printf("%s\n请按 Enter 键继续……", err.Error())
+		Log(LogLevelError, err.Error())
+		fmt.Printf("请按 Enter 键继续……")
 		bufio.NewReader(os.Stdin).ReadString('\n')
 		os.Exit(0)
 	}
@@ -49,14 +54,23 @@ func main() {
 		commandFatal(err)
 	}
 
-	apiClient, err := newProberAPIClient(&cfg)
+	maiDiffs := strings.Split(*maiDiffStr, ",")
+	if len(maiDiffs) == 1 && maiDiffs[0] == "" {
+		maiDiffs = cfg.MaiDiffs
+	}
+	cfg.MaiIntDiffs, err = getMaiDiffs(maiDiffs)
+	if err != nil {
+		commandFatal(err)
+	}
+
+	apiClient, err := newProberAPIClient(&cfg, *networkTimeout)
 	if err != nil {
 		commandFatal(err)
 	}
 	proxyCtx := newProxyContext(apiClient, commandFatal, *verbose)
 
-	fmt.Println("使用此软件则表示您同意共享您在微信公众号舞萌 DX、中二节奏中的数据。")
-	fmt.Println("您可以在微信客户端访问微信公众号舞萌 DX、中二节奏的个人信息主页进行分数导入，如需退出请直接关闭程序或按下 Ctrl + C")
+	Log(LogLevelInfo, "使用此软件则表示您同意共享您在微信公众号舞萌 DX、中二节奏中的数据。")
+	Log(LogLevelInfo, "您可以在微信客户端访问微信公众号舞萌 DX、中二节奏的个人信息主页进行分数导入，如需退出请直接关闭程序或按下 Ctrl + C")
 
 	if spm != nil {
 		spm.apply()
@@ -81,7 +95,7 @@ func main() {
 		// hack
 		*addr = "127.0.0.1" + *addr
 	}
-	fmt.Printf("代理已开启到 %s\n", *addr)
+	Log(LogLevelInfo, "代理已开启到 %s", *addr)
 
 	log.Fatal(http.ListenAndServe(*addr, srv))
 }
