@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 )
@@ -44,8 +43,7 @@ func checkUpdate() {
 		Log(LogLevelInfo, "您使用的是自编译版本或测试版本。")
 	} else if version != newestTag {
 		// 如果当前版本不是最新 tag，则输出 URL
-		url := fmt.Sprintf("https://github.com/Diving-Fish/maimaidx-prober/releases/tag/%s", newestTag)
-		Log(LogLevelInfo, "新版本可用:", url)
+		Log(LogLevelInfo, "新版本可用: https://github.com/Diving-Fish/maimaidx-prober/releases/tag/%s", newestTag)
 	} else {
 		Log(LogLevelInfo, "您使用的是最新版本。")
 	}

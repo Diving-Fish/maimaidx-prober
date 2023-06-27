@@ -35,11 +35,11 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           IS_PR: ${{ !!github.head_ref }}
           IS_TAG: ${{ startsWith(github.ref, 'refs/tags/') }}
-          TAG_NAME: ${{ replace(github.ref, 'refs/tags/', '') }}
+          TAG_NAME: ${{ github.ref_name }}
         run: |
           if [ $GOOS = "windows" ]; then export BINARY_SUFFIX="$BINARY_SUFFIX.exe"; fi
           if $IS_PR ; then echo $PR_PROMPT; fi
-          export BINARY_NAME="$BINARY_PREFIX"proxy_$GOOS"_$GOARCH"
+          export BINARY_NAME=maimaidx-prober-proxy-$GOOS"-$GOARCH-"
           export CGO_ENABLED=0
           if $IS_TAG
           then
