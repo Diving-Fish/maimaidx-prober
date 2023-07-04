@@ -6,23 +6,40 @@
 
 *开始之前，建议您先注册一个查分器账户。借由此账户，您可以快捷地利用代理工具导入您的成绩数据。*
 
-如果你在使用过程中遇到任何问题，请先查阅本文末尾的[FAQ](#FAQ)。如果FAQ不能解决您的问题，并且您无法通过查阅其他资料自行解决，欢迎加入舞萌DX查分器交流群（464083009）询问。
+如果你在使用过程中遇到任何问题，请先查阅本文末尾的[FAQ](#FAQ)。如果FAQ不能解决您的问题，并且您无法通过查阅其他资料自行解决，欢迎加入我们的[QQ频道](https://qun.qq.com/qqweb/qunpro/share?_wv=3&_wwv=128&appChannel=share&biz=ka&businessType=5&from=181075&inviteCode=20DoWXWylop&mainSourceId=qr_code&subSourceId=pic4&jumpsource=shorturl#/out)询问。
 
 ### 方法1：通过代理工具导入数据（推荐）
 
 **感谢舞台酱对此代理工具的大力帮助。**
 
+视频教程：
+
+Windows: [https://www.bilibili.com/video/BV1Ua411t7Em](https://www.bilibili.com/video/BV1Ua411t7Em)
+
+Mac OS: [https://www.bilibili.com/video/BV14v411L7mG](https://www.bilibili.com/video/BV14v411L7mG)
+
+@Bakapiano 的互联网代理方式: [https://www.bilibili.com/video/BV1pT411G7U1](https://www.bilibili.com/video/BV1pT411G7U1)
+
 #### 1. 准备工作
 
 您可以访问[此链接](https://github.com/Diving-Fish/maimaidx-prober/releases)来下载最新版本的代理工具，文件名为**maimaidx-prober-proxy-(os).exe**（os指您的操作系统）。
 
-请将代理工具复制到一个空文件夹中，然后点击运行。初次运行后，代理工具将在当前目录下创建 3 个文件：
+请将代理工具复制到一个空文件夹中，然后双击或使用控制台运行。初次运行后，代理工具将在当前目录下创建 3 个文件：
 
 |文件名|说明|
 |------|----|
 |`config.json`|用户名和密码的配置文件|
 |`cert.crt`|可以导入的证书文件|
 |`key.pem`|私钥文件，无需进行任何操作|
+
+双击 cert.crt 文件打开，点击**安装证书**，打开证书导入向导。一般情况下，只需要对当前用户安装证书即可。之后点击下一步，按照如图选择将此证书放入“受信任的根证书颁发机构”进行存储。接下来，一路选择**是**，直到提示证书导入完成。
+
+![](https://www.diving-fish.com/images/maimaidx-prober/1.png)
+
+<details>
+
+<summary>Mac OS 系统的设置（点击展开）</summary>
+&nbsp;
 
 *在 Mac OS 或者 Linux 上运行，请打开 Shell 输入如下的命令：*
 ```plain
@@ -31,13 +48,14 @@ chmod +x <文件名>
 ```
 *如果 Mac OS 提示“不受信任的开发者”，请自行百度解决办法。*
 
-双击 cert.crt 文件打开，点击**安装证书**，打开证书导入向导。一般情况下，只需要对当前用户安装证书即可。之后点击下一步，按照如图选择将此证书放入“受信任的根证书颁发机构”进行存储。接下来，一路选择**是**，直到提示证书导入完成。
-
-![](https://www.diving-fish.com/images/maimaidx-prober/1.png)
-
 *在 Mac OS 系统上，请将钥匙串加入"系统"中，并双击打开证书详情，在信任子菜单下调整设置，如下所示：*
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/9.png)
+
+</details>
+&nbsp;
+
+
 
 之后，填写`config.json`文件。使用记事本、Notepad++或Sublime Text等文本编辑器打开`config.json`，并将您查分器的用户名（假如是`MyAccount`）和密码（假如是`MyPassword`）写入对应区域的引号中，类似这样：
 
@@ -48,8 +66,12 @@ chmod +x <文件名>
 此时，打开代理程序，控制台应该会提示：
 
 ```plain
-登录成功，代理已开启到127.0.0.1:8033
-代理设置已自动修改。
+2023/07/04 16:55:06 INFO: 您使用的是最新版本。
+2023/07/04 16:55:06 INFO: 登录成功
+2023/07/04 16:55:06 INFO: 使用此软件则表示您同意共享您在微信公众号舞萌 DX、中二节奏中的数据。
+2023/07/04 16:55:06 INFO: 您可以在微信客户端访问微信公众号舞萌 DX、中二节奏的个人信息主页进行分数导入，如需退出请直接关闭程序或按下 Ctrl + C
+2023/07/04 16:55:06 INFO: 代理设置已自动修改。
+2023/07/04 16:55:06 INFO: 代理已开启到 127.0.0.1:8033
 ```
 
 #### 2. 导入数据
@@ -57,7 +79,7 @@ chmod +x <文件名>
 默认情况下，代理工具将会自行更改您的系统代理。如果打开代理程序后提示
 
 ```plain
-自动修改代理设置失败。请尝试手动修改代理。
+2023/07/04 16:54:56 WARN: 自动修改代理设置失败。请尝试手动修改代理。
 ```
 
 请按照折叠的部分进行操作。
@@ -84,9 +106,26 @@ chmod +x <文件名>
 
 ![](https://www.diving-fish.com/images/maimaidx-prober/4.png)
 
-切换到代理服务器的控制台界面，它将输出如图所示的内容：
+切换到代理服务器的控制台界面，它将输出如下的内容：
 
-![](https://www.diving-fish.com/images/maimaidx-prober/5.png)
+```plain
+2023/07/04 16:55:06 INFO: 您使用的是最新版本。
+2023/07/04 16:55:06 INFO: 登录成功
+2023/07/04 16:55:06 INFO: 使用此软件则表示您同意共享您在微信公众号舞萌 DX、中二节奏中的数据。
+2023/07/04 16:55:06 INFO: 您可以在微信客户端访问微信公众号舞萌 DX、中二节奏的个人信息主页进行分数导入，如需退出请直接关闭程序或按下 Ctrl + C
+2023/07/04 16:55:06 INFO: 代理设置已自动修改。
+2023/07/04 16:55:06 INFO: 代理已开启到 127.0.0.1:8033
+2023/07/04 16:55:37 INFO: 正在导入 Basic 难度……
+2023/07/04 16:55:38 INFO: 导入成功
+2023/07/04 16:55:40 INFO: 正在导入 Advanced 难度……
+2023/07/04 16:55:41 INFO: 导入成功
+2023/07/04 16:55:41 INFO: 正在导入 Expert 难度……
+2023/07/04 16:55:43 INFO: 导入成功
+2023/07/04 16:55:43 INFO: 正在导入 Master 难度……
+2023/07/04 16:55:45 INFO: 导入成功
+2023/07/04 16:55:45 INFO: 正在导入 Re: MASTER 难度……
+2023/07/04 16:55:46 INFO: 导入成功
+```
 
 在导入完毕后，刷新查分器界面，即可看到最新的乐曲成绩。
 
@@ -112,47 +151,7 @@ chmod +x <文件名>
 
 使用**Ctrl+A**全选获取的源代码，并复制到剪切板中。进入查分器主页，点击**导入数据**，将源代码粘贴到输入框中，点击导入。
 
-## 方法3：通过手机微信导入
-
-*该方法仅支持安卓系统。*
-
-复制如下三个网址，并在微信中发送给任何一个人：
-
-debugmm.qq.com/?forcex5=true  
-http://debugtbs.qq.com  
-http://debugx5.qq.com
-
-从上到下依次打开各链接。打开第三个链接后，选择顶部的信息一栏，在下面勾选`打开vConsole调试功能`。
-
-之后，在用微信打开任意网页时，底部都会出现一个里面写着vConsole的绿框。觉得不好看可以在导入完之后取消上面的勾选。
-
-进入舞萌DX公众号，点击“我的记录”进入舞萌DX主页，再点击页面最下方vConsole。此时页面会弹出一个窗口。
-
-将以下代码复制粘贴至下方command输入框，然后把`USERNAME`和`PASSWORD`改为你自己的查分器用户名和密码，点击右侧OK按钮：
-
-```javascript
-((u,p)=>[0,1,2,3,4].reduce(async(promise, diff)=>{
-  await promise
-  var diffName = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:Master'][diff]
-  var url = 'https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff='+diff
-  return fetch(url)
-  .then(r => {if(r.url!=url)throw new Error(diffName+' 获取分数出错');return r.text()})
-  .then(res => fetch('https://www.diving-fish.com/api/pageparser/page', {
-    method: 'POST',
-    headers:(new Headers({'Content-Type':'text/plain'})),
-    body: "<login><u>"+u+"</u><p>"+p+"</p></login>" + res.match(/<html.*>([\s\S]*)<\/html>/)[1].replace(/\s+/g,' ')
-  }))
-  .then(r => r.json())
-  .then(res => {console.log(diffName, res.message, res);if(res.message!='success')throw new Error(diffName+' 上传分数出错')})
-}, Promise.resolve()))
-("USERNAME", "PASSWORD");
-```
-
-命令执行可能稍有卡顿，请耐心等待最多10秒。上方窗口在“undefined”后没有显示“错误”字样，并且显示5 message success等字样即导入成功。
-
-*如果命令执行未能符合预期，欢迎进群讨论。*
-
-## 方法4：通过Chrome调试工具导入
+## 方法3：通过Chrome调试工具导入
 
 *该方法仅支持安卓系统，且需要安装Chrome的计算机*
 
@@ -175,7 +174,26 @@ http://debugx5.qq.com
 
 ![image](https://user-images.githubusercontent.com/22652631/224410727-3c377d36-1d3e-436e-8437-9d48f46a6455.png)
 
-请点击`inspect`，并在红框标识处粘贴方法3中的代码，并按下回车
+请点击`inspect`，并在红框标识处粘贴如下代码，然后把`USERNAME`和`PASSWORD`改为你自己的查分器用户名和密码，并按下回车
+
+```javascript
+((u,p)=>[0,1,2,3,4].reduce(async(promise, diff)=>{
+  await promise
+  var diffName = ['Basic', 'Advanced', 'Expert', 'Master', 'Re:Master'][diff]
+  var url = 'https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff='+diff
+  return fetch(url)
+  .then(r => {if(r.url!=url)throw new Error(diffName+' 获取分数出错');return r.text()})
+  .then(res => fetch('https://www.diving-fish.com/api/pageparser/page', {
+    method: 'POST',
+    headers:(new Headers({'Content-Type':'text/plain'})),
+    body: "<login><u>"+u+"</u><p>"+p+"</p></login>" + res.match(/<html.*>([\s\S]*)<\/html>/)[1].replace(/\s+/g,' ')
+  }))
+  .then(r => r.json())
+  .then(res => {console.log(diffName, res.message, res);if(res.message!='success')throw new Error(diffName+' 上传分数出错')})
+}, Promise.resolve()))
+("USERNAME", "PASSWORD");
+```
+
 
 ![image](https://user-images.githubusercontent.com/22652631/224410943-43d3efc9-fab9-404c-84b8-10c7efd5e0eb.png)
 
@@ -200,6 +218,37 @@ http://debugx5.qq.com
 > 为什么我的代理工具程序窗口中有一条`... WARN: Error copying to client: ...`？
 
 这只是一个程序警告，不影响代理工具的正常运行，请自动忽略掉这条警告。如果代理工具出现错误，这条警告也基本与错误无关。
+
+> 如果我想使用不同的端口或者仅导入某一个难度怎么办？
+
+可以使用代理工具的命令行参数（需要 1.3.0 以上的版本）：
+
+| Arg | Default Value | Description | 
+| --- | --- | --- |
+| v | false | should every proxy request be logged to stdout |
+| addr | :8033 | proxy listen address |
+| config | config.json | path to config.json file |
+| no-edit-global-proxy | false | don't edit the global proxy settings |
+| timeout | 30 | timeout when connect to servers |
+| mai-diffs |  | mai diffs to import | 
+
+对于 mai-diffs 而言，您可以使用逗号连接的字符串来指定需要导入的难度，字符串的内容可以是以下三者之一
+0 - 难度等级索引
+bas - 难度等级缩写
+basic - 难度等级
+
+例如
+```
+./executable_file_path -mai-diffs mas,4
+``` 
+即可导入 Master 和 Re: MASTER 难度。如果留空的话则默认导入所有难度，您也可以在 json 文件中添加
+```json5
+{
+    ...,
+    "mai_diffs": ["bas", "adv", "exp"]
+}
+```
+来导入指定难度。
 
 > 为什么我在使用代理工具后，打开任何网页都显示“代理服务器错误”？
 

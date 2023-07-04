@@ -17,10 +17,7 @@
       <view-badge class="ml-3" />
       <a class="ml-3" href="https://space.bilibili.com/10322617"><img
           src="https://shields.io/badge/bilibili-%E6%B0%B4%E9%B1%BC%E5%96%B5%E5%96%B5%E5%96%B5-00A1D6?logo=bilibili&style=flat"></a>
-      <p class="mt-3">欢迎加入查分器交流群：</p>
-      <p>464083009（3群）</p>
-      <p>476936821（2群，已满）</p>
-      <p>981682758（1群，已满）</p>
+      <p class="mt-3">欢迎加入查分器<a href="https://qun.qq.com/qqweb/qunpro/share?_wv=3&_wwv=128&appChannel=share&biz=ka&businessType=5&from=181075&inviteCode=20DoWXWylop&mainSourceId=qr_code&subSourceId=pic4&jumpsource=shorturl#/out">QQ频道</a>！</p>
       <p>代理工具上线！使用微信客户端导入数据，请查看新版本的使用指南。</p>
       <p>想要 10 分钟搭建自己的 maimai QQ 机器人？现在就参考开源项目 <a href="https://github.com/Diving-Fish/mai-bot">mai-bot</a> 吧~</p>
       <p>请开发者打一局 maimai 如何？帮助我们<a href="https://afdian.net/a/divingfish">发发电</a>好不好嘛~</p>
@@ -197,8 +194,7 @@
                       </div>
                     </v-card-text>
                     <v-card-actions>
-                      <v-btn class="mr-4" @click="exportToCSV('sd')">导出标准乐谱</v-btn>
-                      <v-btn @click="exportToCSV('dx')">导出 DX 乐谱</v-btn>
+                      <v-btn @click="exportToCSV()">导出乐谱</v-btn>
                     </v-card-actions>
                   </v-card>
                 </v-dialog>
@@ -1129,8 +1125,8 @@ export default {
       a.download = "中二节奏.csv";
       a.click();
     },
-    exportToCSV: function (type) {
-      let text = "排名,曲名,难度,等级,定数,达成率, DX Rating\n";
+    exportToCSV: function () {
+      let text = "曲名,类别,难度,等级,定数,达成率,DX分数, DX Rating\n";
       const escape = function (value) {
         if (value.indexOf(",") == -1) {
           return value;
@@ -1138,16 +1134,16 @@ export default {
           return `"${value}"`;
         }
       };
-      for (const m of this[type + "Data"]) {
-        text += `${m.rank},${escape(m.title)},${m.level_label},${m.level},${m.ds
-          },${m.achievements},${m.ra}\n`;
+      for (const m of this.records) {
+        text += `${escape(m.title)},${m.type},${m.level_label},${m.level},${m.ds
+          },${m.achievements},${m.dxScore},${m.ra}\n`;
       }
       const blob = new Blob([
         this.exportEncoding === "GBK" ? new Uint8Array(GBK.encode(text)) : text,
       ]);
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = type == "sd" ? "标准乐谱.csv" : "DX 乐谱.csv";
+      a.download = "乐谱.csv"
       a.click();
     },
     logout: function () {
