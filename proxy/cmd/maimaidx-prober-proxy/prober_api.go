@@ -49,13 +49,27 @@ func newProberAPIClient(cfg *config, networkTimeout int) (*proberAPIClient, erro
 	}, nil
 }
 
-func (c *proberAPIClient) commit(data []byte) {
-	resp2, _ := http.Post("http://www.diving-fish.com:8089/page", "text/plain", bytes.NewReader(data))
-	b, _ := io.ReadAll(resp2.Body)
-	req, _ := http.NewRequest(http.MethodPost, "https://www.diving-fish.com/api/maimaidxprober/player/update_records", bytes.NewReader(b))
+func (c *proberAPIClient) commit(data []byte) (err error) {
+	resp2, err := http.Post("http://www.diving-fish.com:8089/page", "text/plain", bytes.NewReader(data))
+	if err != nil {
+		return
+	}
+	b, err := io.ReadAll(resp2.Body)
+	if err != nil {
+		return
+	}
+	req, err := http.NewRequest(http.MethodPost, "https://www.diving-fish.com/api/maimaidxprober/player/update_records", bytes.NewReader(b))
+	if err != nil {
+		return
+	}
 	req.Header.Add("Content-Type", "application/json")
 	req.AddCookie(c.jwt)
-	c.cl.Do(req)
+	_, err = c.cl.Do(req)
+	if err != nil {
+		// 这里有一个已知的后端 bug，可能会导致 status 500，但是数据仍然导入，这里暂时不做处理
+		return nil
+	}
+	return
 }
 
 func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Cookie) {
@@ -71,37 +85,54 @@ func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Co
 		}
 	}
 	c.cl.Jar.SetCookies(req0.URL, cookies)
+
 	labels := []string{
 		"Basic", "Advanced", "Expert", "Master", "Re: MASTER",
 	}
 	for _, i := range c.maiDiffs {
 		Log(LogLevelInfo, "正在导入 %s 难度……", labels[i])
-		var resp *http.Response
-		var respText []byte
 		for {
-			req, _ := http.NewRequest(http.MethodGet, "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(i), nil)
-			var err error
-			var timeoutErr error
-			resp, err = c.cl.Do(req)
-			respText, timeoutErr = io.ReadAll(resp.Body)
-			if err == nil && resp != nil && timeoutErr == nil {
+			err := c.fetchDataMaimaiPerDiff(i)
+			if err == nil {
 				break
 			}
-			if err != nil {
-				Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
-			} else if timeoutErr != nil {
-				Log(LogLevelWarning, "从 Wahlap 服务器获取数据超时，正在重试……您也可以使用命令行参数 -timeout 120 来调整超时时间为 120 秒（默认为 30 秒）")
-			}
-		}
-		switch c.mode {
-		case workingModeUpdate:
-			c.commit(respText)
-			Log(LogLevelInfo, "导入成功")
-		case workingModeExport:
-			os.WriteFile(fmt.Sprintf("mai-diff%d.html", i), respText, 0644)
-			Log(LogLevelInfo, "已导出到文件")
 		}
 	}
+}
+
+func (c *proberAPIClient) fetchDataMaimaiPerDiff(diff int) (err error) {
+	req, err := http.NewRequest(http.MethodGet, "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(diff), nil)
+	if err != nil {
+		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+		return
+	}
+	resp, err := c.cl.Do(req)
+	if err != nil {
+		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+		return
+	}
+	respText, err := io.ReadAll(resp.Body)
+	if err != nil {
+		Log(LogLevelWarning, "从 Wahlap 服务器获取数据超时，正在重试……您也可以使用命令行参数 -timeout 120 来调整超时时间为 120 秒（默认为 30 秒）")
+		return
+	}
+	switch c.mode {
+	case workingModeUpdate:
+		err = c.commit(respText)
+		if err != nil {
+			Log(LogLevelWarning, "提交数据到查分服务器失败，正在重试……")
+			return
+		}
+		Log(LogLevelInfo, "导入成功")
+	case workingModeExport:
+		err = os.WriteFile(fmt.Sprintf("mai-diff%d.html", diff), respText, 0644)
+		if err != nil {
+			Log(LogLevelWarning, "导出到文件失败")
+			return nil
+		}
+		Log(LogLevelInfo, "已导出到文件")
+	}
+	return
 }
 
 func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Cookie) {
@@ -122,6 +153,18 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 	labels := []string{
 		"Basic 难度", "Advanced 难度", "Expert 难度", "Master 难度", "Ultima 难度", "World's End 难度", "Best 10 ",
 	}
+	for i := 0; i < 7; i++ {
+		Log(LogLevelInfo, "正在导入 %s……", labels[i])
+		for {
+			err := c.fetchDataChuniPerDiff(hds, cookies, i)
+			if err == nil {
+				break
+			}
+		}
+	}
+}
+
+func (c *proberAPIClient) fetchDataChuniPerDiff(headers http.Header, cookies []*http.Cookie, diff int) (err error) {
 	postUrls := []string{
 		"/record/musicGenre/sendBasic",
 		"/record/musicGenre/sendAdvanced",
@@ -138,35 +181,60 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 		"/record/worldsEndList/",
 		"/home/playerData/ratingDetailRecent/",
 	}
-
-	for i := 0; i < 7; i++ {
-		Log(LogLevelInfo, "正在导入 %s……", labels[i])
-		if i < 5 {
-			formData := url.Values{
-				"genre": {"99"},
-				"token": {cookies[0].Value},
-			}
-			req, _ := http.NewRequest(http.MethodPost, "https://chunithm.wahlap.com/mobile"+postUrls[i], strings.NewReader(formData.Encode()))
-			req.Header = hds
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			_, _ = c.cl.Do(req)
+	if diff < 5 {
+		formData := url.Values{
+			"genre": {"99"},
+			"token": {cookies[0].Value},
 		}
-		req, _ := http.NewRequest(http.MethodGet, "https://chunithm.wahlap.com/mobile"+urls[i], nil)
-		resp, _ := c.cl.Do(req)
-		switch c.mode {
-		case workingModeUpdate:
-			url2 := "https://www.diving-fish.com/api/chunithmprober/player/update_records_html"
-			if i == 6 {
-				url2 += "?recent=1"
-			}
-			req2, _ := http.NewRequest(http.MethodPost, url2, resp.Body)
-			req2.AddCookie(c.jwt)
-			c.cl.Do(req2)
-			Log(LogLevelInfo, "导入成功")
-		case workingModeExport:
-			r, _ := io.ReadAll(resp.Body)
-			os.WriteFile(fmt.Sprintf("chuni-diff%d.html", i), r, 0644)
-			Log(LogLevelInfo, "已导出到文件")
+		req, err := http.NewRequest(http.MethodPost, "https://chunithm.wahlap.com/mobile"+postUrls[diff], strings.NewReader(formData.Encode()))
+		if err != nil {
+			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+			return err
+		}
+		req.Header = headers
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		_, err = c.cl.Do(req)
+		if err != nil {
+			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+			return err
 		}
 	}
+	req, err := http.NewRequest(http.MethodGet, "https://chunithm.wahlap.com/mobile"+urls[diff], nil)
+	if err != nil {
+		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+		return
+	}
+	resp, err := c.cl.Do(req)
+	if err != nil {
+		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+		return
+	}
+	switch c.mode {
+	case workingModeUpdate:
+		url2 := "https://www.diving-fish.com/api/chunithmprober/player/update_records_html"
+		if diff == 6 {
+			url2 += "?recent=1"
+		}
+		req2, err := http.NewRequest(http.MethodPost, url2, resp.Body)
+		if err != nil {
+			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+			return err
+		}
+		req2.AddCookie(c.jwt)
+		_, err = c.cl.Do(req2)
+		if err != nil {
+			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+			return err
+		}
+		Log(LogLevelInfo, "导入成功")
+	case workingModeExport:
+		r, _ := io.ReadAll(resp.Body)
+		err = os.WriteFile(fmt.Sprintf("chuni-diff%d.html", diff), r, 0644)
+		if err != nil {
+			Log(LogLevelWarning, "导出到文件失败")
+			return nil
+		}
+		Log(LogLevelInfo, "已导出到文件")
+	}
+	return nil
 }
