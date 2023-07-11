@@ -78,7 +78,7 @@ def is_developer(token):
         return False, {"status": "error", "msg": "开发者token有误"}, 400
     if not dev.available:
         return False, {"status": "error", "msg": "开发者token被禁用"}, 400
-    return True, {}, 200
+    return True, dev, 200
 
 
 def developer_required(f):
@@ -92,7 +92,7 @@ def developer_required(f):
         xip = request.headers.get("X-Real-IP", default="")
         if xip != "":
             remote_addr = xip
-        DeveloperLog.create(developer=dev, function=f.__name__, remote_addr=remote_addr, timestamp=time.time_ns())
+        DeveloperLog.create(developer=res[1], function=f.__name__, remote_addr=remote_addr, timestamp=time.time_ns())
         return await f(*args, **kwargs)
 
     return func
