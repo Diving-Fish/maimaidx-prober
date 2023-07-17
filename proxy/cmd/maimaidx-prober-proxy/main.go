@@ -29,6 +29,7 @@ func main() {
 	addr := flag.String("addr", ":8033", "proxy listen address")
 	configPath := flag.String("config", "config.json", "path to config.json file")
 	noEditGlobalProxy := flag.Bool("no-edit-global-proxy", false, "don't edit the global proxy settings")
+	fetchAsGenre := flag.Bool("genre", false, "fetch maimai data as each music-genre")
 	networkTimeout := flag.Int("timeout", 30, "timeout when connect to servers")
 	maiDiffStr := flag.String("mai-diffs", "", "mai diffs to import")
 	flag.Parse()
@@ -62,6 +63,7 @@ func main() {
 	if err != nil {
 		commandFatal(err)
 	}
+	cfg.Genre = *fetchAsGenre
 
 	apiClient, err := newProberAPIClient(&cfg, *networkTimeout)
 	if err != nil {

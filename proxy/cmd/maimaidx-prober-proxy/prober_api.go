@@ -20,6 +20,7 @@ type proberAPIClient struct {
 	jwt      *http.Cookie
 	mode     workingMode
 	maiDiffs []int
+	genre    bool
 }
 
 func newProberAPIClient(cfg *config, networkTimeout int) (*proberAPIClient, error) {
@@ -46,6 +47,7 @@ func newProberAPIClient(cfg *config, networkTimeout int) (*proberAPIClient, erro
 		jwt:      resp.Cookies()[0],
 		mode:     cfg.getWorkingMode(),
 		maiDiffs: cfg.MaiIntDiffs,
+		genre:    cfg.Genre,
 	}, nil
 }
 
@@ -92,9 +94,16 @@ func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Co
 	for _, i := range c.maiDiffs {
 		Log(LogLevelInfo, "正在导入 %s 难度……", labels[i])
 		for {
-			err := c.fetchDataMaimaiPerDiff(i)
-			if err == nil {
-				break
+			if c.genre {
+				err := c.fetchDataMaimaiPerDiffByGenre(i)
+				if err == nil {
+					break
+				}
+			} else {
+				err := c.fetchDataMaimaiPerDiff(i)
+				if err == nil {
+					break
+				}
 			}
 		}
 	}
@@ -132,6 +141,58 @@ func (c *proberAPIClient) fetchDataMaimaiPerDiff(diff int) (err error) {
 		}
 		Log(LogLevelInfo, "已导出到文件")
 	}
+	return
+}
+
+func (c *proberAPIClient) fetchDataMaimaiPerDiffByGenre(diff int) (err error) {
+	genre_name := []string{"Pops&Anime", "Niconico&VOCALOID", "TouhouProject", "OtherGames", "Maimai", "Ongeki&Chunithm"}
+	genre_index := []string{"101","102","103","104","105","106"}
+	diff_labels := []string{"Basic", "Advanced", "Expert", "Master", "Re: MASTER"}
+	retry := 0
+	current := 0
+	genre_num := 6
+	for current < genre_num {
+		retry ++
+		Log(LogLevelInfo, "--正在处理"+diff_labels[diff]+"-- ("+strconv.Itoa(current+1)+"/"+strconv.Itoa(genre_num)+") 正在导入分类："+genre_name[current])
+		req, err := http.NewRequest(http.MethodGet, "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre="+genre_index[current]+"&diff="+strconv.Itoa(diff), nil)
+		if err != nil {
+			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+			continue
+		}
+		resp, err := c.cl.Do(req)
+		if err != nil {
+			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+			continue
+		}
+		respText, err := io.ReadAll(resp.Body)
+		if err != nil {
+			Log(LogLevelWarning, "从 Wahlap 服务器获取数据超时，正在重试……")
+			if retry > 3 {
+				Log(LogLevelWarning, "重试次数过多，您可以使用命令行参数 -timeout 120 来调整超时时间为 120 秒（默认为 30 秒）")
+			}
+			continue
+		}
+		switch c.mode {
+		case workingModeUpdate:
+			err = c.commit(respText)
+			if err != nil {
+				Log(LogLevelWarning, "提交数据到查分服务器失败，正在重试……")
+				continue
+			}
+			Log(LogLevelInfo, "导入成功")
+		case workingModeExport:
+			err = os.WriteFile(fmt.Sprintf("mai-diff%d.html", diff), respText, 0644)
+			if err != nil {
+				Log(LogLevelWarning, "导出到文件失败")
+				current ++
+				continue
+			}
+			Log(LogLevelInfo, "已导出到文件")
+		}
+		current ++
+		retry = 0
+	}
+	
 	return
 }
 

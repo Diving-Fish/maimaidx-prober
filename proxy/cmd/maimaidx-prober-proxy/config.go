@@ -22,6 +22,7 @@ type config struct {
 	Mode        string   `json:"mode,omitempty"`
 	MaiDiffs    []string `json:"mai_diffs,omitempty"`
 	MaiIntDiffs []int
+	Genre       bool
 }
 
 func (c *config) getWorkingMode() workingMode {
