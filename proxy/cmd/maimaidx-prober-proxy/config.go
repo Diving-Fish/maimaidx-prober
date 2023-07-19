@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -17,11 +18,41 @@ const (
 )
 
 type config struct {
-	UserName    string   `json:"username"`
-	Password    string   `json:"password"`
-	Mode        string   `json:"mode,omitempty"`
-	MaiDiffs    []string `json:"mai_diffs,omitempty"`
+	UserName          string   `json:"username"`
+	Password          string   `json:"password"`
+	Mode              string   `json:"mode,omitempty"`
+	MaiDiffs          []string `json:"mai_diffs,omitempty"`
+	Verbose           bool     `json:"verbose" default:"false"`
+	Addr              string   `json:"addr" default:":8033"`
+	NoEditGlobalProxy bool     `json:"no_edit_global_proxy" default:"false"`
+	NetworkTimeout    int      `json:"timeout" default:"30"`
+	Slice             bool     `json:"slice" default:"false"`
+	// intermediate value
 	MaiIntDiffs []int
+}
+
+func (c *config) FlagOverride(set *flag.FlagSet) (err error) {
+	set.Visit(func(f *flag.Flag) {
+		if f.Name == "v" {
+			c.Verbose = f.Value.(flag.Getter).Get().(bool)
+		} else if f.Name == "addr" {
+			c.Addr = f.Value.(flag.Getter).Get().(string)
+		} else if f.Name == "no-edit-global-proxy" {
+			c.NoEditGlobalProxy = f.Value.(flag.Getter).Get().(bool)
+		} else if f.Name == "timeout" {
+			c.NetworkTimeout = f.Value.(flag.Getter).Get().(int)
+		} else if f.Name == "mai-diffs" {
+			maiDiffs := strings.Split(f.Value.String(), ",")
+			if len(maiDiffs) == 1 && maiDiffs[0] == "" {
+				maiDiffs = c.MaiDiffs
+			} else {
+				c.MaiDiffs = maiDiffs
+			}
+		} else if f.Name == "slice" {
+			c.Slice = f.Value.(flag.Getter).Get().(bool)
+		}
+	})
+	return
 }
 
 func (c *config) getWorkingMode() workingMode {

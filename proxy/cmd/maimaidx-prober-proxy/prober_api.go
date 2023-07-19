@@ -20,6 +20,7 @@ type proberAPIClient struct {
 	jwt      *http.Cookie
 	mode     workingMode
 	maiDiffs []int
+	slice    bool
 }
 
 func newProberAPIClient(cfg *config, networkTimeout int) (*proberAPIClient, error) {
@@ -46,6 +47,7 @@ func newProberAPIClient(cfg *config, networkTimeout int) (*proberAPIClient, erro
 		jwt:      resp.Cookies()[0],
 		mode:     cfg.getWorkingMode(),
 		maiDiffs: cfg.MaiIntDiffs,
+		slice:    cfg.Slice,
 	}, nil
 }
 
@@ -89,19 +91,37 @@ func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Co
 	labels := []string{
 		"Basic", "Advanced", "Expert", "Master", "Re: MASTER",
 	}
+	versionTags := []string{
+		"V-0", "V-1", "V-2", "V-3", "V-4", "V-5", "V-6", "V-7", "V-8", "V-9", "V-10", "V-11", "V-12", "V-13", "V-15", "V-17", "V-19",
+	}
+	versionLabels := []string{
+		"maimai", "maimai PLUS", "GreeN", "GreeN PLUS", "ORANGE", "ORANGE PLUS", "PiNK", "PiNK PLUS", "MURASAKi", "MURASAKi PLUS", "MiLK", "MiLK PLUS", "FiNALE", "舞萌DX", "舞萌DX 2021", "舞萌DX 2022", "舞萌DX 2023",
+	}
 	for _, i := range c.maiDiffs {
-		Log(LogLevelInfo, "正在导入 %s 难度……", labels[i])
-		for {
-			err := c.fetchDataMaimaiPerDiff(i)
-			if err == nil {
-				break
+		if c.slice {
+			for j, versionTag := range versionTags {
+				Log(LogLevelInfo, "正在导入 %s 版本的 %s 难度……", versionLabels[j], labels[i])
+				for {
+					err := c.fetchDataMaimaiPerDiffAndVersion(i, versionTag)
+					if err == nil {
+						break
+					}
+				}
+			}
+		} else {
+			Log(LogLevelInfo, "正在导入 %s 难度……", labels[i])
+			for {
+				err := c.fetchDataMaimaiPerDiff(i)
+				if err == nil {
+					break
+				}
 			}
 		}
 	}
 }
 
 func (c *proberAPIClient) fetchDataMaimaiPerDiff(diff int) (err error) {
-	req, err := http.NewRequest(http.MethodGet, "https://maimai.wahlap.com/maimai-mobile/record/musicGenre/search/?genre=99&diff="+strconv.Itoa(diff), nil)
+	req, err := http.NewRequest(http.MethodGet, "https://maimai.wahlap.com/maimai-mobile/record/musicSort/search/?search=A&sort=1&playCheck=on&diff="+strconv.Itoa(diff), nil)
 	if err != nil {
 		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
 		return
@@ -237,4 +257,40 @@ func (c *proberAPIClient) fetchDataChuniPerDiff(headers http.Header, cookies []*
 		Log(LogLevelInfo, "已导出到文件")
 	}
 	return nil
+}
+
+func (c *proberAPIClient) fetchDataMaimaiPerDiffAndVersion(diff int, version string) (err error) {
+	pageUrl := fmt.Sprintf("https://maimai.wahlap.com/maimai-mobile/record/musicSort/search/?search=%s&sort=1&playCheck=on&diff=%d", version, diff)
+	req, err := http.NewRequest(http.MethodGet, pageUrl, nil)
+	if err != nil {
+		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+		return
+	}
+	resp, err := c.cl.Do(req)
+	if err != nil {
+		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
+		return
+	}
+	respText, err := io.ReadAll(resp.Body)
+	if err != nil {
+		Log(LogLevelWarning, "从 Wahlap 服务器获取数据超时，正在重试……您也可以使用命令行参数 -timeout 120 来调整超时时间为 120 秒（默认为 30 秒）")
+		return
+	}
+	switch c.mode {
+	case workingModeUpdate:
+		err = c.commit(respText)
+		if err != nil {
+			Log(LogLevelWarning, "提交数据到查分服务器失败，正在重试……")
+			return
+		}
+		Log(LogLevelInfo, "导入成功")
+	case workingModeExport:
+		err = os.WriteFile(fmt.Sprintf("mai-diff-%s-%d.html", version, diff), respText, 0644)
+		if err != nil {
+			Log(LogLevelWarning, "导出到文件失败")
+			return nil
+		}
+		Log(LogLevelInfo, "已导出到文件")
+	}
+	return
 }

@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/elazarl/goproxy"
@@ -25,20 +24,19 @@ func patchGoproxyCert() {
 }
 
 func main() {
-	verbose := flag.Bool("v", false, "should every proxy request be logged to stdout")
-	addr := flag.String("addr", ":8033", "proxy listen address")
-	configPath := flag.String("config", "config.json", "path to config.json file")
-	noEditGlobalProxy := flag.Bool("no-edit-global-proxy", false, "don't edit the global proxy settings")
-	networkTimeout := flag.Int("timeout", 30, "timeout when connect to servers")
-	maiDiffStr := flag.String("mai-diffs", "", "mai diffs to import")
-	flag.Parse()
+	flagSet := flag.NewFlagSet("proxy", flag.PanicOnError)
+
+	flagSet.Bool("v", false, "should every proxy request be logged to stdout")
+	flagSet.String("addr", ":8033", "proxy listen address")
+	configPath := flagSet.String("config", "config.json", "path to config.json file")
+	flagSet.Bool("no-edit-global-proxy", false, "don't edit the global proxy settings")
+	flagSet.Bool("slice", false, "using more parts to import records")
+	flagSet.Int("timeout", 30, "timeout when connect to servers")
+	flagSet.String("mai-diffs", "", "mai diffs to import")
+
 	checkUpdate()
 
 	var spm *systemProxyManager
-	if !*noEditGlobalProxy {
-		spm = newSystemProxyManager(*addr)
-	}
-
 	commandFatal := func(err error) {
 		if spm != nil {
 			spm.rollback()
@@ -49,25 +47,35 @@ func main() {
 		os.Exit(0)
 	}
 
+	err := flagSet.Parse(os.Args[1:])
+	if err != nil {
+		commandFatal(fmt.Errorf("加载命令行参数出错，请检查您的参数"))
+	}
+
 	cfg, err := initConfig(*configPath)
 	if err != nil {
 		commandFatal(err)
 	}
 
-	maiDiffs := strings.Split(*maiDiffStr, ",")
-	if len(maiDiffs) == 1 && maiDiffs[0] == "" {
-		maiDiffs = cfg.MaiDiffs
-	}
-	cfg.MaiIntDiffs, err = getMaiDiffs(maiDiffs)
+	err = cfg.FlagOverride(flagSet)
 	if err != nil {
 		commandFatal(err)
 	}
 
-	apiClient, err := newProberAPIClient(&cfg, *networkTimeout)
+	cfg.MaiIntDiffs, err = getMaiDiffs(cfg.MaiDiffs)
 	if err != nil {
 		commandFatal(err)
 	}
-	proxyCtx := newProxyContext(apiClient, commandFatal, *verbose)
+
+	if !cfg.NoEditGlobalProxy {
+		spm = newSystemProxyManager(cfg.Addr)
+	}
+
+	apiClient, err := newProberAPIClient(&cfg, cfg.NetworkTimeout)
+	if err != nil {
+		commandFatal(err)
+	}
+	proxyCtx := newProxyContext(apiClient, commandFatal, cfg.Verbose)
 
 	Log(LogLevelInfo, "使用此软件则表示您同意共享您在微信公众号舞萌 DX、中二节奏中的数据。")
 	Log(LogLevelInfo, "您可以在微信客户端访问微信公众号舞萌 DX、中二节奏的个人信息主页进行分数导入，如需退出请直接关闭程序或按下 Ctrl + C")
@@ -91,11 +99,11 @@ func main() {
 	patchGoproxyCert()
 	srv := proxyCtx.makeProxyServer()
 
-	if host, _, err := net.SplitHostPort(*addr); err == nil && host == "" {
+	if host, _, err := net.SplitHostPort(cfg.Addr); err == nil && host == "" {
 		// hack
-		*addr = "127.0.0.1" + *addr
+		cfg.Addr = "127.0.0.1" + cfg.Addr
 	}
-	Log(LogLevelInfo, "代理已开启到 %s", *addr)
+	Log(LogLevelInfo, "代理已开启到 %s", cfg.Addr)
 
-	log.Fatal(http.ListenAndServe(*addr, srv))
+	log.Fatal(http.ListenAndServe(cfg.Addr, srv))
 }

@@ -558,7 +558,7 @@ export default {
       if (this.chart === null) {
         let that = this;
         setTimeout(() => {
-          that.chart = this.$echarts.init(this.$refs.chart_div);
+          that.chart = this.$echarts.init(this.$refs.chart_div, 'dark');
           that.chart.setOption(option);
         }, 100);
       } else {
