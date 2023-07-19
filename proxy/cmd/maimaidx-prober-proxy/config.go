@@ -114,7 +114,14 @@ func initConfig(path string) (config, error) {
 		return config{}, fmt.Errorf("初次使用请填写 %s 文件，并依据教程完成根证书的安装。", path)
 	}
 
-	var obj config
+	obj := config{
+		Addr:              ":8033",
+		NetworkTimeout:    30,
+		Slice:             false,
+		Verbose:           false,
+		NoEditGlobalProxy: false,
+	}
+
 	err = json.Unmarshal(b, &obj)
 	if err != nil {
 		return config{}, fmt.Errorf("配置文件格式有误，无法解析：%w。请检查 %s 文件的内容", err, path)
