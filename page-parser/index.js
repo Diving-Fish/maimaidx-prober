@@ -104,6 +104,7 @@ const pageToRecordList = function (pageData) {
     return cur;
   };
 
+  const link_dx_score = [372, 522, 942, 924]
   let link = false;
   let records = [];
   let doc = new dom({
@@ -124,13 +125,12 @@ const pageToRecordList = function (pageData) {
   const labels = ["basic", "advanced", "expert", "master", "remaster"];
   for (const name of names) {
     let title = name.textContent;
-    if (title == "Link") {
-      if (!link) {
-        title = "Link(CoF)";
-        link = true;
-      }
-    }
     let diffNode = getSibN(name, -6);
+    let typeNode = null;
+    if (!diffNode.getAttribute("src").match("diff_(.*).png")) {
+      diffNode = getSibN(name, -8);
+      typeNode = getSibN(name, -6);
+    }
     let levelNode = getSibN(name, -2);
     let scoreNode = getSibN(name, 2);
     if (scoreNode.tagName !== "div") {
@@ -140,12 +140,28 @@ const pageToRecordList = function (pageData) {
     let fsNode = getSibN(name, 6);
     let fcNode = getSibN(name, 8);
     let rateNode = getSibN(name, 10);
+
+    const level_index = labels.indexOf(
+      diffNode.getAttribute("src").match("diff_(.*).png")[1]
+    );
+    if (title == "Link") {
+      if (typeNode) {
+        dxScore = parseInt(dxScoreNode.textContent.split('/')[1])
+        if (dxScore != link_dx_score[level_index]) {
+          title = "Link(CoF)";
+        }
+      } else {
+        if (!link) {
+          title = "Link(CoF)";
+          link = true;
+        }
+      }
+    }
+
     let record_data = {
       title: title,
       level: levelNode.textContent,
-      level_index: labels.indexOf(
-        diffNode.getAttribute("src").match("diff_(.*).png")[1]
-      ),
+      level_index: level_index,
       type: "",
       achievements: parseFloat(scoreNode.textContent),
       dxScore: parseInt(dxScoreNode.textContent.replace(",", "")),
@@ -159,15 +175,21 @@ const pageToRecordList = function (pageData) {
         .match("_icon_(.*).png")[1]
         .replace("back", ""),
     };
-    const docId = name.parentNode.parentNode.parentNode.getAttribute("id");
-    if (docId) {
-      if (docId.slice(0, 3) == "sta") record_data.type = "SD";
-      else record_data.type = "DX";
+    if (!typeNode) {
+      const docId = name.parentNode.parentNode.parentNode.getAttribute("id");
+      if (docId) {
+        if (docId.slice(0, 3) == "sta") record_data.type = "SD";
+        else record_data.type = "DX";
+      } else {
+        record_data.type = name.parentNode.parentNode.nextSibling.nextSibling
+          .getAttribute("src")
+          .match("_(.*).png")[1];
+        if (record_data.type == "standard") record_data.type = "SD";
+        else record_data.type = "DX";
+      }
     } else {
-      record_data.type = name.parentNode.parentNode.nextSibling.nextSibling
-        .getAttribute("src")
-        .match("_(.*).png")[1];
-      if (record_data.type == "standard") record_data.type = "SD";
+      const s = typeNode.getAttribute("src").match("music_(.*).png")[1]
+      if (s == "standard") record_data.type = "SD";
       else record_data.type = "DX";
     }
     records.push(record_data);
@@ -317,6 +339,7 @@ const serve = (pageParser) => {
       if (records === undefined) throw new Error("Records is undefined")
     }
     catch (err) {
+      console.log(err)
       res.status(400).send({ message: "Failed to parse body" });
       return
     }
