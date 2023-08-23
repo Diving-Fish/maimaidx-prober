@@ -211,10 +211,11 @@ async def compute_ra(player: Player):
         total += single_ra(record)
     for record in r10:
         total += single_ra(record)
-    player.chuni_rating = total / 40
+    rating = total / 40
+    player.chuni_rating = rating
     player.access_time = time.time()
     player.save()
-    return player.chuni_rating
+    return rating
     
 
 @app.route("/chuni/player/records")
