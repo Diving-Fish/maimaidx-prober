@@ -292,14 +292,14 @@ export default {
         });
     },
     delete_records() {
-      axios
-        .delete(
-          "https://www.diving-fish.com/api/maimaidxprober/player/delete_records"
-        )
-        .then((resp) => {
-          this.$message.success("已删除" + resp.data.message + "条数据");
-          setTimeout("window.location.reload()", 1500);
-        });
+      axios.all([
+        axios.delete("https://www.diving-fish.com/api/maimaidxprober/player/delete_records"),
+        axios.delete("https://www.diving-fish.com/api/chunithmprober/player/delete_records")
+      ]).then(axios.spread((maimaiResp,chuniResp)=>{
+        this.$message.success("已删除舞萌查分器" + maimaiResp.data.message + "条数据");
+        this.$message.success("已删除中二节奏查分器" + chuniResp.data.message + "条数据");
+        setTimeout("window.location.reload()", 1500);
+      }));
     },
     change_password() {
       if (!this.$refs.changePasswordForm.validate()) return;
