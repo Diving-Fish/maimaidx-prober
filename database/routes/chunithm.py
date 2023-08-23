@@ -129,6 +129,18 @@ async def update_records_chuni():
         ChuniRecord.insert_many(arr).execute()
     return {"message": "更新成功"}
 
+@app.route("/chuni/player/delete_records", methods=['DELETE'])
+@login_required
+async def delete_records_chuni():
+    """
+    *需要登录
+    删除您的中二查分器数据。
+    """
+    nums = ChuniRecord.delete().where(ChuniRecord.player == g.user.id).execute()
+    await compute_ra(g.user)
+    return {
+        "message": nums
+    }
 
 def lerp(x1, x2, y1, y2, x):
     val = (x - x1) / (x2 - x1) * (y2 - y1) + y1
@@ -202,6 +214,7 @@ async def compute_ra(player: Player):
     player.chuni_rating = total / 40
     player.access_time = time.time()
     player.save()
+    return player.chuni_rating
     
 
 @app.route("/chuni/player/records")

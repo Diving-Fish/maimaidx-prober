@@ -297,9 +297,17 @@ export default {
           "https://www.diving-fish.com/api/maimaidxprober/player/delete_records"
         )
         .then((resp) => {
-          this.$message.success("已删除" + resp.data.message + "条数据");
+          this.$message.success("已删除舞萌查分器" + resp.data.message + "条数据");
           setTimeout("window.location.reload()", 1500);
         });
+      axios
+          .delete(
+              "https://www.diving-fish.com/api/chunithmprober/player/delete_records"
+          )
+          .then((resp) => {
+            this.$message.success("已删除中二节奏查分器" + resp.data.message + "条数据");
+            setTimeout("window.location.reload()", 1500);
+          });
     },
     change_password() {
       if (!this.$refs.changePasswordForm.validate()) return;
