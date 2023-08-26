@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"path/filepath"
 
 	"github.com/elazarl/goproxy"
 )
@@ -28,7 +29,9 @@ func main() {
 
 	flagSet.Bool("v", false, "should every proxy request be logged to stdout")
 	flagSet.String("addr", ":8033", "proxy listen address")
-	configPath := flagSet.String("config", "config.json", "path to config.json file")
+	ex, _ := os.Executable()
+	exPath := filepath.Dir(ex)
+	configPath := flagSet.String("config", exPath+"/config.json", "path to config.json file")
 	flagSet.Bool("no-edit-global-proxy", false, "don't edit the global proxy settings")
 	flagSet.Bool("slice", false, "using more parts to import records")
 	flagSet.Int("timeout", 30, "timeout when connect to servers")
