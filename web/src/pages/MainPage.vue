@@ -333,7 +333,7 @@
               <pro-settings-chuni v-show="proSettingChuni" ref="proSettingsChuni" :music_data="chuni_data"
                             :music_data_dict="chuni_data_dict" @setHeaders="setHeaders"></pro-settings-chuni>
               <v-card-text>
-                <chuni-table :search="searchKey" :items="chuniRecordDisplay" :music_data_dict="chuni_data_dict">
+                <chuni-table :search="searchKey" :items="chuniRecordDisplay" :music_data_dict="chuni_data_dict" :loading="chuniLoading">
                 </chuni-table>
               </v-card-text>
             </v-window-item>
@@ -349,6 +349,8 @@
       <v-card>
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
+          2023/08/30
+          （By 蜜柑）给中二查分器后端添加了数据清除功能，现在可以在前端将舞萌和中二的查分器数据同时清除，便于玩家自行解决中二数据导入后无法覆盖原数据的问题。
           2023/01/22
           （By 蜜柑）大家新年快乐，除夕和春节两晚给中二节奏成绩表格肝（抄）了个导出成绩、谱面筛选和 OP 计算器（这个是自己写的）等功能。同时修复了一些前端的小 bug，并将成绩评级分数线修改成与中二节奏 NEW 现行分数线一致。<br />
           2022/10/24
@@ -524,6 +526,7 @@ export default {
       qrcodePrompt: "",
       ws: null,
       loading: false,
+      chuniLoading: false,
       valid: false,
       valid2: false,
       exportVisible: false,
@@ -794,6 +797,7 @@ export default {
     },
     fetchMusicData: function () {
       const that = this;
+      that.chuniLoading = true;
       that.loading = true;
       this.$message.info("正在获取乐曲信息……");
       axios.get("https://www.diving-fish.com/api/chunithmprober/music_data")
@@ -818,6 +822,7 @@ export default {
               rank++;
               if (rank == 0) rank++;
             }
+            this.chuniLoading = false;
           }).catch(() => {
             this.$message.warning("未获取用户分数");
           })
@@ -872,8 +877,10 @@ export default {
           password: this.loginForm.password,
         })
         .then(() => {
-          this.$message.success("登录成功，加载乐曲数据中……");
+          this.$message.success("登录成功!");
+          this.$message.success("加载舞萌乐曲数据中……");
           this.loading = true;
+          this.chuniLoading = true;
           this.loginVisible = false;
           this.$refs.profile.fetch();
           axios
@@ -888,8 +895,30 @@ export default {
               this.loading = false;
             })
             .catch(() => {
-              this.$message.error("加载乐曲失败！");
+              this.$message.error("加载舞萌乐曲数据失败！");
             });
+          this.$message.success("加载中二乐曲数据中……");
+          axios
+              .get(
+                  "https://www.diving-fish.com/api/chunithmprober/player/records"
+              )
+              .then((resp) => {
+                this.chuni_obj = resp.data;
+                this.chuni_obj.records.best = this.chuni_obj.records.best.sort((a, b) => {return b.ra - a.ra})
+                this.chuni_obj.records.r10 = this.chuni_obj.records.r10.sort((a, b) => {return b.ra - a.ra})
+                this.chuni_records = JSON.parse(JSON.stringify(this.chuni_obj.records.r10))
+                this.chuni_records = this.chuni_records.concat(JSON.parse(JSON.stringify(this.chuni_obj.records.best)))
+                let rank = -10;
+                for (let i of this.chuni_records) {
+                  i.rank = rank;
+                  rank++;
+                  if (rank == 0) rank++;
+                }
+                this.chuniLoading = false;
+              })
+              .catch(() => {
+                this.$message.error("加载中二乐曲数据失败！");
+              })
         })
         .catch((err) => {
           this.$message.error("登录失败！");
