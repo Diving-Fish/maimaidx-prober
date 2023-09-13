@@ -114,7 +114,10 @@ def get_plate_name(version, plate_type):
         "maimai FiNALE": "輝",
         "maimai でらっくす": "熊",
         "maimai でらっくす PLUS": "華",
-        "maimai でらっくす Splash": "爽"
+        "maimai でらっくす Splash": "爽",
+        "maimai でらっくす Splash PLUS": "煌",
+        "maimai でらっくす UNiVERSE": "宙",
+        "maimai でらっくす UNiVERSE PLUS": "星"
     }[version]+{
         1: "極",
         2: "将",
