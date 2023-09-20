@@ -268,7 +268,7 @@ async def query_player_chuni():
     obj = await request.json
     try:
         if "qq" in obj:
-            p: Player = Player.get(Player.bind_qq == obj["qq"])
+            p: Player = Player.by_qq(obj["qq"])
         else:
             username = obj["username"]
             p: Player = Player.get(Player.username == username)

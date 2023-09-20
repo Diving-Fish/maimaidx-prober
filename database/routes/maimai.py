@@ -171,7 +171,7 @@ async def dev_get_records():
         if qq == "":
             player: Player = Player.get(Player.username == username)
         else:
-            player: Player = Player.get(Player.bind_qq == qq)
+            player: Player = Player.by_qq(qq)
     except Exception:
         return {"message": "no such user"}, 400
     r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
@@ -242,7 +242,7 @@ async def query_player():
     obj = await request.json
     try:
         if "qq" in obj:
-            p: Player = Player.get(Player.bind_qq == obj["qq"])
+            p: Player = Player.by_qq(obj["qq"])
         else:
             username = obj["username"]
             p: Player = Player.get(Player.username == username)
@@ -304,7 +304,7 @@ async def query_plate():
     obj = await request.json
     try:
         if "qq" in obj:
-            p: Player = Player.get(Player.bind_qq == obj["qq"])
+            p: Player = Player.by_qq(obj["qq"])
         else:
             username = obj["username"]
             p: Player = Player.get(Player.username == username)

@@ -221,7 +221,7 @@ export default {
   data: () => {
     return {
       valid: false,
-      login: true,
+      login: false,
       username: "",
       visible: false,
       delVisible: false,

@@ -67,6 +67,24 @@ class Player(BaseModel):
         self.save()
         return self.import_token
 
+    @staticmethod
+    def by_qq(qq):
+        fail1 = False
+        fail2 = False
+        try:
+            player = Player.get(Player.bind_qq == qq)
+            return player
+        except Exception:
+            fail1 = True
+        try:
+            player = Player.get(Player.qq_channel_uid == qq)
+            return player
+        except Exception:
+            fail2 = True
+        if fail1 and fail2:
+            raise Exception("Player not found")
+        return None
+
 
 class Developer(BaseModel):
     nickname = CharField()
