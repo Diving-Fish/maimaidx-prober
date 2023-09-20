@@ -69,6 +69,31 @@ def login_required(f):
     return func
 
 
+def login_or_token_required(f):
+    @wraps(f)
+    async def func(*args, **kwargs):
+        import_token = request.headers.get('Import-Token', default='')
+        if import_token != '':
+            try:
+                g.user = Player.get(Player.import_token == import_token)
+                g.username = g.user.username
+                return await f(*args, **kwargs)
+            except Exception:
+                return {"status": "error", "message": "导入token有误"}, 400
+        else:
+            try:
+                token = decode(request.cookies['jwt_token'])
+            except KeyError:
+                return {"status": "error", "message": "尚未登录"}, 403
+            if token == {}:
+                return {"status": "error", "message": "尚未登录"}, 403
+            if token['exp'] < ts():
+                return {"status": "error", "message": "会话过期"}, 403
+            g.username = token['username']
+            g.user = Player.get(Player.username == g.username)
+            return await f(*args, **kwargs)
+
+
 def is_developer(token):
     if token == "":
         return False, {"status": "error", "msg": "请先联系水鱼申请开发者token"}, 400

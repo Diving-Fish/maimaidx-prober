@@ -8,7 +8,7 @@ https://www.diving-fish.com/api/maimaidxprober/*
 import asyncio
 import time
 from collections import defaultdict
-from app import app, developer_required, login_required, md5, is_developer
+from app import app, developer_required, login_required, login_or_token_required, md5, is_developer
 from quart import Quart, request, g, make_response
 from tools._jwt import *
 from models.maimai import *
@@ -68,6 +68,7 @@ async def profile():
                 if verified:
                     g.user.__setattr__("plate", plate_label)
                 del obj["plate"]
+
             if "bind_qq" in obj:
                 # check duplicate
                 bind_qq = obj["bind_qq"]
@@ -80,14 +81,29 @@ async def profile():
                         }, 400
                     except Exception:
                         pass
+
+            if "qq_channel_uid" in obj:
+                # check duplicate
+                qq_channel_uid = obj["qq_channel_uid"]
+                if qq_channel_uid != "":
+                    try:
+                        player = Player.get((Player.qq_channel_uid == qq_channel_uid) & (Player.id != g.user.id))
+                        # Not found -> except
+                        return {
+                        "message": f"此频道 ID 已经被用户名为{player.username}的用户绑定，请先解绑再进行操作~"
+                        }, 400
+                    except Exception:
+                        pass
+
             for key in obj:
-                if key in ("nickname", "bind_qq", "additional_rating", "privacy"):
+                if key in ("nickname", "bind_qq", "additional_rating", "privacy", "qq_channel_uid"):
                     g.user.__setattr__(key, obj[key])
                 if key == "user_general_data":
                     g.user.__setattr__(key, json.dumps(obj[key]))
             g.user.save()
             u: Player = g.user
             return u.user_json()
+
         except Exception as e:
             print(e)
             return {
@@ -95,16 +111,16 @@ async def profile():
             }, 400
 
 
-def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
-    try:
-        if version == "无":
-            return True, ""
-        plate_name = get_plate_name(version, plate_type)
-        if plate_name == "真将":
-            return False, ""
-        return True, plate_name
-    except Exception:
-        return False, ""
+@app.route("/player/import_token", methods=['PUT'])
+@login_required
+async def import_token():
+    """
+    *需要登录
+    生成一个新的导入 Token，并覆盖旧 Token。
+    """
+    return {
+        "token": g.user.generate_import_token()
+    }
 
 
 @app.route("/music_data", methods=['GET'])
@@ -124,7 +140,7 @@ async def get_music_data():
 
 
 @app.route("/player/records", methods=['GET'])
-@login_required
+@login_or_token_required
 async def get_records():
     """
     *需要登录
@@ -326,7 +342,7 @@ async def compute_ra(player: Player):
 
 
 @app.route("/player/update_records", methods=['POST'])
-@login_required
+@login_or_token_required
 async def update_records():
     """
     *需要登录
@@ -483,7 +499,7 @@ async def update_records_html():
 
 
 @app.route("/player/update_record", methods=['POST'])
-@login_required
+@login_or_token_required
 async def update_record():
     """
     *需要登录
@@ -514,7 +530,7 @@ async def update_record():
 
 
 @app.route("/player/delete_records", methods=['DELETE'])
-@login_required
+@login_or_token_required
 async def delete_records():
     """
     *需要登录

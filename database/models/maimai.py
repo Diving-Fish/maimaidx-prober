@@ -126,6 +126,18 @@ def get_plate_name(version, plate_type):
     }[plate_type]
 
 
+def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
+    try:
+        if version == "无":
+            return True, ""
+        plate_name = get_plate_name(version, plate_type)
+        if plate_name == "真将":
+            return False, ""
+        return True, plate_name
+    except Exception:
+        return False, ""
+
+
 def record_json(record: NewRecord):
     data = {
         "title": record.title,

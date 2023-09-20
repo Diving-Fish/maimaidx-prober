@@ -1,5 +1,6 @@
 import json
 import time
+import hashlib
 from typing import List, Optional, Dict, Text, Union, Any, Tuple
 
 from peewee import Model, CharField, IntegerField, BigIntegerField, BooleanField, ForeignKeyField, DoubleField, TextField
@@ -35,12 +36,14 @@ class Player(BaseModel):
     chuni_rating = DoubleField()
     nickname = CharField()
     bind_qq = CharField()
+    qq_channel_uid = CharField()
     plate = CharField()
     privacy = BooleanField()
     user_id = IntegerField()
     user_data = TextField()
     user_general_data = TextField()
     access_time = BigIntegerField()
+    import_token = CharField()
 
     def user_json(self):
         try:
@@ -52,10 +55,17 @@ class Player(BaseModel):
             "nickname": self.nickname,
             "additional_rating": self.additional_rating,
             "bind_qq": self.bind_qq,
+            "qq_channel_uid": self.qq_channel_uid,
             "privacy": self.privacy,
             "plate": self.plate,
-            "user_general_data": j
+            "user_general_data": j,
+            "import_token": self.import_token
         }
+
+    def generate_import_token(self):
+        self.import_token = hashlib.sha512((self.username + str(time.time())).encode()).hexdigest()
+        self.save()
+        return self.import_token
 
 
 class Developer(BaseModel):
