@@ -93,6 +93,8 @@ def login_or_token_required(f):
             g.user = Player.get(Player.username == g.username)
             return await f(*args, **kwargs)
 
+    return func
+
 
 def is_developer(token):
     if token == "":

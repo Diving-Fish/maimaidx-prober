@@ -28,6 +28,40 @@
                 (u) => u.length <= 8 || '昵称不能超过 8 个字符',
               ]"
             ></v-text-field>
+            
+            <div style="display: flex; justify-content: space-between;">
+              <div style="flex-grow: 1; padding-right: 16px;">
+                <v-text-field label="成绩导入 Token" v-model="import_token" disabled
+                  ></v-text-field
+                >
+              </div>
+              <div>
+                <v-tooltip bottom>
+                  <template v-slot:activator="{ on }">
+                    <v-icon v-on="on" class="mr-2" style="line-height: 66px;"> mdi-help-circle-outline </v-icon>
+                  </template>
+                  成绩导入 Token 可以查询和导入您的成绩。
+                </v-tooltip>
+                <v-tooltip bottom>
+                  <template v-slot:activator="{ on }">
+                    <v-icon v-on="on" @click="generateTokenVisible = true" class="click-icon"> mdi-refresh </v-icon>
+                  </template>
+                  生成新的成绩导入 Token
+                </v-tooltip>
+                <v-tooltip bottom>
+                  <template v-slot:activator="{ on }">
+                    <v-icon v-on="on" @click="copyToClipboard(import_token)" class="click-icon"> mdi-content-copy </v-icon>
+                  </template>
+                  复制 Token
+                </v-tooltip>
+                <v-tooltip bottom>
+                  <template v-slot:activator="{ on }">
+                    <v-icon v-on="on" @click="copyToClipboard('https://www.diving-fish.com/prober-import/?t=' + import_token)" class="click-icon"> mdi-link-variant </v-icon>
+                  </template>
+                  复制 Http 代理导入链接
+                </v-tooltip>
+              </div>
+            </div>
             <v-text-field label="绑定 QQ 号" v-model="bind_qq"
               ><template v-slot:prepend>
                 <v-tooltip bottom>
@@ -36,6 +70,16 @@
                   </template>
                   绑定 QQ 号后，您可以直接输入 b40 以在千雪 bot
                   查询您自己的成绩。
+                </v-tooltip>
+              </template></v-text-field
+            >
+            <v-text-field label="绑定频道 ID" v-model="qq_channel_uid"
+              ><template v-slot:prepend>
+                <v-tooltip bottom>
+                  <template v-slot:activator="{ on }">
+                    <v-icon v-on="on"> mdi-help-circle-outline </v-icon>
+                  </template>
+                  您可以在频道中输入 cuid 查询自己的频道 ID。
                 </v-tooltip>
               </template></v-text-field
             >
@@ -121,6 +165,22 @@
               </v-card>
             </v-dialog>
             <v-dialog
+              v-model="generateTokenVisible"
+              width="600"
+              :fullscreen="$vuetify.breakpoint.mobile"
+            >
+              <v-card>
+                <v-card-title>生成 Token</v-card-title>
+                <v-card-text>
+                  确定生成新的 Token？旧的 Token 将失效。
+                </v-card-text>
+                <v-card-actions class="pb-4">
+                  <v-btn color="primary" @click="generateToken">确定</v-btn>
+                  <v-btn @click="generateTokenVisible = false">取消</v-btn>
+                </v-card-actions>
+              </v-card>
+            </v-dialog>
+            <v-dialog
               v-model="delVisible"
               width="600"
               :fullscreen="$vuetify.breakpoint.mobile"
@@ -161,10 +221,11 @@ export default {
   data: () => {
     return {
       valid: false,
-      login: false,
+      login: true,
       username: "",
       visible: false,
       delVisible: false,
+      generateTokenVisible: false,
       select: { label: "初学者", ra: 0 },
       ratings: [
         { label: "初学者", ra: 0 },
@@ -192,6 +253,8 @@ export default {
         { label: "里皆传", ra: 22 },
       ],
       bind_qq: "",
+      qq_channel_uid: "",
+      import_token: "123456",
       nickname: "",
       privacy: false,
       plate: "",
@@ -268,6 +331,7 @@ export default {
           additional_rating: this.select.ra,
           nickname: this.nickname,
           plate: this.plate_upload,
+          qq_channel_uid: this.qq_channel_uid,
         })
         .then((resp) => {
           this.visible = false;
@@ -275,6 +339,8 @@ export default {
           this.username = resp.data.username;
           this.privacy = resp.data.privacy;
           this.bind_qq = resp.data.bind_qq;
+          this.qq_channel_uid = resp.data.qq_channel_uid;
+          this.import_token = resp.data.import_token;
           this.plate = resp.data.plate;
           this.nickname = resp.data.nickname;
           for (let elem of this.ratings) {
@@ -290,6 +356,14 @@ export default {
         }).catch((err) => {
           this.$message.error(`错误：${err.response.data.message}`)
         });
+    },
+    generateToken() {
+      axios.put("/api/maimaidxprober/player/import_token").then(resp => {
+        this.import_token = resp.data.token;
+        this.$message.success("已生成新的导入 Token");
+      }).catch(() => {
+        this.$message.error(`生成导入 Token 失败！`)
+      }).finally(() => this.generateTokenVisible = false);
     },
     delete_records() {
       axios.all([
@@ -324,6 +398,8 @@ export default {
           this.username = resp.data.username;
           this.privacy = resp.data.privacy;
           this.bind_qq = resp.data.bind_qq;
+          this.qq_channel_uid = resp.data.qq_channel_uid;
+          this.import_token = resp.data.import_token;
           this.ra = resp.data.additional_rating;
           this.plate = resp.data.plate;
           this.nickname = resp.data.nickname;
@@ -340,6 +416,13 @@ export default {
         })
         .catch(() => {});
     },
+    copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        this.$message.success("已复制到剪贴板");
+      }).catch(() => {
+        this.$message.error("复制失败");
+      })
+    }
   },
   created: function () {
     for (const elem of [
@@ -375,5 +458,10 @@ export default {
 .hdr {
   display: flex;
   align-items: center;
+}
+
+.click-icon {
+  cursor: pointer;
+  margin-left: 4px;
 }
 </style>
