@@ -152,7 +152,14 @@ async def get_records():
     for record in r:
         elem = record_json(record)
         records.append(elem)
-    return {"records": records, "username": g.username, "additional_rating": g.user.additional_rating}
+    return {
+        "username": g.username,
+        "rating": g.user.rating,
+        "additional_rating": g.user.additional_rating,
+        "nickname": g.user.nickname,
+        "plate": g.user.plate,
+        "records": records
+    }
 
 
 @app.route("/dev/player/records", methods=['GET'])
@@ -180,7 +187,14 @@ async def dev_get_records():
     for record in r:
         elem = record_json(record)
         records.append(elem)
-    return {"records": records, "username": player.username, "additional_rating": player.additional_rating}
+    return {
+        "username": player.username,
+        "rating": player.rating,
+        "additional_rating": player.additional_rating,
+        "nickname": player.nickname,
+        "plate": player.plate,
+        "records": records
+    }
 
 
 @app.route("/player/test_data", methods=['GET'])

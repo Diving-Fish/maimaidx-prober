@@ -1,7 +1,7 @@
 import asyncio
 import random
 import string
-from app import app, login_required, mail_config, md5
+from app import app, login_required, mail_config, md5, developer_required
 from quart import Quart, request, g, make_response
 from tools._jwt import *
 from models.maimai import *
@@ -153,3 +153,39 @@ async def do_recovery():
         email_reset.timeout_stamp = 0;
         email_reset.save()
         return {"message": "success"}
+
+
+@app.route('/channel_to_qq', methods=['GET', 'POST'])
+@developer_required
+async def channel_to_qq():
+    cuid = request.args.get("cuid", type=str, default="")
+    if request.method == 'GET':
+        try:
+            player = Player.get(Player.qq_channel_uid == cuid)
+        except Exception:
+            return {"qq": ""}
+        return {"qq": player.bind_qq}
+    else:
+        qq = (await request.json)["qq"]
+        try:
+            player = Player.get(Player.qq_channel_uid == cuid)
+        except Exception:
+            try:
+                player = Player.get(Player.bind_qq == qq)
+            except Exception:
+                return {"message": "failed"}, 400
+        player.qq_channel_uid = cuid
+        player.bind_qq = qq
+        player.save()
+        return {"message": "success"}
+
+@app.route('/token_available', methods=['GET'])
+async def token_available():
+    t = request.args.get('token', type=str, default='')
+    if t == "":
+        return {"message": "non-exist"}, 404
+    try:
+        player = Player.get(Player.import_token == t)
+        return {"message": "ok"}, 200
+    except Exception:
+        return {"message": "non-exist"}, 404

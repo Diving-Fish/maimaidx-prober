@@ -235,6 +235,7 @@ async def player_records_chuni():
             "r10": [record_json(c) for c in rs2],
         },
         "username": g.username,
+        "nickname": g.user.nickname,
         "rating": g.user.chuni_rating
     }
 
@@ -300,4 +301,36 @@ async def query_player_chuni():
             "b30": [record_json(c) for c in b30],
             "r10": [record_json(c) for c in r10]
         }
+    }
+
+
+@app.route('/chuni/dev/player/records')
+async def dev_get_records_chuni():
+    """
+    *需要开发者
+    获取某个用户的成绩信息。
+    请求体为 JSON，参数需包含 `username` 或 `qq`。
+    """
+    username = request.args.get("username", type=str, default="")
+    qq = request.args.get("qq", type=str, default="")
+    if username == "" and qq == "":
+        return {"message": "no such user"}, 400
+    try:
+        if qq == "":
+            player: Player = Player.get(Player.username == username)
+        else:
+            player: Player = Player.by_qq(qq)
+    except Exception:
+        return {"message": "no such user"}, 400
+    rs = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id)
+    rs2 = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', player.id)
+    await compute_ra(player)
+    return {
+        "records": {
+            "best": [record_json(c) for c in rs],
+            "r10": [record_json(c) for c in rs2],
+        },
+        "username": player.username,
+        "nickname": player.nickname,
+        "rating": player.chuni_rating
     }
