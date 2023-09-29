@@ -153,13 +153,13 @@ chmod +x <文件名>
 
 ## 方法3：通过Chrome调试工具导入
 
-*该方法仅支持安卓系统，且需要安装Chrome的计算机*
+*该方法仅支持安卓系统，且需要一台安装 Chrome 或 Microsoft Edge 的计算机*
 
 在无法使用前三种方法时，可尝试使用此方法
 
 开启设备上的`USB调试`功能并连接电脑
 
-在电脑上的Chrome打开 chrome://inspect
+在电脑上的Chrome打开 chrome://inspect（如果使用 Edge，则打开 `edge://inspect`）
 
 在手机上确认授权后，即可在此列表中看见自己的设备
 
