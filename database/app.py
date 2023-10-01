@@ -77,7 +77,6 @@ def login_or_token_required(f):
             try:
                 g.user = Player.get(Player.import_token == import_token)
                 g.username = g.user.username
-                return await f(*args, **kwargs)
             except Exception:
                 return {"status": "error", "message": "导入token有误"}, 400
         else:
@@ -91,7 +90,8 @@ def login_or_token_required(f):
                 return {"status": "error", "message": "会话过期"}, 403
             g.username = token['username']
             g.user = Player.get(Player.username == g.username)
-            return await f(*args, **kwargs)
+        
+        return await f(*args, **kwargs)
 
     return func
 
