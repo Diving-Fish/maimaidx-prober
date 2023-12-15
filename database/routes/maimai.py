@@ -299,13 +299,13 @@ async def query_player():
         },
         "user_general_data": user_general_data,
     }
-    if is_developer(request.headers.get("developer-token", default=""))[0]:
-        try:
-            user_data = json.loads(p.user_data)
-        except Exception:
-            user_data = None
-        obj["user_id"] = p.user_id
-        obj["user_data"] = user_data
+    # if is_developer(request.headers.get("developer-token", default=""))[0]:
+    #     try:
+    #         user_data = json.loads(p.user_data)
+    #     except Exception:
+    #         user_data = None
+    #     obj["user_id"] = p.user_id
+    #     obj["user_data"] = user_data
     return obj
 
 
@@ -368,6 +368,7 @@ async def update_records():
     j = await request.get_json()
     dicts = {}
     if "userId" in j:
+        pass
         try:
             for ml in j["userMusicList"]:
                 for m in ml["userMusicDetailList"]:

@@ -22,6 +22,7 @@ export default {
       height: 0,
       img_urls: [
         {s: "https://www.diving-fish.com/maimaidx/prober_static/mmfc.png", l: "https://www.maimaimfc.ink/"},
+        {s: "https://www.diving-fish.com/maimaidx/prober_static/bemanicn.png", l: "https://map.bemanicn.com/"},
         {s: "https://www.diving-fish.com/maimaidx/prober_static/ad3.png"},
         {s: "https://www.diving-fish.com/maimaidx/prober_static/ad2.jpg"},
         {s: "https://www.diving-fish.com/maimaidx/prober_static/pic0.jpg", l: ""},
