@@ -6,6 +6,7 @@
         <h1>舞萌 DX | 中二节奏查分器</h1>
         <profile :available_plates="available_plates" ref="profile" />
       </div>
+      <agreement></agreement>
       <v-divider class="mt-4 mb-4" />
       <p>
         <v-btn href="/maimaidx/prober_guide" target="_blank" color="primary">数据导入指南</v-btn>
@@ -456,6 +457,7 @@ import ProSettingsChuni from "@/components/ProSettingsChuni";
 import Advertisement from "../components/Advertisement.vue";
 import Message from "../components/Message.vue";
 import Profile from "../components/Profile.vue";
+import Agreement from "../components/Agreement.vue";
 import PlateQualifier from "../components/PlateQualifier.vue";
 import Calculators from "../components/Calculators.vue";
 import Tutorial from "../components/Tutorial.vue";
@@ -480,6 +482,7 @@ export default {
     Recovery,
     Message,
     Profile,
+    Agreement,
     PlateQualifier,
     Calculators,
     Tutorial,
