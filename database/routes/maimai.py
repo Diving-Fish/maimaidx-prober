@@ -60,6 +60,7 @@ async def agreement():
         obj = await request.json
         if "accept_agreement" in obj:
             g.user.accept_agreement = obj["accept_agreement"]
+            g.save()
         return {"message": "success"}
 
 
