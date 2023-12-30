@@ -121,6 +121,7 @@
               </v-col>
             </v-row>
             <v-checkbox v-model="privacy" label="禁止其他人查询我的成绩" />
+            <v-checkbox v-model="mask" label="对非网页查询的成绩使用掩码" />
           </v-form>
           <v-card-actions class="pb-4">
             <v-dialog
@@ -257,6 +258,7 @@ export default {
       import_token: "123456",
       nickname: "",
       privacy: false,
+      mask: false,
       plate: "",
       plate_upload: {
         version: "无",
@@ -327,6 +329,7 @@ export default {
         .post("https://www.diving-fish.com/api/maimaidxprober/player/profile", {
           username: this.username,
           privacy: this.privacy,
+          mask: this.mask,
           bind_qq: this.bind_qq,
           additional_rating: this.select.ra,
           nickname: this.nickname,
@@ -338,6 +341,7 @@ export default {
           this.$message.success("修改成功");
           this.username = resp.data.username;
           this.privacy = resp.data.privacy;
+          this.mask = resp.data.mask;
           this.bind_qq = resp.data.bind_qq;
           this.qq_channel_uid = resp.data.qq_channel_uid;
           this.import_token = resp.data.import_token;
@@ -397,6 +401,7 @@ export default {
           this.login = true;
           this.username = resp.data.username;
           this.privacy = resp.data.privacy;
+          this.mask = resp.data.mask;
           this.bind_qq = resp.data.bind_qq;
           this.qq_channel_uid = resp.data.qq_channel_uid;
           this.import_token = resp.data.import_token;
