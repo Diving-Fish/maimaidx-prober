@@ -46,6 +46,23 @@ def is_new(r: Dict):
     return False
 
 
+@app.route("/player/agreement", methods=['GET', 'POST'])
+@login_required
+async def agreement():
+    """
+    *需要登录
+    获取用户是否同意过用户协议
+    """
+    if request.method == 'GET':
+        u: Player = g.user
+        return {"accept_agreement": u.accept_agreement}
+    else:
+        obj = await request.json
+        if "accept_agreement" in obj:
+            g.user.accept_agreement = obj["accept_agreement"]
+        return {"message": "success"}
+
+
 @app.route("/player/profile", methods=['GET', 'POST'])
 @login_required
 async def profile():
@@ -96,7 +113,7 @@ async def profile():
                         pass
 
             for key in obj:
-                if key in ("nickname", "bind_qq", "additional_rating", "privacy", "qq_channel_uid"):
+                if key in ("nickname", "bind_qq", "additional_rating", "privacy", "qq_channel_uid", "accept_agreement", "mask"):
                     g.user.__setattr__(key, obj[key])
                 if key == "user_general_data":
                     g.user.__setattr__(key, json.dumps(obj[key]))
@@ -150,7 +167,7 @@ async def get_records():
     await compute_ra(g.user)
     records = []
     for record in r:
-        elem = record_json(record)
+        elem = record_json(record, False)
         records.append(elem)
     return {
         "username": g.username,
@@ -185,7 +202,7 @@ async def dev_get_records():
     await compute_ra(player)
     records = []
     for record in r:
-        elem = record_json(record)
+        elem = record_json(record, player.mask)
         records.append(elem)
     return {
         "username": player.username,
@@ -195,19 +212,6 @@ async def dev_get_records():
         "plate": player.plate,
         "records": records
     }
-
-
-@app.route("/player/test_data", methods=['GET'])
-async def get_test_data():
-    """
-    获取测试用户的成绩数据，调试前端时使用。
-    """
-    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', 293)
-    records = []
-    for record in r:
-        elem = record_json(record)
-        records.append(elem)
-    return {"records": records, "username": "TESTUSER", "additional_rating": "2100"}
 
 
 def get_dx_and_sd(player):
@@ -241,7 +245,7 @@ def get_dx_and_sd_for50(player):
 
 
 def getplatelist(player, version: List[Dict]):
-    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs,chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.version as `version`, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
+    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.version as `version`, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
     fl = recordList()
     vl = []
     for r in l:
@@ -264,17 +268,17 @@ async def query_player():
         return {
             "message": "user not exists"
         }, 400
-    if p.privacy and "username" in obj:
+    if p.privacy or not p.accept_agreement:
         try:
             token = decode(request.cookies['jwt_token'])
         except KeyError:
-            return {"status": "error", "message": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
         if token == {}:
-            return {"status": "error", "message": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
         if token['exp'] < ts():
             return {"status": "error", "message": "会话过期"}, 403
         if token['username'] != obj["username"]:
-            return {"status": "error", "message": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
     if "b50" in obj:
         sd, dx = get_dx_and_sd_for50(p)
     else:
@@ -294,18 +298,11 @@ async def query_player():
         "nickname": nickname,
         "plate": p.plate,
         "charts": {
-            "sd": [record_json(c) for c in sd],
-            "dx": [record_json(c) for c in dx]
+            "sd": [record_json(c, p.mask) for c in sd],
+            "dx": [record_json(c, p.mask) for c in dx]
         },
         "user_general_data": user_general_data,
     }
-    # if is_developer(request.headers.get("developer-token", default=""))[0]:
-    #     try:
-    #         user_data = json.loads(p.user_data)
-    #     except Exception:
-    #         user_data = None
-    #     obj["user_id"] = p.user_id
-    #     obj["user_data"] = user_data
     return obj
 
 
@@ -324,21 +321,21 @@ async def query_plate():
             p: Player = Player.get(Player.username == username)
     except Exception:
         return {"message": "user not exists"}, 400
-    if p.privacy and "username" in obj:
+    if p.privacy or not p.accept_agreement:
         try:
             token = decode(request.cookies['jwt_token'])
         except KeyError:
-            return {"status": "error", "message": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
         if token == {}:
-            return {"status": "error", "message": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
         if token['exp'] < ts():
             return {"status": "error", "message": "会话过期"}, 403
         if token['username'] != obj["username"]:
-            return {"status": "error", "message": "已设置隐私"}, 403
+            return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
     v: List[Dict] = obj["version"]
     vl = getplatelist(p, v)
     return {
-        "verlist": [platerecord_json(c) for c in vl]
+        "verlist": [platerecord_json(c, p.mask) for c in vl]
     }
 
 

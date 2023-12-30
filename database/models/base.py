@@ -39,6 +39,8 @@ class Player(BaseModel):
     qq_channel_uid = CharField()
     plate = CharField()
     privacy = BooleanField()
+    mask = BooleanField()
+    accept_agreement = BooleanField()
     user_id = IntegerField()
     user_data = TextField()
     user_general_data = TextField()
@@ -57,6 +59,8 @@ class Player(BaseModel):
             "bind_qq": self.bind_qq,
             "qq_channel_uid": self.qq_channel_uid,
             "privacy": self.privacy,
+            "mask": self.mask,
+            "accept_agreement": self.accept_agreement,
             "plate": self.plate,
             "user_general_data": j,
             "import_token": self.import_token
