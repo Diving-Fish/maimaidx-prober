@@ -140,15 +140,14 @@ def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
         return False, ""
     
 
-def get_masked_achievement(record: NewRecord):
-    sc = ScoreCoefficient(record.achievements)
+def get_masked_achievement(record: NewRecord, sc: ScoreCoefficient, ra: int):
     if record.achievements >= 100.5:
         if record.fc == "ap" or record.fc == "app":
             return 101
         return math.floor(record.achievements * 10) / 10
     if sc.c == 0:
         return 0
-    acc = sc.ra(record.ds) * 100 / sc.c / record.ds
+    acc = ra * 100 / sc.c / record.ds
     if acc < sc.min:
         acc = sc.min
     else:
@@ -157,6 +156,8 @@ def get_masked_achievement(record: NewRecord):
 
 
 def record_json(record: NewRecord, masked: bool):
+    sc = ScoreCoefficient(record.achievements)
+    ra = sc.ra(record.ds)
     data = {
         "title": record.title,
         "level": record.diff,
@@ -164,44 +165,27 @@ def record_json(record: NewRecord, masked: bool):
         "level_label": ["Basic", "Advanced", "Expert", "Master", "Re:MASTER"][record.level],
         "type": record.type,
         "dxScore": 0 if masked else record.dxScore,
-        "achievements": get_masked_achievement(record) if masked else record.achievements,
-        "rate": ScoreCoefficient(record.achievements).r,
+        "achievements": get_masked_achievement(record, sc, ra) if masked else record.achievements,
+        "rate": sc.r,
         "fc": record.fc,
         "fs": record.fs,
-        "ra": ScoreCoefficient(record.achievements).ra(record.ds),
+        "ra": ra,
         "ds": record.ds,
         "song_id": record.id
     }
     return data
 
 
-def record_json_output(record: NewRecord, masked: bool):
-    t1 = time.time()
-    chart = record.chart
-    print(time.time() - t1)
-    music = chart.music
-    print(time.time() - t1)
-    return {
-        "title": music.title,
-        "level": chart.level,
-        "level_index": chart.level,
-        "type": music.type,
-        "dxScore": 0 if masked else record.dxScore,
-        "achievements": get_masked_achievement(record) if masked else record.achievements,
-        "rate": ScoreCoefficient(record.achievements).r,
-        "fc": record.fc,
-        "fs": record.fs,
-    }
-
-
 def platerecord_json(platerecord: NewRecord, masked: bool):
+    sc = ScoreCoefficient(platerecord.achievements)
+    ra = sc.ra(platerecord.ds)
     data = {
         "id": platerecord.id,
         "title": platerecord.title,
         "level": platerecord.diff,
         "level_index": platerecord.level,
         "type": platerecord.type,
-        "achievements": get_masked_achievement(platerecord) if masked else platerecord.achievements,
+        "achievements": get_masked_achievement(platerecord, sc, ra) if masked else platerecord.achievements,
         "fc": platerecord.fc,
         "fs": platerecord.fs
     }

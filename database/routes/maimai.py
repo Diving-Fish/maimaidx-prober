@@ -60,7 +60,7 @@ async def agreement():
         obj = await request.json
         if "accept_agreement" in obj:
             g.user.accept_agreement = obj["accept_agreement"]
-            g.save()
+            g.user.save()
         return {"message": "success"}
 
 
@@ -365,45 +365,21 @@ async def update_records():
     cs_need_update = True
     j = await request.get_json()
     dicts = {}
-    if "userId" in j:
-        pass
-        try:
-            for ml in j["userMusicList"]:
-                for m in ml["userMusicDetailList"]:
-                    if str(m["musicId"]) not in md_map:
-                        continue
-                    music = md_map[str(m["musicId"])]
-                    level = m["level"]
-                    achievement = min(1010000, m["achievement"])
-                    fc = ["", "fc", "fcp", "ap", "app"][m["comboStatus"]]
-                    fs = ["", "fs", "fsp", "fsd", "fsdp"][m["syncStatus"]]
-                    dxScore = m["deluxscoreMax"]
-                    cid = music["cids"][level]
-                    dicts[cid] = (achievement / 10000.0, fc, fs, dxScore)
-            g.user.user_id = j["userId"]
-            g.user.user_data = json.dumps(j["userData"]) if "userData" in j else ""
-            g.user.save()
-        except Exception as e:
-            raise e
-            return {
-                "message": str(e)
-            }, 400
-    else:
-        if type(j) != type([]):
-            return {"message": "导入数据格式有误"}, 404
-        elif len(j) == 0:
-            return {"message": "更新成功"}
-        for record in j:
-            # print(time.time())
-            title = record['title']
-            _type = record['type']
-            level = record['level_index']
-            m = get_music_by_title(md_cache, title, _type)
-            if m is None or level >= len(m["cids"]):
-                continue
-            cid = m["cids"][level]
-            dicts[cid] = (record["achievements"], record["fc"],
-                          record["fs"], record["dxScore"])
+    if type(j) != type([]):
+        return {"message": "导入数据格式有误"}, 404
+    elif len(j) == 0:
+        return {"message": "更新成功"}
+    for record in j:
+        # print(time.time())
+        title = record['title']
+        _type = record['type']
+        level = record['level_index']
+        m = get_music_by_title(md_cache, title, _type)
+        if m is None or level >= len(m["cids"]):
+            continue
+        cid = m["cids"][level]
+        dicts[cid] = (record["achievements"], record["fc"],
+                        record["fs"], record["dxScore"])
     rs = NewRecord.raw(
         'select * from newrecord where player_id = %s', g.user.id)
     updates = []

@@ -29,6 +29,11 @@ async def message_resp():
     return resp
 
 
+@app.route("/alive_check", methods=['GET'])
+async def alive_check():
+    return {"message": "ok"}
+
+
 @app.route("/message", methods=['GET'])
 async def message_g():
     return await message_resp()
