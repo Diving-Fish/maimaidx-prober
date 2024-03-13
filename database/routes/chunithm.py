@@ -304,7 +304,8 @@ async def query_player_chuni():
     }
 
 
-@app.route('/chuni/dev/player/records')
+@app.route('/chuni/dev/player/records', methods=['GET'])
+@developer_required
 async def dev_get_records_chuni():
     """
     *需要开发者

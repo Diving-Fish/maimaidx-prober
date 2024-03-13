@@ -16,19 +16,19 @@
 </template>
 
 <script>
+import axios from "axios";
 export default {
   data: () => {
     return {
       height: 0,
-      img_urls: [
-        {s: "https://www.diving-fish.com/maimaidx/prober_static/mmfc.png", l: "https://www.maimaimfc.ink/"},
-        {s: "https://www.diving-fish.com/maimaidx/prober_static/bemanicn.png", l: "https://map.bemanicn.com/"},
-        {s: "https://www.diving-fish.com/maimaidx/prober_static/ad3.png"},
-        {s: "https://www.diving-fish.com/maimaidx/prober_static/ad2.jpg"},
-        {s: "https://www.diving-fish.com/maimaidx/prober_static/pic0.jpg", l: ""},
-        {s: "https://www.diving-fish.com/maimaidx/prober_static/pic1.jpg", l: ""}
-      ]
+      img_urls: []
     }
+  },
+  mounted: function () {
+    axios.get("https://www.diving-fish.com/api/maimaidxprober/advertisements").then((resp) => {
+      this.img_urls = resp.data;
+      this.resize();
+    });
   },
   methods: {
     resize() {

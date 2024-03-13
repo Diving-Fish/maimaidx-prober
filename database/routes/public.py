@@ -1,11 +1,17 @@
 import asyncio
 import random
 import string
+import json
 from app import app, login_required, mail_config, md5, developer_required
 from quart import Quart, request, g, make_response
 from tools._jwt import *
 from models.maimai import *
 from tools.mail import *
+
+
+advertisements_data = []
+with open('advertisement.json') as ad:
+    advertisements_data = json.load(ad)
 
 
 @app.route("/count_view", methods=['GET'])
@@ -51,6 +57,11 @@ async def message():
         a.ts = int(time.time())
         a.save(force_insert=True)
     return await message_resp()
+
+
+@app.route("/advertisements", methods=['GET'])
+async def advertisements():
+    return advertisements_data
 
 
 @app.route("/feedback", methods=['POST'])
