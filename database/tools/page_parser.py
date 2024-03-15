@@ -79,7 +79,7 @@ def parse_chuni_music_box(div):
         icons = div.find(class_="play_musicdata_icon").find_all(name="img")
         if icons[-1].attrs['src'].find("rank") == -1:
             for icon in icons:
-                if 'alljustice' in icons[-1].attrs['src']:
+                if 'alljustice' in icon.attrs['src']:
                     fc = 'alljustice'
                     break
             else:
