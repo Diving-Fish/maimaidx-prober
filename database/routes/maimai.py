@@ -237,7 +237,7 @@ async def dev_get_record():
             player: Player = Player.by_qq(qq)
     except Exception:
         return {"message": "no such user"}, 400
-    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and music.id = %s and chart_id = chart.id and chart.music_id = music.id', player.id,int(song_id))
+    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and music_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id,int(song_id))
     await compute_ra(player)
     records = []
     for record in r:
