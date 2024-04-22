@@ -224,12 +224,12 @@ async def dev_get_record():
     """
     username = request.args.get("username", type=str, default="")
     qq = request.args.get("qq", type=str, default="")
-    song_id = request.args.get("song_id", type=str, default="")
+    music_id = request.args.get("music_id", type=str, default="")
 
     if username == "" and qq == "":
         return {"message": "no such user"}, 400
-    if song_id == "":
-        return {"message": "no such song_id"}, 400
+    if music_id == "":
+        return {"message": "no such music_id"}, 400
     try:
         if qq == "":
             player: Player = Player.get(Player.username == username)
@@ -237,8 +237,7 @@ async def dev_get_record():
             player: Player = Player.by_qq(qq)
     except Exception:
         return {"message": "no such user"}, 400
-    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and music.id = %s and chart_id = chart.id and chart.music_id = music.id', player.id,int(song_id))
-    await compute_ra(player)
+    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and music_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id,int(music_id))
     records = []
     for record in r:
         elem = record_json(record, player.mask)
