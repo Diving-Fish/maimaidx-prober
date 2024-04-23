@@ -214,6 +214,39 @@ async def dev_get_records():
         "records": records
     }
 
+@app.route("/dev/player/record", methods=['GET'])
+@developer_required
+async def dev_get_record():
+    """
+    *需要开发者
+    获取某个用户的单曲成绩信息。
+    请求体为 JSON，参数需包含 `username` 或 `qq` 和 歌曲id。
+    """
+    username = request.args.get("username", type=str, default="")
+    qq = request.args.get("qq", type=str, default="")
+    music_ids = request.args.get("music_ids", type=list, default=[])
+
+    if username == "" and qq == "":
+        return {"message": "no such user"}, 400
+    if music_ids == []:
+        return {"message": "no such music_ids"}, 400
+    try:
+        if qq == "":
+            player: Player = Player.get(Player.username == username)
+        else:
+            player: Player = Player.by_qq(qq)
+    except Exception:
+        return {"message": "no such user"}, 400
+    music_ids_filter = ','.join(str(id) for id in music_ids)
+    r = NewRecord.raw(f'select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = {player.id} and music_id in ({music_ids_filter}) and chart_id = chart.id and chart.music_id = music.id')
+    records = []
+    for record in r:
+        elem = record_json(record, player.mask)
+        records.append(elem)
+    return {
+        "records": records
+    }
+
 
 def get_dx_and_sd(player):
     l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
