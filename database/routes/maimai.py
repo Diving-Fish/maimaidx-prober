@@ -214,38 +214,44 @@ async def dev_get_records():
         "records": records
     }
 
-@app.route("/dev/player/record", methods=['GET'])
+@app.route("/dev/player/record", methods=['POST'])
 @developer_required
 async def dev_get_record():
     """
     *需要开发者
     获取某个用户的单曲成绩信息。
-    请求体为 JSON，参数需包含 `username` 或 `qq` 和 歌曲id。
+    请求体为 JSON，参数需包含 `username` 或 `qq` 和 `music_id` (可以为单个值或列表）。
     """
-    username = request.args.get("username", type=str, default="")
-    qq = request.args.get("qq", type=str, default="")
-    music_ids = request.args.get("music_ids", type=list, default=[])
-
-    if username == "" and qq == "":
-        return {"message": "no such user"}, 400
-    if music_ids == []:
-        return {"message": "no such music_ids"}, 400
+    obj = await request.json
     try:
-        if qq == "":
-            player: Player = Player.get(Player.username == username)
+        if "qq" in obj:
+            p: Player = Player.by_qq(obj["qq"])
         else:
-            player: Player = Player.by_qq(qq)
+            username = obj["username"]
+            p: Player = Player.get(Player.username == username)
     except Exception:
         return {"message": "no such user"}, 400
-    music_ids_filter = ','.join(str(id) for id in music_ids)
-    r = NewRecord.raw(f'select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = {player.id} and music_id in ({music_ids_filter}) and chart_id = chart.id and chart.music_id = music.id')
-    records = []
+        
+    music_ids = []
+    if isinstance(obj['music_id'], str):
+        music_ids.append(obj['music_id'])
+    else:
+        try:
+            for elem in obj['music_id']:
+                music_ids.append(str(elem))
+        except Exception:
+            pass
+
+    music_ids = list(filter(lambda elem: elem in md_map, music_ids))
+
+    query_str = f'({",".join(["%s"] * len(music_ids))})'
+    
+    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and music.id in ' + query_str + ' and chart_id = chart.id and chart.music_id = music.id', p.id, *music_ids)
+    records = defaultdict(lambda: [])
     for record in r:
-        elem = record_json(record, player.mask)
-        records.append(elem)
-    return {
-        "records": records
-    }
+        elem = record_json(record, p.mask)
+        records[record.id].append(elem)
+    return records
 
 
 def get_dx_and_sd(player):
