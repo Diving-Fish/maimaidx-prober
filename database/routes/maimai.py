@@ -254,7 +254,7 @@ async def dev_get_record():
     return records
 
 
-def get_dx_and_sd(player):
+def get_dx_and_sd(player, count):
     l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
     l1 = []
     l2 = []
@@ -264,24 +264,9 @@ def get_dx_and_sd(player):
             l2.append(r)
         else:
             l1.append(r)
-    l1.sort(key=lambda x: x.ra, reverse=True)
-    l2.sort(key=lambda x: x.ra, reverse=True)
-    return l1[:25], l2[:15]
-
-
-def get_dx_and_sd_for50(player):
-    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
-    l1 = []
-    l2 = []
-    for r in l:
-        setattr(r, 'ra', ScoreCoefficient(r.achievements).ra(r.ds))
-        if r.is_new:
-            l2.append(r)
-        else:
-            l1.append(r)
-    l1.sort(key=lambda x: x.ra, reverse=True)
-    l2.sort(key=lambda x: x.ra, reverse=True)
-    return l1[:35], l2[:15]
+    l1.sort(key=lambda x: (x.ra, x.achievements, x.ds), reverse=True)
+    l2.sort(key=lambda x: (x.ra, x.achievements, x.ds), reverse=True)
+    return l1[:count], l2[:15]
 
 
 def getplatelist(player, version: List[Dict]):
@@ -319,10 +304,7 @@ async def query_player():
             return {"status": "error", "message": "会话过期"}, 403
         if token['username'] != obj["username"]:
             return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
-    if "b50" in obj:
-        sd, dx = get_dx_and_sd_for50(p)
-    else:
-        sd, dx = get_dx_and_sd(p)
+    sd, dx = get_dx_and_sd(p, 35 if "b50" in obj else 25)
     await compute_ra(p)
     nickname = p.nickname
     if nickname == "":
