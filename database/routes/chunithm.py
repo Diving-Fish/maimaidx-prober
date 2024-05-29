@@ -26,9 +26,9 @@ chart_id_map = {}
 for music in md_cache:
     md_map[music['id']] = music
     if music['id'] >= 8000:
-        md_title_we_map[music['title']] = music
+        md_title_we_map[music['title'].lower()] = music
     else:
-        md_title_map[music['title']] = music
+        md_title_map[music['title'].lower()] = music
     for i, cid in enumerate(music['cids']):
         chart_id_map[cid] = (i, music)
 
@@ -77,7 +77,7 @@ async def update_records_chuni():
     print(j)
     if recent == 0:       
         for record in j:
-            title = record['title']
+            title = record['title'].lower()
             if record["level"] < 5:
                 if title not in md_title_map:
                     continue
@@ -114,7 +114,7 @@ async def update_records_chuni():
     elif recent == 1:
         arr = []
         for record in j:
-            title = record['title']
+            title = record['title'].lower()
             if title not in md_title_map:
                 continue
             m = md_title_map[title]
