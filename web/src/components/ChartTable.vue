@@ -140,44 +140,44 @@
               :color="getLevel(item.level_index)"
               dark
             >
-              {{ item.level_label }} {{ item.level }}
+              {{ item.level_label }} {{ item.level }}{{ item.song_id > 100000 ? '?' : '' }}
             </v-chip>
           </template>
           <span v-if="music_data_dict[item.song_id]">
             Charter:
-            {{ music_data_dict[item.song_id].charts[item.level_index].charter }}
+            {{ music_data_dict[item.song_id].charts[getActualLevelIndex(item)].charter }}
             <br />
             Tap:
             {{
-              music_data_dict[item.song_id].charts[item.level_index].notes[0]
+              music_data_dict[item.song_id].charts[getActualLevelIndex(item)].notes[0]
             }}
             <br />
             Hold:
             {{
-              music_data_dict[item.song_id].charts[item.level_index].notes[1]
+              music_data_dict[item.song_id].charts[getActualLevelIndex(item)].notes[1]
             }}
             <br />
             Slide:
             {{
-              music_data_dict[item.song_id].charts[item.level_index].notes[2]
+              music_data_dict[item.song_id].charts[getActualLevelIndex(item)].notes[2]
             }}
             <br />
             <span v-if="music_data_dict[item.song_id].type == 'DX'">
               Touch:
               {{
-                music_data_dict[item.song_id].charts[item.level_index].notes[3]
+                music_data_dict[item.song_id].charts[getActualLevelIndex(item)].notes[3]
               }}
               <br />
               Break:
               {{
-                music_data_dict[item.song_id].charts[item.level_index].notes[4]
+                music_data_dict[item.song_id].charts[getActualLevelIndex(item)].notes[4]
               }}
               <br />
             </span>
             <span v-else>
               Break:
               {{
-                music_data_dict[item.song_id].charts[item.level_index].notes[3]
+                music_data_dict[item.song_id].charts[getActualLevelIndex(item)].notes[3]
               }}
               <br />
             </span>
@@ -211,7 +211,7 @@
         </v-tooltip>
       </template>
       <template #item.fit_diff="{ item }">
-        <v-tooltip top v-if="chart_stats.charts[item.song_id] && chart_stats.charts[item.song_id][item.level_index]">
+        <v-tooltip top v-if="chart_stats.charts[item.song_id] && chart_stats.charts[item.song_id][getActualLevelIndex(item)]">
           <template v-slot:activator="{ on, attrs }">
             <span
               v-bind="attrs"
@@ -337,7 +337,7 @@ export default {
       return (i + "").padStart(5, "0") + ".png";
     },
     getLevel(index) {
-      return ["#22bb5b", "#fb9c2d", "#f64861", "#9e45e2", "#ba67f8"][index];
+      return ["#22bb5b", "#fb9c2d", "#f64861", "#9e45e2", "#ba67f8", "#ff70ff"][index];
     },
     getFC(str) {
       if (str.startsWith("fc")) return "green";
@@ -346,6 +346,11 @@ export default {
     getFS(str) {
       if (str.startsWith("fsd")) return "orange";
       return "blue";
+    },
+    getActualLevelIndex(record)
+    {
+      if (record.song_id > 100000) return 0;
+      return record.level_index;
     },
     getName(str) {
       const map = {
@@ -369,7 +374,7 @@ export default {
     showChart(item) {
       if (this.chart_stats.charts[item.song_id] == undefined) return;
       this.item = item;
-      this.chart_stat = this.chart_stats.charts[item.song_id][item.level_index];
+      this.chart_stat = this.chart_stats.charts[item.song_id][this.getActualLevelIndex(item)];
       this.diff_stat = this.chart_stats.diff_data[item.level];
       const ach_name_map = [
         "D",
@@ -652,7 +657,7 @@ export default {
           "bpm" + this.music_data_dict[item.song_id].basic_info.bpm + "$",
           "^" + this.music_data_dict[item.song_id].basic_info.bpm + "$",
           "^" +
-            this.music_data_dict[item.song_id].charts[item.level_index]
+            this.music_data_dict[item.song_id].charts[this.getActualLevelIndex(item)]
               .charter +
             "$",
           "^" + item.ra + "$",

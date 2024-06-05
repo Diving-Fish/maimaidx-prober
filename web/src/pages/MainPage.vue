@@ -514,7 +514,7 @@ export default {
       chuni_records: [],
       chuni_data: [],
       chuni_data_dict: {},
-      level_label: ["Basic", "Advanced", "Expert", "Master", "Re:MASTER"],
+      level_label: ["Basic", "Advanced", "Expert", "Master", "Re:MASTER", "Utage"],
       feedbackText: "",
       feedbackVisible: false,
       loginVisible: false,
@@ -593,6 +593,7 @@ export default {
     },
     dxDisplay: function () {
       const that = this;
+      console.log(this.dxData);
       return this.dxData.filter((elem) => {
         return (
           that.$refs.filterSlider.f(elem) &&
@@ -939,8 +940,15 @@ export default {
           record.level = arr[0];
         }
       }
+      if (record.song_id >= 100000) 
+      {
+        record.ra = 0;
+        record.level_index = 5
+      }
+      else {
+        record.ra = new ScoreCoefficient(record.achievements).ra(record.ds);
+      }
       record.level_label = this.level_label[record.level_index];
-      record.ra = new ScoreCoefficient(record.achievements).ra(record.ds);
       if (isNaN(record.ra)) record.ra = 0;
       // Update Rate
       if (record.achievements < 50) {

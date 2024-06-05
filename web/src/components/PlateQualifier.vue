@@ -200,7 +200,7 @@ export default {
       // Just verify master level.
       let res = {};
       for (const ver of this.versions) {
-        if (ver == "maimai でらっくす FESTiVAL")
+        if (ver == "maimai でらっくす BUDDiES")
           continue;
         let d = this.filter_version(ver).filter((elem) => elem.title != 'ジングルベル')
           .map((elem) => {

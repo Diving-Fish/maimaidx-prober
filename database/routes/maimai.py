@@ -180,6 +180,25 @@ async def get_records():
     }
 
 
+@app.route("/player/test_data", methods=['GET'])
+async def get_records_test():
+    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', '636')
+    user = Player.get(Player.id == 636)
+    await compute_ra(user)
+    records = []
+    for record in r:
+        elem = record_json(record, False)
+        records.append(elem)
+    return {
+        "username": "DivingFish",
+        "rating": user.rating,
+        "additional_rating": user.additional_rating,
+        "nickname": user.nickname,
+        "plate": user.plate,
+        "records": records
+    }
+
+
 @app.route("/dev/player/records", methods=['GET'])
 @developer_required
 async def dev_get_records():
@@ -270,7 +289,7 @@ def get_dx_and_sd(player):
 
 
 def get_dx_and_sd_for50(player):
-    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
+    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id and chart.music_id < 100000', player.id)
     l1 = []
     l2 = []
     for r in l:

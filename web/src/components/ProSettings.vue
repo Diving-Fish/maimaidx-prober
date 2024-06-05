@@ -280,6 +280,7 @@ export default {
         { text: "Expert", value: 2 },
         { text: "Master", value: 3 },
         { text: "Re:MASTER", value: 4 },
+        { text: "Utage", value: 5 }
       ],
       rate_filter_items: [
         { text: "SSS+", value: "sssp" },
@@ -376,7 +377,7 @@ export default {
       this.$vuetify.theme.dark = this.darkTheme;
     },
     getLevel(index) {
-      return ["#22bb5b", "#fb9c2d", "#f64861", "#9e45e2", "#ba67f8"][index];
+      return ["#22bb5b", "#fb9c2d", "#f64861", "#9e45e2", "#ba67f8", "#ff70ff"][index];
     },
     getFC(str) {
       if (!str) return "grey";
@@ -410,7 +411,7 @@ export default {
     reset() {
       this.fc_filter = [0, "fc", "fcp", "ap", "app"];
       this.fs_filter = [0, "fs", "fsp", "fsd", "fsdp"];
-      this.diff_filter = [0, 1, 2, 3, 4];
+      this.diff_filter = [0, 1, 2, 3, 4, 5];
       this.rate_filter = [
         "sssp",
         "sss",

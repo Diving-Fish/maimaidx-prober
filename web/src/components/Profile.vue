@@ -286,6 +286,8 @@ export default {
         "maimai でらっくす Splash PLUS",
         "maimai でらっくす UNiVERSE",
         "maimai でらっくす UNiVERSE PLUS",
+        "maimai でらっくす FESTiVAL",
+        "maimai でらっくす FESTiVAL PLUS",
       ],
       t2n: { 1: "極", 2: "将", 4: "舞舞", 8: "神", "神": 8, "舞舞": 4, "将": 2, "極": 1},
       versions: [],
@@ -450,6 +452,8 @@ export default {
       ["maimai でらっくす Splash PLUS", "煌"],
       ["maimai でらっくす UNiVERSE", "宙"],
       ["maimai でらっくす UNiVERSE PLUS", "星"],
+      ["maimai でらっくす FESTiVAL", "祭"],
+      ["maimai でらっくす FESTiVAL PLUS", "祝"],
     ]) {
       this.v2n[elem[1]] = elem[0];
       this.v2n[elem[0]] = elem[1];

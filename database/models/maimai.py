@@ -114,12 +114,15 @@ def get_plate_name(version, plate_type):
         "maimai MiLK": "白",
         "MiLK PLUS": "雪",
         "maimai FiNALE": "輝",
+        "ALL FiNALE": "舞",
         "maimai でらっくす": "熊",
         "maimai でらっくす PLUS": "華",
         "maimai でらっくす Splash": "爽",
         "maimai でらっくす Splash PLUS": "煌",
         "maimai でらっくす UNiVERSE": "宙",
-        "maimai でらっくす UNiVERSE PLUS": "星"
+        "maimai でらっくす UNiVERSE PLUS": "星",
+        "maimai でらっくす FESTiVAL": "祭",
+        "maimai でらっくす FESTiVAL PLUS": "祝"
     }[version]+{
         1: "極",
         2: "将",
@@ -173,6 +176,9 @@ def record_json(record: NewRecord, masked: bool):
         "ds": record.ds,
         "song_id": record.id
     }
+    if data["song_id"] >= 100000:
+        data["ra"] = 0
+        data["level_label"] = "Utage"
     return data
 
 

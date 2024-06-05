@@ -2,6 +2,7 @@
 node_modules
 dist
 database/config.json
+database/advertisement.json
 
 
 # local env files
