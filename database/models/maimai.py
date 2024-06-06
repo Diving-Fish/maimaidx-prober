@@ -289,3 +289,18 @@ class recordList(List[NewRecord]):
                 continue
             temp.append(chart)
         return temp
+
+
+def std_fc(fc: str):
+    if fc in ("fc", "fcp", "ap", "app", ""):
+        return fc
+    return ""
+
+def std_fs(fs: str):
+    if fs in ("fs", "fsp", "fsd", "fsdp", "sync", ""):
+        return fs
+    if fs == "fdx":
+        return "fsd"
+    if fs == "fdxp":
+        return "fsdp"
+    return ""

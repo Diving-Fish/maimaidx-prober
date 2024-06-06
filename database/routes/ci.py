@@ -7,8 +7,12 @@ import random
 IMAGE_NAME = "divingfish/maimaidx-prober"
 ci_status = ...
 
-with open('ci_status.json') as f:
-    ci_status = json.load(f)
+def reload_status():
+    global ci_status
+    with open('ci_status.json') as f:
+        ci_status = json.load(f)
+
+reload_status()
 
 def save_status():
     global ci_status
@@ -68,12 +72,14 @@ def get_available_port():
 @app.route("/ci/status", methods=['GET'])
 @ci_access_required
 async def status():
+    reload_status()
     return await make_response(ci_status, 200)
 
 
 @app.route("/ci/production", methods=['GET'])
 @ci_access_required
 async def prod():
+    reload_status()
     sha = request.args.get("sha", type=str, default="")
     s = ci_status["production"]
     if "ps" in s and s["ps"] != "":
@@ -94,6 +100,7 @@ async def prod():
 @app.route("/ci/tag", methods=['GET', 'DELETE'])
 @ci_access_required
 async def tag():
+    reload_status()
     if request.method == 'GET':
         sha = request.args.get("sha", type=str, default="")
         if sha not in ci_status["active_tests"]:
