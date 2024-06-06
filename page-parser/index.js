@@ -175,6 +175,10 @@ const pageToRecordList = function (pageData) {
         .match("_icon_(.*).png")[1]
         .replace("back", ""),
     };
+
+    if (record_data.fs == "fdx") record_data.fs = "fsd";
+    if (record_data.fs == "fdxp") record_data.fs = "fsdp";
+
     if (!typeNode) {
       const docId = name.parentNode.parentNode.parentNode.getAttribute("id");
       if (docId) {
@@ -266,6 +270,9 @@ const friendVSPageToRecordList = function (pageData) {
           .getAttribute("src")
           .match("_icon_(.*).png")[1]
           .replace("back", "");
+
+        if (result.fs == "fdx") result.fs = "fsd";
+        if (result.fs == "fdxp") result.fs = "fsdp";
 
         const scoreString = e
           .getElementsByTagName("tr")[0]
