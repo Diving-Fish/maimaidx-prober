@@ -112,7 +112,7 @@ def get_plate_name(version, plate_type):
         "maimai MURASAKi": "紫",
         "maimai MURASAKi PLUS": "菫",
         "maimai MiLK": "白",
-        "MiLK PLUS": "雪",
+        "maimai MiLK PLUS": "雪",
         "maimai FiNALE": "輝",
         "ALL FiNALE": "舞",
         "maimai でらっくす": "熊",

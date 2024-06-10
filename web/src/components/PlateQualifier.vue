@@ -188,7 +188,7 @@ export default {
       if (version == "ALL FiNALE") {
         return this.music_data.filter((elem) => {
           return ["maimai PLUS","maimai GreeN","maimai GreeN PLUS","maimai ORANGE","maimai ORANGE PLUS","maimai PiNK",
-          "maimai PiNK PLUS","maimai MURASAKi","maimai MURASAKi PLUS","maimai MiLK","MiLK PLUS","maimai FiNALE"].indexOf(elem.basic_info.from) != -1;
+          "maimai PiNK PLUS","maimai MURASAKi","maimai MURASAKi PLUS","maimai MiLK","maimai MiLK PLUS","maimai FiNALE"].indexOf(elem.basic_info.from) != -1;
         });
       }
       return this.music_data.filter((elem) => {
