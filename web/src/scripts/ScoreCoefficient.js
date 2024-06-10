@@ -1,4 +1,5 @@
 const SCORE_COEFFICIENT_TABLE = [
+    [0, 0, 'd'],
     [10, 1.6, 'd'],
     [20, 3.2, 'd'],
     [30, 4.8, 'd'],
