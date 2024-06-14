@@ -240,7 +240,7 @@
               <v-card-text>
                 <v-tabs v-model="tab">
                   <v-tab key="sd">旧乐谱</v-tab>
-                  <v-tab key="dx">DX 2023</v-tab>
+                  <v-tab key="dx">DX 2024</v-tab>
                 </v-tabs>
                 <v-tabs-items v-model="tab">
                   <v-tab-item key="sd">
@@ -980,7 +980,7 @@ export default {
       } else {
         record.rate = "sssp";
       }
-      if (!this.chart_stats.charts[record.song_id] || !this.chart_stats.charts[record.song_id][record.level_index].fit_diff) {
+      if (record.song_id > 100000 || !this.chart_stats.charts[record.song_id] || !this.chart_stats.charts[record.song_id][record.level_index].fit_diff) {
         record.fit_diff = record.ds;
       } else {
         record.fit_diff = this.chart_stats.charts[record.song_id][record.level_index].fit_diff
