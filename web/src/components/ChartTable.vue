@@ -360,6 +360,7 @@ export default {
         fsp: "FS+",
         fsd: "FSDX",
         fsdp: "FSDX+",
+        sync: "Sync",
         ap: "AP",
         app: "AP+",
       };
