@@ -273,25 +273,6 @@ async def dev_get_record():
     return records
 
 
-def get_ra_in(rate: str) -> int:
-    return [
-        "d",
-        "c",
-        "b",
-        "bb",
-        "bbb",
-        "a",
-        "aa",
-        "aaa",
-        "s",
-        "sp",
-        "ss",
-        "ssp",
-        "sss",
-        "sssp",
-    ].index(rate)
-
-
 def get_dx_and_sd(player):
     l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
     l1 = []
@@ -302,8 +283,8 @@ def get_dx_and_sd(player):
             l2.append(r)
         else:
             l1.append(r)
-    l1.sort(key=lambda x: (x.ra, get_ra_in(x.rate), x.ds, x.achievements), reverse=True)
-    l2.sort(key=lambda x: (x.ra, get_ra_in(x.rate), x.ds, x.achievements), reverse=True)
+    l1.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
+    l2.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
     return l1[:25], l2[:15]
 
 
@@ -317,8 +298,8 @@ def get_dx_and_sd_for50(player):
             l2.append(r)
         else:
             l1.append(r)
-    l1.sort(key=lambda x: (x.ra, get_ra_in(x.rate), x.ds, x.achievements), reverse=True)
-    l2.sort(key=lambda x: (x.ra, get_ra_in(x.rate), x.ds, x.achievements), reverse=True)
+    l1.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
+    l2.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
     return l1[:35], l2[:15]
 
 
