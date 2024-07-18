@@ -275,20 +275,20 @@ async def dev_get_record():
 
 def get_ra_in(rate: str) -> int:
     return [
-        "sssp",
-        "sss",
-        "ssp",
-        "ss",
-        "sp",
-        "s",
-        "aaa",
-        "aa",
-        "a",
-        "bbb",
-        "bb",
-        "b",
-        "c",
         "d",
+        "c",
+        "b",
+        "bb",
+        "bbb",
+        "a",
+        "aa",
+        "aaa",
+        "s",
+        "sp",
+        "ss",
+        "ssp",
+        "sss",
+        "sssp",
     ].index(rate)
 
 
