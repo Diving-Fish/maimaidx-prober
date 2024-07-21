@@ -411,7 +411,7 @@ export default {
     },
     reset() {
       this.fc_filter = [0, "fc", "fcp", "ap", "app"];
-      this.fs_filter = [0, "fs", "fsp", "fsd", "fsdp"];
+      this.fs_filter = [0, "sync", "fs", "fsp", "fsd", "fsdp"];
       this.diff_filter = [0, 1, 2, 3, 4, 5];
       this.rate_filter = [
         "sssp",
