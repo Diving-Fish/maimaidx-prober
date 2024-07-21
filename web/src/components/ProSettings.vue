@@ -269,6 +269,7 @@ export default {
       ],
       fs_filter_items: [
         { text: "空", value: 0 }, // 0 instead of "" because of vuetify jank
+        { text: "Sync", value: "sync" },
         { text: "FS", value: "fs" },
         { text: "FS+", value: "fsp" },
         { text: "FDX", value: "fsd" },
