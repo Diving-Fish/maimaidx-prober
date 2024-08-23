@@ -66,7 +66,7 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="primary" @click="openFormDialog">申请新 Token</v-btn>
+        <v-btn color="primary" @click="openFormDialog()">申请新 Token</v-btn>
       </v-card-actions>
 
       <v-dialog
@@ -175,9 +175,15 @@ export default {
         this.isNewToken = false;
         this.newToken.oldToken = oldToken.token;
         this.newToken.level = oldToken.level;
+        this.newToken.reason = "";
+        this.newToken.pic = [];
       }
       else {
         this.isNewToken = true;
+        this.newToken.level = 1;
+        this.newToken.oldToken = "";
+        this.newToken.reason = "";
+        this.newToken.pic = [];
       }
     },
     async submitForm() {
