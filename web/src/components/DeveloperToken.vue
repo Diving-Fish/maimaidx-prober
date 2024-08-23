@@ -54,6 +54,14 @@
               </v-tooltip>
             </div>
           </template>
+          <template v-slot:item.actions="{ item }">
+            <v-icon
+              @click="openFormDialog(item)"
+              class="mr-2"
+              color="primary"
+              >mdi-pencil</v-icon
+            >
+          </template> 
         </v-data-table>
       </v-card-text>
       <v-card-actions>
@@ -67,7 +75,7 @@
         :fullscreen="$vuetify.breakpoint.mobile"
       >
         <v-card>
-          <v-card-title class="headline">申请新 Token</v-card-title>
+          <v-card-title class="headline">{{ isNewToken ? '申请新 Token' : '编辑已有 Token' }}</v-card-title>
           <v-card-text>
             <v-form ref="form">
               <v-select
@@ -104,7 +112,7 @@
               </div>
               <v-text-field
                 v-model="newToken.oldToken"
-                label="旧版本 Token（如果没有旧版本 Token 请留空）"
+                :label="isNewToken ? '旧版本 Token（如果没有旧版本 Token 请留空）' : 'Token'"
                 required
               ></v-text-field>
             </v-form>
@@ -133,6 +141,7 @@ export default {
         { text: "等级", value: "level" },
         { text: "状态", value: "available" },
         { text: "备注", value: "comment" },
+        { text: "", value: "actions", sortable: false },
       ],
       level_items: [
         { text: "<300次/天", value: 1 },
@@ -160,8 +169,16 @@ export default {
       });
   },
   methods: {
-    openFormDialog() {
+    openFormDialog(oldToken) {
       this.formDialog = true;
+      if (oldToken !== undefined) {
+        this.isNewToken = false;
+        this.newToken.oldToken = oldToken.token;
+        this.newToken.level = oldToken.level;
+      }
+      else {
+        this.isNewToken = true;
+      }
     },
     async submitForm() {
       if (this.$refs.form.validate()) {
@@ -176,17 +193,32 @@ export default {
           level: this.newToken.level,
         };
 
-        try {
-          await axios.post(
-            "https://www.diving-fish.com/api/maimaidxprober/developer_token",
-            postData
-          );
-          this.items.push(postData);
-          this.formDialog = false;
-          this.resetForm();
-          this.$message.success("已发送申请请求，请等待管理员审核");
-        } catch (error) {
-          this.$message.error(error.response.data.message);
+        if (this.isNewToken) {
+          try {
+            await axios.post(
+              "https://www.diving-fish.com/api/maimaidxprober/developer_token",
+              postData
+            );
+            this.items.push(postData);
+            this.formDialog = false;
+            this.resetForm();
+            this.$message.success("已发送申请请求，请等待管理员审核");
+          } catch (error) {
+            this.$message.error(error.response.data.message);
+          }
+        }
+        else {
+          try {
+            await axios.put(
+              "https://www.diving-fish.com/api/maimaidxprober/developer_token",
+              postData
+            );
+            this.formDialog = false;
+            this.resetForm();
+            this.$message.success("已发送申请请求，请等待管理员审核");
+          } catch (error) {
+            this.$message.error(error.response.data.message);
+          }
         }
       }
     },

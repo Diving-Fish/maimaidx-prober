@@ -117,7 +117,7 @@
           </v-card>
         </v-dialog>
         <recovery :visible="true" />
-        <developer-token :visible="username !== '未登录'" />
+        <developer-token />
         <v-dialog width="1000px" :fullscreen="$vuetify.breakpoint.mobile" v-model="dialogVisible">
           <template #activator="{ on, attrs }">
             <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">导入数据</v-btn>
