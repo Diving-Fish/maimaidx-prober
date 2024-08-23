@@ -16,6 +16,9 @@
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-card-title>
+      <v-card-subtitle>
+        此处的 Token 仅供 bot 或者其他需要与查分器相关联的用户使用。如果您需要的是成绩导入 Token，请在【编辑个人资料】中进行操作。
+      </v-card-subtitle>
       <v-card-text>
         <v-data-table :headers="headers" :items="items" class="elevation-1">
           <template v-slot:item.available="{ item }">
