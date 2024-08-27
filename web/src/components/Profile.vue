@@ -123,6 +123,7 @@
             <v-checkbox v-model="privacy" label="禁止其他人查询我的成绩" />
             <v-checkbox v-model="mask" label="对非网页查询的成绩使用掩码" />
           </v-form>
+          <developer-token />
           <v-card-actions class="pb-4">
             <v-dialog
               v-model="changePasswordVisible"
@@ -215,14 +216,18 @@
 <script>
 import axios from "axios";
 import watchVisible from '../plugins/watchVisible';
+import DeveloperToken from '../components/DeveloperToken.vue';
 export default {
+  components: {
+    DeveloperToken,
+  },
   props: {
     available_plates: Function,
   },
   data: () => {
     return {
       valid: false,
-      login: false,
+      login: true,
       username: "",
       visible: false,
       delVisible: false,
@@ -296,6 +301,7 @@ export default {
         password: "",
         passwordConfirm: "",
       },
+      developerTokenVisible: false,
     };
   },
   watch: {

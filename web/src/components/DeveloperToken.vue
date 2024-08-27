@@ -1,134 +1,134 @@
 <template>
-  <v-dialog
-    width="800px"
-    :fullscreen="$vuetify.breakpoint.mobile"
-    v-if="visible"
-    v-model="open"
-  >
-    <template #activator="{ on, attrs }">
-      <v-btn class="mt-3 mr-4" v-bind="attrs" v-on="on">开发者 Token</v-btn>
-    </template>
-    <v-card>
-      <v-card-title class="headline">
-        开发者 Token 列表
-        <v-spacer />
-        <v-btn icon @click="open = false">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-      </v-card-title>
-      <v-card-subtitle style="color: #F44336" class="mt-1">
-        此处的 Token 仅供 bot 开发者或者其他需要与查分器相关联的开发者使用！<br>
-        此处的 Token 仅供 bot 开发者或者其他需要与查分器相关联的开发者使用！<br>
-        此处的 Token 仅供 bot 开发者或者其他需要与查分器相关联的开发者使用！<br>
-        如果您需要的是成绩导入 Token，请在【编辑个人资料】中进行操作。
-      </v-card-subtitle>
-      <v-card-text>
-        <v-data-table :headers="headers" :items="items" class="elevation-1">
-          <template v-slot:item.available="{ item }">
-            <v-tooltip bottom>
-              <template v-slot:activator="{ on, attrs }">
-                <v-icon v-bind="attrs" v-on="on" :color="getColor(item)">
-                  {{ getIcon(item) }}
-                </v-icon>
-              </template>
-              <span>{{ getText(item) }}</span>
-            </v-tooltip>
-          </template>
-          <template v-slot:item.level="{ item }">
-            <span>{{
-              item.level == 0 ? "" : level_items[item.level - 1].text
-            }}</span>
-          </template>
-          <template v-slot:item.token="{ item }">
-            <div style="display: flex; align-items: center">
-              <span>{{ item.token }}</span>
+  <div class="pl-6 mb-4">
+    <span style="color: #00000099">需要查分器中的玩家数据用于其他应用程序开发？请点击<a @click="open = true">这里</a>~</span>
+    <v-dialog
+      width="800px"
+      :fullscreen="$vuetify.breakpoint.mobile"
+      v-if="visible"
+      v-model="open"
+    >
+      <v-card>
+        <v-card-title class="headline">
+          开发者 Token 列表
+          <v-spacer />
+          <v-btn icon @click="open = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-card-subtitle style="color: #F44336" class="mt-1">
+          此处的 Token 仅供 bot 开发者或者其他需要与查分器相关联的开发者使用！<br>
+          此处的 Token 仅供 bot 开发者或者其他需要与查分器相关联的开发者使用！<br>
+          此处的 Token 仅供 bot 开发者或者其他需要与查分器相关联的开发者使用！<br>
+          如果您需要的是成绩导入 Token，请在【编辑个人资料】中进行操作。
+        </v-card-subtitle>
+        <v-card-text>
+          <v-data-table :headers="headers" :items="items" class="elevation-1">
+            <template v-slot:item.available="{ item }">
               <v-tooltip bottom>
                 <template v-slot:activator="{ on, attrs }">
-                  <v-icon
-                    v-bind="attrs"
-                    v-on="on"
-                    class="ml-2"
-                    @click="copyToClipboard(item.token)"
-                  >
-                    mdi-content-copy
+                  <v-icon v-bind="attrs" v-on="on" :color="getColor(item)">
+                    {{ getIcon(item) }}
                   </v-icon>
                 </template>
-                <span>复制 Token</span>
+                <span>{{ getText(item) }}</span>
               </v-tooltip>
-            </div>
-          </template>
-          <template v-slot:item.actions="{ item }">
-            <v-icon
-              @click="openFormDialog(item)"
-              class="mr-2"
-              color="primary"
-              >mdi-pencil</v-icon
-            >
-          </template> 
-        </v-data-table>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="primary" @click="openFormDialog()">申请新 Token</v-btn>
-      </v-card-actions>
-
-      <v-dialog
-        v-model="formDialog"
-        max-width="600px"
-        :fullscreen="$vuetify.breakpoint.mobile"
-      >
-        <v-card>
-          <v-card-title class="headline">{{ isNewToken ? '申请新 Token' : '编辑已有 Token' }}</v-card-title>
-          <v-card-text>
-            <v-form ref="form">
-              <v-select
-                v-model="newToken.level"
-                :items="level_items"
-                label="Token 等级"
-                :rules="[(v) => !!v || 'Token 等级不能为空']"
-                required
-              ></v-select>
-              <v-textarea
-                v-model="newToken.reason"
-                label="原因"
-                rows="3"
-                :rules="[(v) => !!v || '原因不能为空']"
-                required
-              ></v-textarea>
+            </template>
+            <template v-slot:item.level="{ item }">
+              <span>{{
+                item.level == 0 ? "" : level_items[item.level - 1].text
+              }}</span>
+            </template>
+            <template v-slot:item.token="{ item }">
               <div style="display: flex; align-items: center">
-                <v-file-input
-                  v-model="newToken.pic"
-                  label="上传图片"
-                  multiple
-                  show-size
-                  accept=".jpg,.png"
-                  required
-                ></v-file-input>
+                <span>{{ item.token }}</span>
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" class="ml-2"
-                      >mdi-help-circle</v-icon
+                    <v-icon
+                      v-bind="attrs"
+                      v-on="on"
+                      class="ml-2"
+                      @click="copyToClipboard(item.token)"
                     >
+                      mdi-content-copy
+                    </v-icon>
                   </template>
-                  <span>如果是 bot 使用，请上传图片证明 bot 的服务规模</span>
+                  <span>复制 Token</span>
                 </v-tooltip>
               </div>
-              <v-text-field
-                v-model="newToken.oldToken"
-                :label="isNewToken ? '旧版本 Token（如果没有旧版本 Token 请留空）' : 'Token'"
-                required
-              ></v-text-field>
-            </v-form>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="primary" @click="submitForm">提交</v-btn>
-            <v-btn @click="formDialog = false">取消</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-    </v-card>
-  </v-dialog>
+            </template>
+            <template v-slot:item.actions="{ item }">
+              <v-icon
+                @click="openFormDialog(item)"
+                class="mr-2"
+                color="primary"
+                >mdi-pencil</v-icon
+              >
+            </template> 
+          </v-data-table>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="primary" @click="openFormDialog()">申请新 Token</v-btn>
+        </v-card-actions>
+
+        <v-dialog
+          v-model="formDialog"
+          max-width="600px"
+          :fullscreen="$vuetify.breakpoint.mobile"
+        >
+          <v-card>
+            <v-card-title class="headline">{{ isNewToken ? '申请新 Token' : '编辑已有 Token' }}</v-card-title>
+            <v-card-text>
+              <v-form ref="form">
+                <v-select
+                  v-model="newToken.level"
+                  :items="level_items"
+                  label="Token 等级"
+                  :rules="[(v) => !!v || 'Token 等级不能为空']"
+                  required
+                ></v-select>
+                <v-textarea
+                  v-model="newToken.reason"
+                  label="原因"
+                  rows="3"
+                  :rules="[(v) => !!v || '原因不能为空']"
+                  required
+                ></v-textarea>
+                <div style="display: flex; align-items: center">
+                  <v-file-input
+                    v-model="newToken.pic"
+                    label="上传图片"
+                    multiple
+                    show-size
+                    accept=".jpg,.png"
+                    required
+                  ></v-file-input>
+                  <v-tooltip bottom>
+                    <template v-slot:activator="{ on, attrs }">
+                      <v-icon v-bind="attrs" v-on="on" class="ml-2"
+                        >mdi-help-circle</v-icon
+                      >
+                    </template>
+                    <span>如果是 bot 使用，请上传图片证明 bot 的服务规模</span>
+                  </v-tooltip>
+                </div>
+                <v-text-field
+                  v-model="newToken.oldToken"
+                  :label="isNewToken ? '旧版本 Token（如果没有旧版本 Token 请留空）' : 'Token'"
+                  required
+                ></v-text-field>
+              </v-form>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="primary" @click="submitForm">提交</v-btn>
+              <v-btn @click="formDialog = false">取消</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-card>
+    </v-dialog>
+  </div>
 </template>
 
 <script>
