@@ -37,6 +37,28 @@ class ScoreCoefficient {
         }
     }
 
+    set_idx(idx) {
+        if (this.idx < SCORE_COEFFICIENT_TABLE.length) {
+            this.a = SCORE_COEFFICIENT_TABLE[idx][0]
+            this.c = SCORE_COEFFICIENT_TABLE[idx][1]
+            this.r = SCORE_COEFFICIENT_TABLE[idx][2]
+            this.idx = idx
+        }
+    }
+
+    get_more_ra_local(ds) {
+        const ra = this.ra(ds) + 1;
+        const ach = Math.ceil(Math.min(ra * 100 / ds / this.c, 100.5) * 10000) / 10000;
+        if (this.idx === SCORE_COEFFICIENT_TABLE.length - 1 || ach < SCORE_COEFFICIENT_TABLE[this.idx + 1][0]) {
+            return { ra: ra, achievements: ach };
+        }
+        return undefined;
+    }
+
+    get_table_len() {
+        return SCORE_COEFFICIENT_TABLE.length;
+    }
+
     ra(ds) {
         return Math.floor(this.c * ds * Math.min(100.5, this.a) / 100);
     }

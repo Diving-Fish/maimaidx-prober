@@ -1,6 +1,6 @@
 <template>
   <div class="pl-6 mb-4">
-    <span style="color: #00000099">需要查分器中的玩家数据用于其他应用程序开发？请点击<a @click="open = true">这里</a>~</span>
+    <span style="opacity: 0.7;">需要查分器中的玩家数据用于其他应用程序开发？请点击<a @click="open = true">这里</a>~</span>
     <v-dialog
       width="800px"
       :fullscreen="$vuetify.breakpoint.mobile"

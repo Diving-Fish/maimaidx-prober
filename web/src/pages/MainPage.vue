@@ -4,7 +4,7 @@
       <div
         :style="$vuetify.breakpoint.mobile ? '' : 'display: flex; align-items: flex-end; justify-content: space-between'">
         <h1>舞萌 DX | 中二节奏查分器</h1>
-        <profile :available_plates="available_plates" ref="profile" />
+        <profile v-if="username !== '未登录'" :available_plates="available_plates" ref="profile" />
       </div>
       <agreement></agreement>
       <v-divider class="mt-4 mb-4" />
@@ -864,6 +864,7 @@ export default {
               this.$message.success("用户分数及相对难度信息获取完成");
             } else {
               this.$message.warning("未获取用户分数");
+              this.chuniLoading = false;
             }
             this.$refs.pq.init();
             that.loading = false;
@@ -922,6 +923,7 @@ export default {
               })
               .catch(() => {
                 this.$message.error("加载中二乐曲数据失败！");
+                this.chuniLoading = false;
               })
         })
         .catch((err) => {

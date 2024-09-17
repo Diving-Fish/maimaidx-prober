@@ -80,7 +80,7 @@ export default {
   },
   methods: {
     getLevel(index) {
-      return ["#22bb5b", "#fb9c2d", "#f64861", "#9e45e2", "#1B1B1B", "cyan"][index];
+      return ["#22bb5b", "#fb9c2d", "#f64861", "#9e45e2", "#607d8b", "cyan"][index];
     },
     getFC(str) {
       if (str.startsWith("fullcombo")) return "green";

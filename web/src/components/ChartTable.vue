@@ -587,50 +587,18 @@ export default {
         next: next,
       };
     },
-    get_min_ach(idx) {
-      return [0, 50, 60, 70, 75, 80, 90, 94, 97, 98, 99, 99.5, 100, 100.5, 101][
-        idx
-      ];
-    },
     getMoreRa(item) {
-      let coeff = new ScoreCoefficient(item.achievements)
-      let ds = item.ds;
-      let idx = coeff.idx;
-      let ach4 = Math.round(item.achievements * 10000);
-      let min_idx = Math.max(idx, 7);
-      let min_ach4 = Math.round(this.get_min_ach(min_idx) * 10000);
-      let max_idx = Math.min(min_idx + 3, 13);
-      let max_ach4 = Math.round(this.get_min_ach(max_idx + 1) * 10000);
+      let coeff = new ScoreCoefficient(item.achievements);
       let more_ra = [];
-      for (let curr_ach4 = min_ach4; curr_ach4 < max_ach4; curr_ach4 += 2500) {
-        // console.log(curr_ach4, JSON.stringify(more_ra));
-        let curr_min_ra = new ScoreCoefficient(curr_ach4 / 10000).ra(ds);
-        if (curr_min_ra > new ScoreCoefficient((curr_ach4 - 1) / 10000).ra(ds)) {
-          if (curr_ach4 > ach4)
-            more_ra.push({
-              ra: curr_min_ra,
-              achievements: curr_ach4 / 10000,
-            });
+      while (more_ra.length < 5 && coeff.idx < coeff.get_table_len() - 1) {
+        const res = coeff.get_more_ra_local(item.ds);
+        if (res == null) {
+          coeff.set_idx(coeff.idx + 1);
+          more_ra.push({ra: coeff.ra(item.ds), achievements: coeff.a});
         }
-        let curr_max_ra = new ScoreCoefficient((curr_ach4 + 2499) / 10000).ra(ds);
-        if (curr_max_ra > curr_min_ra) {
-          let l = curr_ach4,
-            r = curr_ach4 + 2499,
-            ans = r;
-          while (r >= l) {
-            let mid = Math.floor((r + l) / 2);
-            if (new ScoreCoefficient(mid / 10000).ra(ds) > curr_min_ra) {
-              ans = mid;
-              r = mid - 1;
-            } else {
-              l = mid + 1;
-            }
-          }
-          if (curr_ach4 > ach4)
-            more_ra.push({
-              ra: curr_max_ra,
-              achievements: ans / 10000,
-            });
+        else {
+          more_ra.push(res);
+          coeff.a = res.achievements;
         }
       }
       return more_ra;
