@@ -4,7 +4,7 @@
       <div
         :style="$vuetify.breakpoint.mobile ? '' : 'display: flex; align-items: flex-end; justify-content: space-between'">
         <h1>舞萌 DX | 中二节奏查分器</h1>
-        <profile v-if="username !== '未登录'" :available_plates="available_plates" ref="profile" />
+        <profile v-show="username !== '未登录'" :available_plates="available_plates" ref="profile" />
       </div>
       <agreement></agreement>
       <v-divider class="mt-4 mb-4" />
