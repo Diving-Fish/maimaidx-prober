@@ -283,8 +283,8 @@ def get_dx_and_sd(player):
             l2.append(r)
         else:
             l1.append(r)
-    l1.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
-    l2.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
+    l1.sort(key=lambda x: x.ra, reverse=True)
+    l2.sort(key=lambda x: x.ra, reverse=True)
     return l1[:25], l2[:15]
 
 
@@ -298,8 +298,8 @@ def get_dx_and_sd_for50(player):
             l2.append(r)
         else:
             l1.append(r)
-    l1.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
-    l2.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
+    l1.sort(key=lambda x: x.ra, reverse=True)
+    l2.sort(key=lambda x: x.ra, reverse=True)
     return l1[:35], l2[:15]
 
 
@@ -357,8 +357,8 @@ async def query_player():
         "nickname": nickname,
         "plate": p.plate,
         "charts": {
-            "sd": [record_json(c, p.mask) for c in sd],
-            "dx": [record_json(c, p.mask) for c in dx]
+            "sd": sorted([record_json(c, p.mask) for c in sd], key=lambda x: (x.ra, x.ds, x.achievements), reverse=True),
+            "dx": sorted([record_json(c, p.mask) for c in dx], key=lambda x: (x.ra, x.ds, x.achievements), reverse=True),
         },
         "user_general_data": user_general_data,
     }
