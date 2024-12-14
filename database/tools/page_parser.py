@@ -1,9 +1,6 @@
 from typing import Dict
-from webbrowser import get
 from bs4 import BeautifulSoup
-import time
 import re
-import json
 
 # 直接用 html 转 json 实在是太慢了
 # 这边 parse 出来的另外一个 Link 会变成 Link(CoF)
@@ -13,11 +10,15 @@ level_table = ["basic", "advanced", "expert", "master", "ultima", "worldsend"]
 
 def get_data_from_div(div, link_searched):
     form = div.find(name="form")
-    type_img = div.find(name="img", recursive=False)
-    if type_img.attrs['src'].find("standard") != -1:
-        type_ = "SD"
+    if not re.search(r"diff_(.*).png", form.contents[1].attrs["src"]):
+        matched = re.search(r"music_(.*).png", form.contents[1].attrs["src"])
+        type_ = "SD" if matched.group(1) == "standard" else "DX"
+    elif "id" in form.parent.parent.attrs:
+        type_ = "SD" if form.parent.parent.attrs["id"][:3] == "sta" else "DX"
     else:
-        type_ = "DX"
+        src = form.parent.find_next_sibling().attrs["src"]
+        matched = re.search(r"_(.*).png", src)
+        type_ = "SD" if matched.group(1) == "standard" else "DX"
     def get_level_index(src: str):
         if src.find("remaster") != -1:
             return 4
@@ -30,9 +31,8 @@ def get_data_from_div(div, link_searched):
         elif src.find("basic") != -1:
             return 0
     def get_music_icon(src: str):
-        re = "https://maimai.wahlap.com/maimai-mobile/img/music_icon_"
-        v = src.replace(re, "").replace(".png", "")
-        return v if v != "back" else ""
+        matched = re.search(r"music_icon_(.+?)\.png", src)
+        return matched.group(1) if matched and matched.group(1) != "back" else ""
     title = form.contents[7].string
     if title == "Link":
         link_searched = True
@@ -44,7 +44,7 @@ def get_data_from_div(div, link_searched):
             "level_index": get_level_index(form.contents[1].attrs['src']),
             "type": type_,
             "achievements": float(form.contents[9].string[:-1]),
-            "dxScore": int(form.contents[11].string.strip().replace(',', '')),
+            "dxScore": int(form.contents[11].contents[1].string.strip().split("/")[0].replace(" ", "").replace(",", "")),
             "rate": get_music_icon(form.contents[17].attrs['src']),
             "fc": get_music_icon(form.contents[15].attrs['src']),
             "fs": get_music_icon(form.contents[13].attrs['src']),
