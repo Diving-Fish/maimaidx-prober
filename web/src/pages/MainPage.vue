@@ -116,6 +116,7 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+        <vote-box :visible="true" :music_data="music_data_dict" />
         <recovery :visible="true" />
         <v-dialog width="1000px" :fullscreen="$vuetify.breakpoint.mobile" v-model="dialogVisible">
           <template #activator="{ on, attrs }">
@@ -465,6 +466,7 @@ import Recovery from "../components/Recovery.vue";
 import watchVisible from "../plugins/watchVisible";
 import ChuniOverPowerCalculators from "@/components/ChuniOverPowerCalculators";
 import ScoreCoefficient from '../scripts/ScoreCoefficient';
+import VoteBox from "../components/VoteBox.vue";
 const xpath = require("xpath"),
   dom = require("xmldom").DOMParser;
 const DEBUG = false;
@@ -486,6 +488,7 @@ export default {
     PlateQualifier,
     Calculators,
     Tutorial,
+    VoteBox,
   },
   data: function () {
     return {
