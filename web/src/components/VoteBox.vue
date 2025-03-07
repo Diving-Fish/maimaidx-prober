@@ -103,9 +103,10 @@
           </v-card-actions>
         </v-card-text>
       </div>
-      <div v-if="remain <= 0" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100px;">
+      <div v-if="remain <= 0" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <span class="mb-4">投了五组啦，休息一下明天再来吧！</span>
-        <v-btn @click="getNewVote(true)">我偏要继续</v-btn>
+        <a href="/maimaidx/vote-result" target="_blank">查看投票结果</a>
+        <v-btn @click="getNewVote(true)" class="mt-2 mb-4">我偏要继续</v-btn>
       </div>
     </v-card>
   </v-dialog>
