@@ -74,10 +74,10 @@ https://www.diving-fish.com/api/maimaidxprober/player/profile
 | `maimaidxprober` | [`/query_plate`](#318-按版本获取用户的成绩信息) | 无需验证 | 按版本获取用户的成绩信息 |
 | `maimaidxprober` | [`*/covers`](#319-按-id-获取歌曲的封面图片) | 无需验证 | 按 ID 获取歌曲的封面图片 |
 | `maimaidxprober` | [`/rating_ranking`](#3110-获取公开的-用户-rating-完整数据) | 无需验证 | 获取公开的 用户-rating 完整数据 |
-| `maimaidxprober` | [`/player/update_records`](#3111-更新用户的成绩信息) | 登录验证 | 更新用户的成绩信息 |
+| `maimaidxprober` | [`/player/update_records`](#3111-更新用户的成绩信息) | 登录验证 / Import-Token | 更新用户的成绩信息 |
 | `maimaidxprober` | [`/player/update_records_html`](#3112-通过-html-格式的数据更新用户的成绩信息) | 登录验证 |  通过 html 格式的数据更新用户的成绩信息 |
-| `maimaidxprober` | [`/player/update_record`](#3113-更新用户的单曲成绩) | 登录验证 | 更新用户的单曲成绩 |
-| `maimaidxprober` | [`/player/delete_records`](#3114-清除用户的所有-maimai-成绩信息) | 登录验证 | 清除用户的所有 maimai 成绩信息 |
+| `maimaidxprober` | [`/player/update_record`](#3113-更新用户的单曲成绩) | 登录验证 / Import-Token | 更新用户的单曲成绩 |
+| `maimaidxprober` | [`/player/delete_records`](#3114-清除用户的所有-maimai-成绩信息) | 登录验证 / Import-Token | 清除用户的所有 maimai 成绩信息 |
 | `maimaidxprober` | [`/chart_stats`](#3115-返回谱面的拟合难度等数据) | 无需验证 | 返回谱面的拟合难度等数据 |
 | `chunithmprober` | `（待贡献）` | ----- | ----- |
 | `public` | [`/login`](#24-登录验证) | 登录验证 | 使用 diving-fish 账号登录 |
