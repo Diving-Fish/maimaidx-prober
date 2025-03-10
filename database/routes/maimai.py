@@ -274,7 +274,7 @@ async def dev_get_record():
 
 
 def get_dx_and_sd(player):
-    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
+    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id and chart.music_id < 100000 order by chart.ds desc, newrecord.achievements desc', player.id)
     l1 = []
     l2 = []
     for r in l:
@@ -283,13 +283,13 @@ def get_dx_and_sd(player):
             l2.append(r)
         else:
             l1.append(r)
-    l1.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
-    l2.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
+    l1.sort(key=lambda x: x.ra, reverse=True)
+    l2.sort(key=lambda x: x.ra, reverse=True)
     return l1[:25], l2[:15]
 
 
 def get_dx_and_sd_for50(player):
-    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id and chart.music_id < 100000', player.id)
+    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id and chart.music_id < 100000 order by chart.ds desc, newrecord.achievements desc', player.id)
     l1 = []
     l2 = []
     for r in l:
@@ -298,8 +298,8 @@ def get_dx_and_sd_for50(player):
             l2.append(r)
         else:
             l1.append(r)
-    l1.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
-    l2.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
+    l1.sort(key=lambda x: x.ra, reverse=True)
+    l2.sort(key=lambda x: x.ra, reverse=True)
     return l1[:35], l2[:15]
 
 
