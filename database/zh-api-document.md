@@ -410,7 +410,7 @@ class ProberAPIClient:
 
 | **字段** | **类型** | **说明** |
 |----------|----------|----------|
-| `id` | `string` | 歌曲的唯一标识符，其与现行的歌曲 ID 号一致 |
+| `id` | `int` | 歌曲的唯一标识符，其与现行的歌曲 ID 号一致 |
 | `title` | `string` | 歌曲的标题 |
 | `type` | `string` | 歌曲的类型，为 "DX" 或 "SD" |
 | `ds` | `array of float` | 歌曲的难度定数列表，由 Basic 至 Re:Master |
@@ -432,7 +432,7 @@ class ProberAPIClient:
 
 ```json
 {
-    "id": "11466",
+    "id": 11466,
     "title": "群青シグナル",
     "type": "DX",
     "ds": [
