@@ -47,7 +47,9 @@ def percent_curve(diff: float):
     return 0.42 + 0.2 * diff
 
 def get_diff(difficulty, diff_ach, diff_s, diff_sss, diff_sssp):
-    print(float(diff_ach), float(diff_s), float(diff_sss), float(diff_sssp))
+    # print(float(diff_ach), float(diff_s), float(diff_sss), float(diff_sssp))
+    if difficulty[-1] == "?":
+        difficulty = difficulty[:-1]
     if difficulty[-1] == "+":
         diff = int(difficulty[:-1]) + 0.75
     else:

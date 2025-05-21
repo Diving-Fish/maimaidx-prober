@@ -205,3 +205,93 @@ async def token_available():
         return {"message": "ok"}, 200
     except Exception:
         return {"message": "non-exist"}, 404
+
+@app.route('/developer_token', methods=['GET', 'POST', 'PUT'])
+@login_required
+async def developer_token():
+    if request.method == 'GET': # get all tokens of this account
+        res = []
+        for developer in NewDeveloper.select().where(NewDeveloper.player == g.user):
+            res.append({
+                'token': developer.token,
+                # 'reason': developer.reason,
+                # 'pic': json.loads(developer.pic),
+                'level': developer.level,
+                'available': developer.available,
+                'comment': developer.comment
+            })
+        return res
+    elif request.method == 'POST': # create a new token for this account
+        body = await request.json
+        for developer in NewDeveloper.select().where(NewDeveloper.player == g.user):
+            if not developer.available:
+                return {"message": "目前用户已有申请中的 token，请联系水鱼处理后再重新申请"}, 400
+            
+        if g.user.bind_qq == "":
+            return {"message": "请先绑定 QQ 以查收邮件"}, 400
+
+        try:
+            if body['level'] not in [0, 1, 2, 3, 4]:
+                return {"message": "无效 Level"}, 400
+
+            if 'token' in body and body['token'] != '': # migrate from legacy developer token
+                try:
+                    developer = Developer.get(Developer.token == body['token'])
+                    NewDeveloper.create(
+                        player=g.user,
+                        token=body['token'],
+                        reason=body['reason'],
+                        pic=json.dumps(body['pic']), # base64 image list
+                        level=body['level'],
+                        available=False,
+                        confirm_token='',
+                        comment=''
+                    )
+                except Exception:
+                    return {"message": "不存在此旧 Token！"}, 400
+            else:
+                NewDeveloper.create(
+                    player=g.user,
+                    token=''.join(random.sample(string.digits + string.ascii_letters, 32)),
+                    reason=body['reason'],
+                    pic=json.dumps(body['pic']), # base64 image list
+                    level=body['level'],
+                    available=False,
+                    confirm_token='',
+                    comment=''
+                )
+            return {"message": "ok"}, 200
+        except Exception:
+            return {"message": "请求无效"}, 400
+    elif request.method == 'PUT': # change token level of this account
+        body = await request.json
+        try:
+            if body['level'] not in [0, 1, 2, 3, 4]:
+                return {"message": "无效 Level"}, 400
+            
+            developer = NewDeveloper.get((NewDeveloper.token == body['token']) & (NewDeveloper.player == g.user))
+            developer.level = body['level']
+            developer.reason = body['reason']
+            developer.pic = json.dumps(body['pic'])
+            developer.available = False
+            developer.confirm_token = ''
+            developer.save()
+
+            return {"message": "ok"}, 200
+        except Exception:
+            return {"message": "请求无效"}, 400
+
+
+@app.route('/dev/token_activate')
+async def token_activate():
+    try:
+        token = request.args.get('token', default='')
+        if token == '':
+            raise Exception()
+        developer: NewDeveloper = NewDeveloper.get(NewDeveloper.confirm_token == token)
+        developer.confirm_token = ''
+        developer.available = True
+        developer.save()
+        return "Token 激活完成", 200
+    except Exception:
+        return "", 405

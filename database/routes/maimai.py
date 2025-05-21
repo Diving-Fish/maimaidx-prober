@@ -15,19 +15,18 @@ from models.maimai import *
 import tools.page_parser as page_parser
 import tools.maimai_analysis_curve as maimai_analysis
 from tools.analysis_template import return_template
+from access.maimai import *
+from access.redis import redis
+import random
+from tools.maidle import Maidle, maidle_data as maidle_cache, songs_id_map as maidle_map
 
 
 cs_need_update = True
 cs_cache = {}
 cs_cache_eTag = md5(json.dumps(cs_cache, ensure_ascii=False))
-md_cache = music_data()
 md_cache_eTag = md5(json.dumps(md_cache))
-md_map = {}
-md_title_type_map = {}
-for music in md_cache:
-    md_map[music['id']] = music
-    md_title_type_map[(music["title"], music["type"])] = music
 
+maidle_cache_eTag = md5(json.dumps(maidle_cache, ensure_ascii=False))
 
 def get_ds(r: Dict):
     t = (r["title"], r["type"])
@@ -123,7 +122,7 @@ async def profile():
             return u.user_json()
 
         except Exception as e:
-            print(e)
+            # print(e)
             return {
                 "message": "error"
             }, 400
@@ -164,12 +163,10 @@ async def get_records():
     *需要登录
     获取用户的成绩信息。
     """
-    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', g.user.id)
-    await compute_ra(g.user)
+    records_dict = await maimai_get_records(g.user, False)
     records = []
-    for record in r:
-        elem = record_json(record, False)
-        records.append(elem)
+    for sub_records in records_dict.values():
+        records += sub_records
     return {
         "username": g.username,
         "rating": g.user.rating,
@@ -182,13 +179,11 @@ async def get_records():
 
 @app.route("/player/test_data", methods=['GET'])
 async def get_records_test():
-    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', '636')
     user = Player.get(Player.id == 636)
-    await compute_ra(user)
+    records_dict = await maimai_get_records(user, False)
     records = []
-    for record in r:
-        elem = record_json(record, False)
-        records.append(elem)
+    for sub_records in records_dict.values():
+        records += sub_records
     return {
         "username": "DivingFish",
         "rating": user.rating,
@@ -218,12 +213,12 @@ async def dev_get_records():
             player: Player = Player.by_qq(qq)
     except Exception:
         return {"message": "no such user"}, 400
-    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
-    await compute_ra(player)
+    if player.privacy or not player.accept_agreement:
+        return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
+    records_dict = await maimai_get_records(player, player.mask)
     records = []
-    for record in r:
-        elem = record_json(record, player.mask)
-        records.append(elem)
+    for sub_records in records_dict.values():
+        records += sub_records
     return {
         "username": player.username,
         "rating": player.rating,
@@ -251,6 +246,9 @@ async def dev_get_record():
     except Exception:
         return {"message": "no such user"}, 400
         
+    if p.privacy or not p.accept_agreement:
+        return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
+    
     music_ids = []
     if isinstance(obj['music_id'], str):
         music_ids.append(obj['music_id'])
@@ -262,56 +260,12 @@ async def dev_get_record():
             pass
 
     music_ids = list(filter(lambda elem: elem in md_map, music_ids))
-
-    query_str = f'({",".join(["%s"] * len(music_ids))})'
     
-    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and music.id in ' + query_str + ' and chart_id = chart.id and chart.music_id = music.id', p.id, *music_ids)
-    records = defaultdict(lambda: [])
-    for record in r:
-        elem = record_json(record, p.mask)
-        records[record.id].append(elem)
+    records_dict = await maimai_get_records(p, p.mask)
+    records = defaultdict()
+    for music_id in music_ids:
+        records[music_id] = records_dict[music_id] if music_id in records_dict.keys() else []
     return records
-
-
-def get_dx_and_sd(player):
-    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
-    l1 = []
-    l2 = []
-    for r in l:
-        setattr(r, 'ra', ScoreCoefficient(r.achievements).ra(r.ds))
-        if r.is_new:
-            l2.append(r)
-        else:
-            l1.append(r)
-    l1.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
-    l2.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
-    return l1[:25], l2[:15]
-
-
-def get_dx_and_sd_for50(player):
-    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id and chart.music_id < 100000', player.id)
-    l1 = []
-    l2 = []
-    for r in l:
-        setattr(r, 'ra', ScoreCoefficient(r.achievements).ra(r.ds))
-        if r.is_new:
-            l2.append(r)
-        else:
-            l1.append(r)
-    l1.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
-    l2.sort(key=lambda x: (x.ra, x.ds, x.achievements), reverse=True)
-    return l1[:35], l2[:15]
-
-
-def getplatelist(player, version: List[Dict]):
-    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.version as `version`, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
-    fl = recordList()
-    vl = []
-    for r in l:
-        fl.append(r)
-    for i in range(0, len(version)):
-        vl += fl.filter(version=version[i])
-    return vl
 
 
 @app.route("/query/player", methods=['POST'])
@@ -339,10 +293,9 @@ async def query_player():
         if token['username'] != obj["username"]:
             return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
     if "b50" in obj:
-        sd, dx = get_dx_and_sd_for50(p)
+        charts = await maimai_get_dx_and_sd_for50(p)
     else:
-        sd, dx = get_dx_and_sd(p)
-    await compute_ra(p)
+        charts = await maimai_get_dx_and_sd(p)
     nickname = p.nickname
     if nickname == "":
         nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
@@ -356,10 +309,7 @@ async def query_player():
         "additional_rating": p.additional_rating,
         "nickname": nickname,
         "plate": p.plate,
-        "charts": {
-            "sd": [record_json(c, p.mask) for c in sd],
-            "dx": [record_json(c, p.mask) for c in dx]
-        },
+        "charts": charts,
         "user_general_data": user_general_data,
     }
     return obj
@@ -392,23 +342,8 @@ async def query_plate():
         if token['username'] != obj["username"]:
             return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
     v: List[Dict] = obj["version"]
-    vl = getplatelist(p, v)
-    return {
-        "verlist": [platerecord_json(c, p.mask) for c in vl]
-    }
-
-
-async def compute_ra(player: Player):
-    rating = 0
-    sd, dx = get_dx_and_sd_for50(player)
-    for t in sd:
-        rating += int(t.ra)
-    for t in dx:
-        rating += int(t.ra)
-    player.rating = rating
-    player.access_time = time.time()
-    player.save()
-    return rating
+    vl = await maimai_get_plate_list(p, v)
+    return {"verlist": vl}
 
 
 @app.route("/player/update_records", methods=['POST'])
@@ -422,48 +357,16 @@ async def update_records():
     global cs_need_update
     cs_need_update = True
     j = await request.get_json()
-    dicts = {}
     if type(j) != type([]):
         return {"message": "导入数据格式有误"}, 404
     elif len(j) == 0:
         return {"message": "更新成功"}
-    for record in j:
-        # print(time.time())
-        title = record['title']
-        _type = record['type']
-        level = record['level_index']
-        m = get_music_by_title(md_cache, title, _type)
-        if m is None or level >= len(m["cids"]):
-            continue
-        cid = m["cids"][level]
-        dicts[cid] = (record["achievements"], std_fc(record["fc"]),
-                        std_fs(record["fs"]), record["dxScore"])
-    rs = NewRecord.raw(
-        'select * from newrecord where player_id = %s', g.user.id)
-    updates = []
-    creates = []
-    for r in rs:
-        # print(r.chart_id)
-        if r.chart_id in dicts:
-            v = dicts[r.chart_id]
-            r.achievements = min(v[0], 101)
-            r.fc = std_fc(v[1])
-            r.fs = std_fs(v[2])
-            r.dxScore = v[3]
-            updates.append(r)
-            del dicts[r.chart_id]
-    # print(len(dicts))
-    for k in dicts:
-        v = dicts[k]
-        creates.append({"chart": k, "player": g.user.id,
-                       "fc": std_fc(v[1]), "fs": std_fs(v[2]), "dxScore": v[3], "achievements": min(v[0], 101)})
-    NewRecord.insert_many(creates).execute()
-    # print(updates)
-    NewRecord.bulk_update(updates, fields=[
-                          NewRecord.achievements, NewRecord.fc, NewRecord.fs, NewRecord.dxScore])
-    await compute_ra(g.user)
+    data = record_json_list_for_input(md_title_type_map, j)
+    await maimai_update_records_cache(g.user, data)
     return {
         "message": "更新成功",
+        "updates": -1,
+        "creates": -1
     }
 
 
@@ -503,43 +406,8 @@ async def update_records_html():
                 "message": str(e)
             }, 400
     # print(j)
-    for record in j:
-        # print(time.time())
-        title = record['title']
-        _type = record['type']
-        level = record['level_index']
-        m = get_music_by_title(md_cache, title, _type)
-        if m is None or level >= len(m["cids"]):
-            continue
-        cid = m["cids"][level]
-        dicts[cid] = (record["achievements"], std_fc(record["fc"]),
-                        std_fs(record["fs"]), record["dxScore"])
-    rs = NewRecord.raw(
-        'select * from newrecord where player_id = %s', g.user.id)
-    updates = []
-    creates = []
-    for r in rs:
-        # print(r.chart_id)
-        if r.chart_id in dicts:
-            v = dicts[r.chart_id]
-            r.achievements = min(v[0], 101)
-            r.fc = std_fc(v[1])
-            r.fs = std_fs(v[2])
-            r.dxScore = v[3]
-            updates.append(r)
-            del dicts[r.chart_id]
-    # print(len(dicts))
-    for k in dicts:
-        v = dicts[k]
-        creates.append({"chart": k, "player": g.user.id,
-                       "fc": std_fc(v[1]), "fs": std_fs(v[2]), "dxScore": v[3], "achievements": min(v[0], 101)})
-    if len(creates) > 0:
-        NewRecord.insert_many(creates).execute()
-    # print(updates)
-    if len(updates) > 0:
-        NewRecord.bulk_update(updates, fields=[
-                          NewRecord.achievements, NewRecord.fc, NewRecord.fs, NewRecord.dxScore])
-    await compute_ra(g.user)
+    data = record_json_list_for_input(md_cache, j)
+    await maimai_update_records_cache(g.user, data)
     return {
         "message": "更新成功",
     }
@@ -570,7 +438,7 @@ async def update_record():
     r.fc = std_fc(record['fc'])
     r.fs = std_fs(record['fs'])
     r.save()
-    await compute_ra(g.user)
+    await maimai_compute_ra(g.user)
     return {
         "message": "更新成功",
     }
@@ -586,11 +454,160 @@ async def delete_records():
     global cs_need_update
     cs_need_update = True
     nums = NewRecord.delete().where(NewRecord.player == g.user.id).execute()
-    await compute_ra(g.user)
+    await maimai_compute_ra(g.user)
     return {
         "message": nums
     }
 
+
+def get_hot_music_data():
+    cursor = NewRecord.raw(
+        'select chart.music_id as music_id, sum(record.c) as cnt from (select chart_id, count(id) as c from newrecord group by chart_id) as record join chart on chart.id = chart_id group by chart.music_id ;'
+    )
+    all_count = 0
+    hot_music = defaultdict(lambda: 0)
+    for elem in cursor:
+        music_id = elem.music_id
+        # 如果有标准谱则一起统计
+        if str(music_id - 10000) in md_map:
+            music_id -= 10000
+        music = md_map[str(music_id)]
+        cnt = float(elem.cnt)
+        # 跳过宴谱
+        if music_id > 100000:
+            continue
+        # 如果是最新版本则权重 × 2
+        if music["basic_info"]["is_new"]:
+            cnt *= 2
+        # 如果有至少一个难度高于等级 13 则权重 × 2，有至少一个难度高于等级 13+ 则权重 × 3
+        highest_ds = max(music["ds"])
+        if highest_ds >= 13.7:
+            cnt *= 3
+        elif highest_ds >= 13:
+            cnt *= 2
+        all_count += cnt
+        hot_music[str(music_id)] += cnt
+    for key in hot_music:
+        hot_music[key] /= all_count
+    return hot_music
+
+
+@app.route("/hot_music", methods=['GET'])
+async def hot_music():
+    """
+    返回热门歌曲数据。
+    """
+    # check redis cache
+    hot_music = await redis.get("maimaidxprober_hot_music")
+    if hot_music is not None:
+        return json.loads(hot_music)
+    hot_music = get_hot_music_data()
+    await redis.set("maimaidxprober_hot_music", json.dumps(hot_music), ex=86400)
+    return hot_music
+
+
+async def get_random_hot(value):
+    hot = await hot_music()
+    for key, val in hot.items():
+        if value < val:
+            return key
+        value -= val
+    return 0
+
+
+def up_vote(music_id):
+    try:
+        m = VoteResult.get(VoteResult.music_id == music_id)
+        m.total_vote += 1
+        m.save()
+    except Exception:
+        VoteResult.create(music_id=music_id, total_vote=1, up_vote=1)
+
+
+def down_vote(music_id):
+    try:
+        m = VoteResult.get(VoteResult.music_id == music_id)
+        m.down_vote += 1
+        m.total_vote += 1
+        m.save()
+    except Exception:
+        VoteResult.create(music_id=music_id, total_vote=1, down_vote=1)
+
+
+@app.route("/vote_result", methods=['GET'])
+async def vote_result():
+    """
+    返回投票结果。
+    """
+    results = VoteResult.select()
+    data = []
+    for result in results:
+        data.append({
+            "music_id": result.music_id,
+            "total_vote": result.total_vote,
+            "down_vote": result.down_vote
+        })
+    return data
+
+
+@app.route("/vote_box", methods=['GET', 'POST'])
+async def vote_box():
+    """
+    返回投票箱数据。
+    """
+    if request.method == 'GET':
+        left = await get_random_hot(random.random())
+        right = left
+        while right == left:
+            right = await get_random_hot(random.random())
+        token = md5(str(time.time()))
+        await redis.set("maimaidxprober_vote_box_" + token, json.dumps({"left": left, "right": right}), ex=120)
+        return {
+            "left": left,
+            "right": right,
+            "token": token
+        }
+    if request.method == 'POST':
+        obj = await request.json
+        token = obj["token"]
+        vote = obj["vote"]
+        data = await redis.get("maimaidxprober_vote_box_" + token)
+        if data is None:
+            return {
+                "message": "这个投票似乎已经消失了……"
+            }, 400
+        data = json.loads(data)
+        left = data["left"]
+        right = data["right"]
+        await redis.delete("maimaidxprober_vote_box_" + token)
+        if vote == 1:
+            up_vote(left)
+            down_vote(right)
+        if vote == 2:
+            down_vote(left)
+            up_vote(right)
+        if vote == 3:
+            down_vote(left)
+            down_vote(right)
+        # get rank of left and right
+        results = sorted(await vote_result(), key=lambda x: x["down_vote"] / x["total_vote"])
+        left_rank = 1
+        right_rank = 1
+        rank = 1
+        last_rate = 0
+        for i, result in enumerate(results):
+            rate = result["down_vote"] / result["total_vote"]
+            if rate != last_rate:
+                last_rate = rate
+                rank = i + 1
+            if result["music_id"] == left:
+                left_rank = rank
+            if result["music_id"] == right:
+                right_rank = rank
+        return {
+            "result": [left_rank, right_rank]
+        }
+    
 
 @app.route("/rating_ranking", methods=['GET'])
 async def rating_ranking():
@@ -686,3 +703,77 @@ async def chart_stats():
     resp = await make_response(json.dumps(data, ensure_ascii=False, default=float))
     resp.headers['content-type'] = "application/json; charset=utf-8"
     return resp
+
+
+@app.route("/maidle/data", methods=['GET'])
+async def get_maidle_data():
+    """
+    获取 maidle 的歌曲数据。
+    """
+    if request.headers.get('If-None-Match') == '"' + maidle_cache_eTag + '"':
+        resp = await make_response("", 304)
+        resp.headers['cache-control'] = "private, max_age=86400"
+        return resp
+    resp = await make_response(json.dumps(maidle_cache))
+    resp.headers['ETag'] = '"' + maidle_cache_eTag + '"';
+    resp.headers['content-type'] = "application/json; charset=utf-8"
+    resp.headers['cache-control'] = "private, max_age=86400"
+    return resp
+
+
+@app.route('/maidle/single', methods=['POST'])
+async def maidle_single():
+    """
+    进行一次 Maidle 游戏。
+    请求体为 JSON，为第一次猜测的歌曲 ID。
+    """
+    obj = await request.json
+    uuid = obj.get('uuid', '')
+    guess_id = obj.get('guess_id', 0)
+    lists = obj.get('lists', [])
+    if guess_id == 0 or guess_id not in maidle_map:
+        return {
+            "message": "歌曲 ID 不存在"
+        }, 400
+    
+    maidle = None
+    if uuid != '':
+        # check redis cache
+        music_id = await redis.get("maidle_" + uuid)
+        if music_id is not None:
+            maidle = Maidle(id=int(music_id))
+
+    if maidle is None:
+        # create a new session
+        maidle = Maidle(id_range=lists, id=None)
+        music_id = maidle.music['id']
+        uuid = md5(str(time.time()) + str(random.random()))
+        await redis.set("maidle_" + uuid, str(music_id), ex=900) # 15 min
+
+    return {
+        "uuid": uuid,
+        "test": maidle.maidle_test(maidle_map[guess_id])
+    }
+
+
+@app.route('/maidle/answer', methods=['POST'])
+async def maidle_answer():
+    """
+    获取 Maidle 答案。
+    """
+    obj = await request.json
+    uuid = obj.get('uuid', '')
+    if uuid != '':
+        # check redis cache
+        music_id = await redis.get("maidle_" + uuid)
+        if music_id is not None:
+            maidle = Maidle(id=int(music_id))
+            return {
+                "title": maidle.music['title'],
+                "artist": maidle.music['artist'],
+                "id": maidle.music['id'],
+            }
+    
+    return {
+        "msg": "error"
+    }, 400

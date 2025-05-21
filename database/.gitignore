@@ -1,4 +1,6 @@
 __pycache__
 debug/
+venv/
 datestamp
 ci_status.json
+*.txt

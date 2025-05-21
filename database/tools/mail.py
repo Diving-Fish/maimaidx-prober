@@ -16,7 +16,7 @@ async def send_mail(payload, mail_config):
     else:
         msg = MIMEText(payload["body"], 'plain', 'utf-8')
     msg['From'] = _format(f"{sender} <{mail_config['user']}>")
-    msg['To'] = _format(f"{to} <{to}>")
+    msg['To'] = _format(to)
     # currently, send mail will be forbidden when subject is same.
     # so we add time after subject to ensure sending successfully.
     msg['Subject'] = Header(subject + f"({time.strftime('%Y-%m-%d %H:%M:%S')})", 'utf-8').encode()
@@ -31,4 +31,4 @@ async def send_mail(payload, mail_config):
             await smtp.send_message(msg)
             print(f"Send email to {to} succeed ({math.floor((time.time_ns() - st) / 1e6)} ms)")
     except aiosmtplib.SMTPException as e:
-        print("Send email to {to} failed: %s" % e)
+        print(f"Send email to {to} failed: %s" % e)

@@ -21,5 +21,6 @@ def username_encode(username: str):
 def decode(jwt_str: str):
     try:
         return jwt.decode(jwt_str, secret_key, algorithms=['HS256'])
-    except jwt.exceptions.DecodeError:
+    except Exception as e:
+        print(e)
         return {}

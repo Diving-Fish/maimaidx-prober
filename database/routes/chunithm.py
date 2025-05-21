@@ -10,6 +10,7 @@ import time
 from audioop import reverse
 from collections import defaultdict
 from math import floor
+from access.chunithm import *
 from app import app, developer_required, login_required, login_or_token_required, md5
 from quart import Quart, request, g, make_response
 from models.maimai import NewRecord
@@ -17,21 +18,7 @@ from tools._jwt import *
 from models.chunithm import *
 import tools.page_parser as page_parser
 
-md_cache = chuni_music_data()
 md_cache_eTag = md5(json.dumps(md_cache))
-md_map = {}
-md_title_map = {}
-md_title_we_map = {}
-chart_id_map = {}
-for music in md_cache:
-    md_map[music['id']] = music
-    if music['id'] >= 8000:
-        md_title_we_map[music['title']] = music
-    else:
-        md_title_map[music['title']] = music
-    for i, cid in enumerate(music['cids']):
-        chart_id_map[cid] = (i, music)
-
 
 @app.route("/chuni/music_data")
 async def get_music_data_chuni():
@@ -74,7 +61,7 @@ async def update_records_chuni():
         return {
                 "message": str(e)
             }, 400
-    print(j)
+    #print(j)
     if recent == 0:       
         for record in j:
             title = record['title']
@@ -103,8 +90,8 @@ async def update_records_chuni():
                 r.fc = dicts[r.chart_id]["fc"]
                 updates.append(r)
                 del dicts[r.chart_id]
-        print(dicts)
-        print(updates)
+        #print(dicts)
+        #print(updates)
         if len(dicts) > 0:
             ChuniRecord.insert_many(dicts.values()).execute()
         if len(updates) > 0:
@@ -127,6 +114,8 @@ async def update_records_chuni():
             })
         ChuniRecord.delete().where((ChuniRecord.player == g.user.id) & (ChuniRecord.recent == 1)).execute()
         ChuniRecord.insert_many(arr).execute()
+    
+    await chuni_compute_ra(g.user)
     return {"message": "更新成功"}
 
 @app.route("/chuni/player/delete_records", methods=['DELETE'])
@@ -137,86 +126,11 @@ async def delete_records_chuni():
     删除您的中二查分器数据。
     """
     nums = ChuniRecord.delete().where(ChuniRecord.player == g.user.id).execute()
-    await compute_ra(g.user)
+    await chuni_compute_ra(g.user)
     return {
         "message": nums
     }
 
-def lerp(x1, x2, y1, y2, x):
-    val = (x - x1) / (x2 - x1) * (y2 - y1) + y1
-    val = floor(val * 100) / 100
-    return val
-
-
-def single_ra(record: ChuniRecord):
-    score = record.score
-    level, music = chart_id_map[record.chart_id]
-    ds = music['ds'][level]
-    if score < 500000:
-        return 0.0
-    elif score < 800000:
-        return max(0, lerp(500000, 800000, 0, (ds - 5) / 2, score))
-    elif score < 900000:
-        return max(0, lerp(800000, 900000, (ds - 5) / 2, ds - 5, score))
-    elif score < 925000:
-        return max(0, lerp(900000, 925000, ds - 5, ds - 3, score))
-    elif score < 975000:
-        return max(0, lerp(925000, 975000, ds - 3, ds, score))
-    elif score < 1000000:
-        return lerp(975000, 1000000, ds, ds + 1, score)
-    elif score < 1005000:
-        return lerp(1000000, 1005000, ds + 1, ds + 1.5, score)
-    elif score < 1007500:
-        return lerp(1005000, 1007500, ds + 1.5, ds + 2, score)
-    elif score < 1009000:
-        return lerp(1007500, 1009000, ds + 2, ds + 2.15, score)
-    else:
-        return ds + 2.15
-
-
-def record_json(record: ChuniRecord):
-    level, music = chart_id_map[record.chart_id]
-    return {
-        "mid": music["id"],
-        "cid": music["cids"][level],
-        "title": music["title"],
-        "level_index": level,
-        "level_label": ["Basic", "Advanced", "Expert", "Master", "Ultima", "World's End"][level],
-        "level": music["level"][level],
-        "score": record.score,
-        "fc": record.fc,
-        "ra": single_ra(record),
-        "ds": music["ds"][level]
-    }
-
-
-def get_b30_and_r10(player: Player):
-    b30 = []
-    r10 = []
-    rs = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id)
-    for r in rs:
-        setattr(r, 'ra', single_ra(r))
-        b30.append(r)
-    b30.sort(key=lambda x: x.ra, reverse=True)
-    rs2 = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', player.id)
-    for r in rs2:
-        r10.append(r)
-    return b30[:30], r10
-
-
-async def compute_ra(player: Player):
-    b30, r10 = get_b30_and_r10(player)
-    total = 0.0
-    for record in b30:
-        total += single_ra(record)
-    for record in r10:
-        total += single_ra(record)
-    rating = total / 40
-    player.chuni_rating = rating
-    player.access_time = time.time()
-    player.save()
-    return rating
-    
 
 @app.route("/chuni/player/records")
 @login_or_token_required
@@ -226,14 +140,8 @@ async def player_records_chuni():
     获取用户的成绩数据，以 JSON 格式返回。
     """
     
-    rs = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', g.user.id)
-    rs2 = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', g.user.id)
-    await compute_ra(g.user)
     return {
-        "records": {
-            "best": [record_json(c) for c in rs],
-            "r10": [record_json(c) for c in rs2],
-        },
+        "records": await chuni_get_records(g.user),
         "username": g.username,
         "nickname": g.user.nickname,
         "rating": g.user.chuni_rating
@@ -249,7 +157,7 @@ async def player_records_chunitest():
     p = Player.get_by_id(636)
     rs = ChuniRecord.raw('select * from chunirecord where player_id = 636 and recent = 0')
     rs2 = ChuniRecord.raw('select * from chunirecord where player_id = 636 and recent = 1')
-    await compute_ra(p)
+    # await compute_ra(p)
     return {
         "records": {
             "best": [record_json(c) for c in rs],
@@ -288,8 +196,6 @@ async def query_player_chuni():
             return {"status": "error", "message": "会话过期"}, 403
         if token['username'] != obj["username"]:
             return {"status": "error", "message": "已设置隐私"}, 403
-    b30, r10 = get_b30_and_r10(p)
-    asyncio.create_task(compute_ra(p))
     nickname = p.nickname
     if nickname == "":
         nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
@@ -297,10 +203,7 @@ async def query_player_chuni():
         "username": p.username,
         "rating": p.chuni_rating,
         "nickname": nickname,
-        "records": {
-            "b30": [record_json(c) for c in b30],
-            "r10": [record_json(c) for c in r10]
-        }
+        "records": await chuni_get_b30_and_r10(p)
     }
 
 
@@ -323,14 +226,10 @@ async def dev_get_records_chuni():
             player: Player = Player.by_qq(qq)
     except Exception:
         return {"message": "no such user"}, 400
-    rs = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id)
-    rs2 = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', player.id)
-    await compute_ra(player)
+    if player.privacy or not player.accept_agreement:
+        return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
     return {
-        "records": {
-            "best": [record_json(c) for c in rs],
-            "r10": [record_json(c) for c in rs2],
-        },
+        "records": await chuni_get_records(player),
         "username": player.username,
         "nickname": player.nickname,
         "rating": player.chuni_rating
