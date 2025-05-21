@@ -126,7 +126,7 @@ async def flush_update_cache():
                 # print(r.chart_id)
                 if r.chart_id in dicts:
                     v = dicts[r.chart_id]
-                    r.achievements = min(v[0], 101)
+                    r.achievements = v[0]
                     r.fc = std_fc(v[1])
                     r.fs = std_fs(v[2])
                     r.dxScore = v[3]
@@ -136,7 +136,7 @@ async def flush_update_cache():
             for k in dicts:
                 v = dicts[k]
                 creates.append({"chart": k, "player": player_id,
-                            "fc": std_fc(v[1]), "fs": std_fs(v[2]), "dxScore": v[3], "achievements": min(v[0], 101)})
+                            "fc": std_fc(v[1]), "fs": std_fs(v[2]), "dxScore": v[3], "achievements": v[0]})
             if len(creates) > 0:
                 NewRecord.insert_many(creates).execute()
             # print(updates)

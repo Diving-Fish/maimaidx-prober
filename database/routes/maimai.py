@@ -434,7 +434,7 @@ async def update_record():
     r: NewRecord = NewRecord.get(
         (NewRecord.player == g.user.id) & (NewRecord.chart == cid))
     assert r
-    r.achievements = min(record['achievements'], 101)
+    r.achievements = min(record['achievements'], max_achievements(m))
     r.fc = std_fc(record['fc'])
     r.fs = std_fs(record['fs'])
     r.save()

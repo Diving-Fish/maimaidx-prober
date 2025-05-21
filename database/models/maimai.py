@@ -180,6 +180,7 @@ def record_json_list_for_input(md_title_type_map, records):
         m = get_music_by_title(md_title_type_map, title, _type)
         if m is None or level >= len(m["cids"]):
             continue
+        record['achievements'] = max_achievements(record['achievements'], m)
         sc = ScoreCoefficient(record['achievements'])
         ds = m["ds"][level]
         data = {
@@ -352,3 +353,8 @@ def std_fs(fs: str):
     if fs == "fdxp":
         return "fsdp"
     return ""
+
+def max_achievements(music):
+    if int(music['id']) < 100000:
+        return 101
+    return 101 * len(music['ds'])
