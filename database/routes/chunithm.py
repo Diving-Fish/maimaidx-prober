@@ -74,7 +74,7 @@ async def update_records_chuni():
         return {
                 "message": str(e)
             }, 400
-    print(j)
+    #print(j)
     if recent == 0:       
         for record in j:
             title = record['title']
@@ -103,8 +103,8 @@ async def update_records_chuni():
                 r.fc = dicts[r.chart_id]["fc"]
                 updates.append(r)
                 del dicts[r.chart_id]
-        print(dicts)
-        print(updates)
+        #print(dicts)
+        #print(updates)
         if len(dicts) > 0:
             ChuniRecord.insert_many(dicts.values()).execute()
         if len(updates) > 0:
@@ -127,6 +127,8 @@ async def update_records_chuni():
             })
         ChuniRecord.delete().where((ChuniRecord.player == g.user.id) & (ChuniRecord.recent == 1)).execute()
         ChuniRecord.insert_many(arr).execute()
+    
+    await compute_ra(g.user)
     return {"message": "更新成功"}
 
 @app.route("/chuni/player/delete_records", methods=['DELETE'])
@@ -249,7 +251,7 @@ async def player_records_chunitest():
     p = Player.get_by_id(636)
     rs = ChuniRecord.raw('select * from chunirecord where player_id = 636 and recent = 0')
     rs2 = ChuniRecord.raw('select * from chunirecord where player_id = 636 and recent = 1')
-    await compute_ra(p)
+    # await compute_ra(p)
     return {
         "records": {
             "best": [record_json(c) for c in rs],
@@ -323,6 +325,8 @@ async def dev_get_records_chuni():
             player: Player = Player.by_qq(qq)
     except Exception:
         return {"message": "no such user"}, 400
+    if player.privacy or not player.accept_agreement:
+        return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
     rs = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id)
     rs2 = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', player.id)
     await compute_ra(player)

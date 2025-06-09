@@ -39,6 +39,12 @@ class NewRecord(BaseModel):
     fs = CharField()
 
 
+class VoteResult(BaseModel):
+    music_id = CharField()
+    down_vote = IntegerField()
+    total_vote = IntegerField()
+
+
 # class RecordAnalysis(BaseModel):
 #     chart = ForeignKeyField(Chart)
 #     count = IntegerField()
@@ -65,7 +71,7 @@ class NewRecord(BaseModel):
 
 
 db.create_tables([Music, NewRecord, Chart, Player, EmailReset,
-                 FeedBack, Views, Message, Developer, DeveloperLog, RequestLog])
+                 FeedBack, Views, Message, NewDeveloper, Developer, DeveloperLog, NewDeveloperLog, RequestLog, VoteResult])
 
 SCORE_COEFFICIENT_TABLE = [
     [0, 0, 'd'],
@@ -150,14 +156,14 @@ def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
         return False, ""
     
 
-def get_masked_achievement(record: NewRecord, sc: ScoreCoefficient, ra: int):
-    if record.achievements >= 100.5:
-        if record.fc == "ap" or record.fc == "app":
+def get_masked_achievement(achievements: float, fc: str, ds: float, sc: ScoreCoefficient, ra: int):
+    if achievements >= 100.5:
+        if fc == "ap" or fc == "app":
             return 101
-        return math.floor(record.achievements * 10) / 10
+        return math.floor(achievements * 10) / 10
     if sc.c == 0:
         return 0
-    acc = ra * 100 / sc.c / record.ds
+    acc = ra * 100 / sc.c / ds
     if acc < sc.min:
         acc = sc.min
     else:
@@ -175,7 +181,7 @@ def record_json(record: NewRecord, masked: bool):
         "level_label": ["Basic", "Advanced", "Expert", "Master", "Re:MASTER"][record.level],
         "type": record.type,
         "dxScore": 0 if masked else record.dxScore,
-        "achievements": get_masked_achievement(record, sc, ra) if masked else record.achievements,
+        "achievements": get_masked_achievement(record.achievements, record.fc, record.ds, sc, ra) if masked else record.achievements,
         "rate": sc.r,
         "fc": record.fc,
         "fs": record.fs,
@@ -257,9 +263,9 @@ def t_equal(s1, s2):
 
 
 def get_music_by_title(md, t, tp):
-    for m in md:
-        if t_equal(m["title"], t) and m["type"] == tp:
-            return m
+    tpl = (t, tp)
+    if tpl in md:
+        return md[tpl]
     return None
 
 

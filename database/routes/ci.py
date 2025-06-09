@@ -1,4 +1,4 @@
-from app import app, ci_access_required
+from app import app, ci_access_required, mail_config
 from quart import Quart, request, g, make_response
 import json
 import asyncio
@@ -130,3 +130,84 @@ async def tag():
             del_nginx_conf(sha, s['port'])
             await run_command("sudo systemctl restart nginx")
         return await make_response("OK", 200)
+
+
+@app.route("/ci/developer_token", methods=['GET', 'POST'])
+@ci_access_required
+async def ci_developer_token():
+    if request.method == 'GET':
+        token = request.args.get("developer", type=str, default="")
+        if token == "":
+            res = []
+            # return all entries of developer token
+            for developer in NewDeveloper.select():
+                player: Player = developer.player
+                res.append({
+                    'username': player.username,
+                    'token': developer.token,
+                    # 'reason': developer.reason,
+                    # 'pic': json.loads(developer.pic),
+                    'level': developer.level,
+                    'available': developer.available or developer.confirm_token != '',
+                    'comment': developer.comment
+                })
+            return res
+        else:
+            try:
+                try:
+                    Developer.get(Developer.token == token)
+                    is_migrate = True
+                except Exception:
+                    is_migrate = False
+                developer: NewDeveloper = NewDeveloper.get(NewDeveloper.token == token)
+                player: Player = developer.player
+                return {
+                    'qq': player.bind_qq,
+                    'username': player.username,
+                    'token': developer.token,
+                    'reason': developer.reason,
+                    'pic': json.loads(developer.pic),
+                    'level': developer.level,
+                    'available': developer.available,
+                    'comment': developer.comment,
+                    'is_migrate': is_migrate
+                }
+            except Exception:
+                return {}, 400
+    if request.method == 'POST':
+        j = await request.json
+        token = j['token']
+        developer: NewDeveloper = NewDeveloper.get(NewDeveloper.token == token)
+        developer.bind_qq = developer.player.bind_qq
+        developer.level = j['level']
+        developer.comment = j['comment']
+        if developer.level > 0: # approved
+            developer.confirm_token = ''.join([random.choice(string.ascii_letters + string.digits) for _ in range(128)])
+            asyncio.create_task(send_mail(
+                payload={
+                    "sender": "舞萌 DX 查分器",
+                    "to": f"{developer.bind_qq}@qq.com",
+                    "body": f"""<p>您的开发者 Token 申请已通过，请点击此链接激活您的Token：<a href="https://www.diving-fish.com/api/maimaidxprober/dev/token_activate?token={developer.confirm_token}">网页链接</a></p>
+<p>为第一时间同步查分器开发者相关消息，请加入查分器开发者 QQ 群 605800479</p>""",
+                    "subject": "舞萌 DX 开发者 Token 申请结果",
+                    "type": "html"
+                },
+                mail_config=mail_config
+            ))
+        else:
+            developer.available = False
+            developer.confirm_token = ''
+            asyncio.create_task(send_mail(
+                payload={
+                    "sender": "舞萌 DX 查分器",
+                    "to": f"{developer.bind_qq}@qq.com",
+                    "body": f"""<p>很遗憾，您的开发者申请未能通过。原因如下：</p>
+<p>{developer.comment}</p>
+<p>请前往查分器官网尝试重新填写信息后再次申请。""",
+                    "subject": "舞萌 DX 开发者 Token 申请结果",
+                    "type": "html"
+                },
+                mail_config=mail_config
+            ))
+        developer.save()
+        return {"message": "ok"}, 200

@@ -3,7 +3,7 @@ import time
 import hashlib
 from typing import List, Optional, Dict, Text, Union, Any, Tuple
 
-from peewee import Model, CharField, IntegerField, BigIntegerField, BooleanField, ForeignKeyField, DoubleField, TextField
+from peewee import Model, CharField, IntegerField, BigIntegerField, BooleanField, BlobField, ForeignKeyField, DoubleField, TextField, CompositeKey
 from playhouse.db_url import connect
 
 with open('config.json', encoding='utf-8') as fr:
@@ -88,6 +88,18 @@ class Player(BaseModel):
         if fail1 and fail2:
             raise Exception("Player not found")
         return None
+    
+
+class NewDeveloper(BaseModel):
+    player = ForeignKeyField(Player)
+    token = CharField()
+    reason = TextField()
+    pic = TextField()
+    level = IntegerField() # 0: unavailable, 1: <300/day, 2: 300~1000/day, 3: 1000~3000/day, 4: 3000~10000/day
+    available = BooleanField()
+    bind_qq = CharField()
+    confirm_token = CharField()
+    comment = CharField()
 
 
 class Developer(BaseModel):
@@ -102,6 +114,15 @@ class DeveloperLog(BaseModel):
     function = CharField()
     remote_addr = CharField()
     timestamp = DoubleField()
+
+
+class NewDeveloperLog(BaseModel):
+    developer = ForeignKeyField(NewDeveloper)
+    function = CharField()
+    remote_addr = CharField()
+    timestamp = DoubleField()
+    request_args = TextField()
+    request_body = TextField()
 
 
 class FeedBack(BaseModel):
