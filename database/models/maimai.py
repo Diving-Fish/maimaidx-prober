@@ -317,3 +317,8 @@ def std_fs(fs: str):
     if fs == "fdxp":
         return "fsdp"
     return ""
+
+def max_achievements(music):
+    if int(music['id']) < 100000:
+        return 101
+    return 101 * len(music['ds'])

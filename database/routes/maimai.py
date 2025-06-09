@@ -444,7 +444,7 @@ async def update_records():
         if m is None or level >= len(m["cids"]):
             continue
         cid = m["cids"][level]
-        dicts[cid] = (record["achievements"], std_fc(record["fc"]),
+        dicts[cid] = (min(record["achievements"], max_achievements(m)), std_fc(record["fc"]),
                         std_fs(record["fs"]), record["dxScore"])
     rs = NewRecord.raw(
         'select * from newrecord where player_id = %s', g.user.id)
@@ -454,7 +454,7 @@ async def update_records():
         # print(r.chart_id)
         if r.chart_id in dicts:
             v = dicts[r.chart_id]
-            r.achievements = min(v[0], 101)
+            r.achievements = v[0]
             r.fc = std_fc(v[1])
             r.fs = std_fs(v[2])
             r.dxScore = v[3]
@@ -464,7 +464,7 @@ async def update_records():
     for k in dicts:
         v = dicts[k]
         creates.append({"chart": k, "player": g.user.id,
-                       "fc": std_fc(v[1]), "fs": std_fs(v[2]), "dxScore": v[3], "achievements": min(v[0], 101)})
+                       "fc": std_fc(v[1]), "fs": std_fs(v[2]), "dxScore": v[3], "achievements": v[0]})
     NewRecord.insert_many(creates).execute()
     # print(updates)
     NewRecord.bulk_update(updates, fields=[
@@ -522,7 +522,7 @@ async def update_records_html():
         if m is None or level >= len(m["cids"]):
             continue
         cid = m["cids"][level]
-        dicts[cid] = (record["achievements"], std_fc(record["fc"]),
+        dicts[cid] = (min(record["achievements"], max_achievements(m)), std_fc(record["fc"]),
                         std_fs(record["fs"]), record["dxScore"])
     rs = NewRecord.raw(
         'select * from newrecord where player_id = %s', g.user.id)
@@ -532,7 +532,7 @@ async def update_records_html():
         # print(r.chart_id)
         if r.chart_id in dicts:
             v = dicts[r.chart_id]
-            r.achievements = min(v[0], 101)
+            r.achievements = v[0]
             r.fc = std_fc(v[1])
             r.fs = std_fs(v[2])
             r.dxScore = v[3]
@@ -542,7 +542,7 @@ async def update_records_html():
     for k in dicts:
         v = dicts[k]
         creates.append({"chart": k, "player": g.user.id,
-                       "fc": std_fc(v[1]), "fs": std_fs(v[2]), "dxScore": v[3], "achievements": min(v[0], 101)})
+                       "fc": std_fc(v[1]), "fs": std_fs(v[2]), "dxScore": v[3], "achievements": v[0]})
     if len(creates) > 0:
         NewRecord.insert_many(creates).execute()
     # print(updates)
@@ -576,7 +576,7 @@ async def update_record():
     r: NewRecord = NewRecord.get(
         (NewRecord.player == g.user.id) & (NewRecord.chart == cid))
     assert r
-    r.achievements = min(record['achievements'], 101)
+    r.achievements = min(record['achievements'], max_achievements(m))
     r.fc = std_fc(record['fc'])
     r.fs = std_fs(record['fs'])
     r.save()
