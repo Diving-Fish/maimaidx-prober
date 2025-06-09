@@ -45,6 +45,13 @@ class VoteResult(BaseModel):
     total_vote = IntegerField()
 
 
+class Vote2025(BaseModel):
+    player = ForeignKeyField(Player)
+    remote_addr = CharField()
+    vote_body = TextField()
+    timestamp = BigIntegerField()
+
+
 # class RecordAnalysis(BaseModel):
 #     chart = ForeignKeyField(Chart)
 #     count = IntegerField()
@@ -71,7 +78,7 @@ class VoteResult(BaseModel):
 
 
 db.create_tables([Music, NewRecord, Chart, Player, EmailReset,
-                 FeedBack, Views, Message, NewDeveloper, Developer, DeveloperLog, NewDeveloperLog, RequestLog, VoteResult])
+                 FeedBack, Views, Message, NewDeveloper, Developer, DeveloperLog, NewDeveloperLog, RequestLog, VoteResult, Vote2025])
 
 SCORE_COEFFICIENT_TABLE = [
     [0, 0, 'd'],
@@ -204,7 +211,7 @@ def platerecord_json(platerecord: NewRecord, masked: bool):
         "level": platerecord.diff,
         "level_index": platerecord.level,
         "type": platerecord.type,
-        "achievements": get_masked_achievement(platerecord, sc, ra) if masked else platerecord.achievements,
+        "achievements": get_masked_achievement(platerecord.achievements, platerecord.fc, platerecord.ds, sc, ra) if masked else platerecord.achievements,
         "fc": platerecord.fc,
         "fs": platerecord.fs
     }

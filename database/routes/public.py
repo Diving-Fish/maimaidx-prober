@@ -16,16 +16,16 @@ with open('advertisement.json') as ad:
 
 @app.route("/count_view", methods=['GET'])
 async def count_view():
-    v: Views = Views.get()
+    v: Views = await Views.aio_get()
     v.prober += 1
-    v.save()
+    await v.aio_save()
     return {"views": v.prober}
 
 
 async def message_resp():
     today_ts = int((time.time() + 8 * 3600) / 86400) * 86400 - 8 * 3600
-    results = Message.select(Message, Player).join(
-        Player).where(Message.ts >= today_ts)
+    results = await Message.select(Message, Player).join(
+        Player).where(Message.ts >= today_ts).aio_execute()
     l = []
     for r in results:
         l.append({"text": r.text, "username": r.player.username,
@@ -55,7 +55,7 @@ async def message():
         a.text = j["text"]
         a.nickname = j["nickname"]
         a.ts = int(time.time())
-        a.save(force_insert=True)
+        await a.aio_save(force_insert=True)
     return await message_resp()
 
 
@@ -67,7 +67,7 @@ async def advertisements():
 @app.route("/feedback", methods=['POST'])
 async def feedback():
     j = await request.get_json()
-    FeedBack.insert(j).execute()
+    await FeedBack.aio_create(**j)
     return {"message": "提交成功"}
 
 
@@ -77,7 +77,7 @@ async def login():
     username = j["username"]
     password = j["password"]
     try:
-        user: Player = Player.get(Player.username == username)
+        user: Player = await Player.aio_get(Player.username == username)
         if md5(password + user.salt) == user.password:
             resp = await make_response({"message": "登录成功"})
             resp.set_cookie('jwt_token', username_encode(
@@ -94,14 +94,14 @@ async def login():
 @app.route("/register", methods=['POST'])
 async def register():
     j = await request.get_json()
-    player = Player.select().where(Player.username == j["username"])
-    if player.exists():
+    player = await Player.select().where(Player.username == j["username"]).aio_execute()
+    if len(player) > 0:
         return {
             "errcode": -1,
             "message": "此用户名已存在",
         }, 400
     salt = ''.join(random.sample(string.ascii_letters + string.digits, 16))
-    Player.create(username=j["username"], salt=salt,
+    await Player.aio_create(username=j["username"], salt=salt,
                   password=md5(j["password"] + salt))
     resp = await make_response({"message": "注册成功"})
     resp.set_cookie('jwt_token', username_encode(j["username"]))
@@ -115,7 +115,7 @@ async def change_password():
     # if len(password) >= 30:
     #     return {"message": "密码不能大于30位"}, 400
     g.user.password = md5(password + g.user.salt)
-    g.user.save()
+    await g.user.aio_save()
     return {"message": "success"}
 
 
@@ -123,16 +123,16 @@ async def change_password():
 async def recovery():
     qq = request.args.get("qq", type=str, default="")
     try:
-        player = Player.get(Player.bind_qq == qq)
+        player = await Player.aio_get(Player.bind_qq == qq)
     except Exception:
         return {"message": "重置邮件已发送到您的QQ邮箱，请按照指引进行操作"}
     ts = int(time.time())
     try:
-        email_reset: EmailReset = EmailReset.get((EmailReset.player == player) & (EmailReset.timeout_stamp > ts))
+        email_reset: EmailReset = await EmailReset.aio_get((EmailReset.player == player) & (EmailReset.timeout_stamp > ts))
         random_token = email_reset.token
     except Exception:
         random_token = ''.join([random.choice(string.ascii_letters + string.digits) for _ in range(128)])
-        EmailReset.create(player=player, token=random_token, timeout_stamp=1800 + int(ts))
+        await EmailReset.aio_create(player=player, token=random_token, timeout_stamp=1800 + int(ts))
     asyncio.create_task(send_mail(
         payload={
             "sender": "舞萌 DX 查分器",
@@ -152,22 +152,22 @@ async def do_recovery():
     token = request.args.get("token", type=str, default="")
     ts = int(time.time())
     try:
-        email_reset: EmailReset = EmailReset.get((EmailReset.token == token) & (EmailReset.timeout_stamp > ts))
+        email_reset: EmailReset = await EmailReset.aio_get((EmailReset.token == token) & (EmailReset.timeout_stamp > ts))
     except Exception:
         return {"message": "此链接无效或已过期"}, 400
     if request.method == "GET":
-        p: Player = email_reset.player
+        p: Player = await Player.aio_get(Player.id == email_reset.player_id)
         return {"username": p.username}
     else:
-        p: Player = email_reset.player
+        p: Player = await Player.aio_get(Player.id == email_reset.player_id)
         j = await request.json
         if j["operation"] == "unbind_qq":
             p.bind_qq = ""
         elif j["operation"] == "reset_password":
             p.password = md5(j["password"] + p.salt)
-        p.save()
+        await p.aio_save()
         email_reset.timeout_stamp = 0;
-        email_reset.save()
+        await email_reset.aio_save()
         return {"message": "success"}
 
 
@@ -177,22 +177,22 @@ async def channel_to_qq():
     cuid = request.args.get("cuid", type=str, default="")
     if request.method == 'GET':
         try:
-            player = Player.get(Player.qq_channel_uid == cuid)
+            player = await Player.aio_get(Player.qq_channel_uid == cuid)
         except Exception:
             return {"qq": ""}
         return {"qq": player.bind_qq}
     else:
         qq = (await request.json)["qq"]
         try:
-            player = Player.get(Player.qq_channel_uid == cuid)
+            player = await Player.aio_get(Player.qq_channel_uid == cuid)
         except Exception:
             try:
-                player = Player.get(Player.bind_qq == qq)
+                player = await Player.aio_get(Player.bind_qq == qq)
             except Exception:
                 return {"message": "failed"}, 400
         player.qq_channel_uid = cuid
         player.bind_qq = qq
-        player.save()
+        await player.aio_save()
         return {"message": "success"}
 
 @app.route('/token_available', methods=['GET'])
@@ -201,7 +201,7 @@ async def token_available():
     if t == "":
         return {"message": "non-exist"}, 404
     try:
-        player = Player.get(Player.import_token == t)
+        player = await Player.aio_get(Player.import_token == t)
         return {"message": "ok"}, 200
     except Exception:
         return {"message": "non-exist"}, 404
@@ -211,7 +211,7 @@ async def token_available():
 async def developer_token():
     if request.method == 'GET': # get all tokens of this account
         res = []
-        for developer in NewDeveloper.select().where(NewDeveloper.player == g.user):
+        for developer in await NewDeveloper.select().where(NewDeveloper.player == g.user).aio_execute():
             res.append({
                 'token': developer.token,
                 # 'reason': developer.reason,
@@ -223,7 +223,7 @@ async def developer_token():
         return res
     elif request.method == 'POST': # create a new token for this account
         body = await request.json
-        for developer in NewDeveloper.select().where(NewDeveloper.player == g.user):
+        for developer in await NewDeveloper.select().where(NewDeveloper.player == g.user).aio_execute():
             if not developer.available:
                 return {"message": "目前用户已有申请中的 token，请联系水鱼处理后再重新申请"}, 400
             
@@ -236,8 +236,8 @@ async def developer_token():
 
             if 'token' in body and body['token'] != '': # migrate from legacy developer token
                 try:
-                    developer = Developer.get(Developer.token == body['token'])
-                    NewDeveloper.create(
+                    developer = await Developer.aio_get(Developer.token == body['token'])
+                    await NewDeveloper.aio_create(
                         player=g.user,
                         token=body['token'],
                         reason=body['reason'],
@@ -250,7 +250,7 @@ async def developer_token():
                 except Exception:
                     return {"message": "不存在此旧 Token！"}, 400
             else:
-                NewDeveloper.create(
+                await NewDeveloper.aio_create(
                     player=g.user,
                     token=''.join(random.sample(string.digits + string.ascii_letters, 32)),
                     reason=body['reason'],
@@ -269,13 +269,13 @@ async def developer_token():
             if body['level'] not in [0, 1, 2, 3, 4]:
                 return {"message": "无效 Level"}, 400
             
-            developer = NewDeveloper.get((NewDeveloper.token == body['token']) & (NewDeveloper.player == g.user))
+            developer = await NewDeveloper.aio_get((NewDeveloper.token == body['token']) & (NewDeveloper.player == g.user))
             developer.level = body['level']
             developer.reason = body['reason']
             developer.pic = json.dumps(body['pic'])
             developer.available = False
             developer.confirm_token = ''
-            developer.save()
+            await developer.aio_save()
 
             return {"message": "ok"}, 200
         except Exception:
@@ -288,10 +288,10 @@ async def token_activate():
         token = request.args.get('token', default='')
         if token == '':
             raise Exception()
-        developer: NewDeveloper = NewDeveloper.get(NewDeveloper.confirm_token == token)
+        developer: NewDeveloper = await NewDeveloper.aio_get(NewDeveloper.confirm_token == token)
         developer.confirm_token = ''
         developer.available = True
-        developer.save()
+        await developer.aio_save()
         return "Token 激活完成", 200
     except Exception:
         return "", 405

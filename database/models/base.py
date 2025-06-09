@@ -3,19 +3,59 @@ import time
 import hashlib
 from typing import List, Optional, Dict, Text, Union, Any, Tuple
 
-from peewee import Model, CharField, IntegerField, BigIntegerField, BooleanField, BlobField, ForeignKeyField, DoubleField, TextField, CompositeKey
-from playhouse.db_url import connect
+from peewee import Model, CharField, IntegerField, BigIntegerField, BooleanField, BlobField, ForeignKeyField, DoubleField, TextField, CompositeKey, chunked, Node, Case
+from peewee_async import AioModel, PooledMySQLDatabase
+from playhouse.db_url import parse
 
 with open('config.json', encoding='utf-8') as fr:
     config = json.load(fr)
     mysql_url = config["mysql_url"]
 
-db = connect(mysql_url)
+db_params = parse(mysql_url)
+db = PooledMySQLDatabase(**db_params)
 
-
-class BaseModel(Model):
+class BaseModel(AioModel):
     class Meta:
         database = db
+
+    @classmethod
+    async def aio_bulk_update(cls, model_list, fields, batch_size=None):
+        if isinstance(cls._meta.primary_key, CompositeKey):
+            raise ValueError('bulk_update() is not supported for models with '
+                             'a composite primary key.')
+
+        # First normalize list of fields so all are field instances.
+        fields = [cls._meta.fields[f] if isinstance(f, str) else f
+                  for f in fields]
+        # Now collect list of attribute names to use for values.
+        attrs = [field.object_id_name if isinstance(field, ForeignKeyField)
+                 else field.name for field in fields]
+
+        if batch_size is not None:
+            batches = chunked(model_list, batch_size)
+        else:
+            batches = [model_list]
+
+        n = 0
+        pk = cls._meta.primary_key
+
+        for batch in batches:
+            id_list = [model._pk for model in batch]
+            update = {}
+            for field, attr in zip(fields, attrs):
+                accum = []
+                for model in batch:
+                    value = getattr(model, attr)
+                    if not isinstance(value, Node):
+                        value = field.to_value(value)
+                    accum.append((pk.to_value(model._pk), value))
+                case = Case(pk, accum)
+                update[field] = case
+
+            n += await (cls.update(update)
+                  .where(cls._meta.primary_key.in_(id_list))
+                  .aio_execute())
+        return n
 
 
 class RequestLog(BaseModel):
@@ -45,6 +85,7 @@ class Player(BaseModel):
     user_data = TextField()
     user_general_data = TextField()
     access_time = BigIntegerField()
+    chuni_access_time = BigIntegerField()
     import_token = CharField()
 
     def user_json(self):
@@ -66,22 +107,22 @@ class Player(BaseModel):
             "import_token": self.import_token
         }
 
-    def generate_import_token(self):
+    async def generate_import_token(self):
         self.import_token = hashlib.sha512((self.username + str(time.time())).encode()).hexdigest()
-        self.save()
+        await self.aio_save()
         return self.import_token
 
     @staticmethod
-    def by_qq(qq):
+    async def by_qq(qq):
         fail1 = False
         fail2 = False
         try:
-            player = Player.get(Player.bind_qq == qq)
+            player = await Player.aio_get(Player.bind_qq == qq)
             return player
         except Exception:
             fail1 = True
         try:
-            player = Player.get(Player.qq_channel_uid == qq)
+            player = await Player.aio_get(Player.qq_channel_uid == qq)
             return player
         except Exception:
             fail2 = True

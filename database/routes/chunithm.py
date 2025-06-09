@@ -94,8 +94,8 @@ async def update_records_chuni():
                 }
             except IndexError:
                 print(m, record["level"])
-        rs = ChuniRecord.raw(
-            'select * from chunirecord where player_id = %s', g.user.id)
+        rs = await ChuniRecord.raw(
+            'select * from chunirecord where player_id = %s', g.user.id).aio_execute()
         updates = []
         for r in rs:
             if r.chart_id in dicts and not r.recent:
@@ -106,9 +106,9 @@ async def update_records_chuni():
         #print(dicts)
         #print(updates)
         if len(dicts) > 0:
-            ChuniRecord.insert_many(dicts.values()).execute()
+            await ChuniRecord.insert_many(dicts.values()).aio_execute()
         if len(updates) > 0:
-            ChuniRecord.bulk_update(updates, fields=[
+            await ChuniRecord.aio_bulk_update(updates, fields=[
                 ChuniRecord.fc, ChuniRecord.score
             ])
     elif recent == 1:
@@ -125,8 +125,8 @@ async def update_records_chuni():
                 "score": min(1010000, record["score"]),
                 "recent": True
             })
-        ChuniRecord.delete().where((ChuniRecord.player == g.user.id) & (ChuniRecord.recent == 1)).execute()
-        ChuniRecord.insert_many(arr).execute()
+        await ChuniRecord.delete().where((ChuniRecord.player == g.user.id) & (ChuniRecord.recent == 1)).aio_execute()
+        await ChuniRecord.insert_many(arr).aio_execute()
     
     await compute_ra(g.user)
     return {"message": "更新成功"}
@@ -138,7 +138,7 @@ async def delete_records_chuni():
     *需要登录
     删除您的中二查分器数据。
     """
-    nums = ChuniRecord.delete().where(ChuniRecord.player == g.user.id).execute()
+    nums = await ChuniRecord.delete().where(ChuniRecord.player == g.user.id).aio_execute()
     await compute_ra(g.user)
     return {
         "message": nums
@@ -192,22 +192,22 @@ def record_json(record: ChuniRecord):
     }
 
 
-def get_b30_and_r10(player: Player):
+async def get_b30_and_r10(player: Player):
     b30 = []
     r10 = []
-    rs = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id)
+    rs = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id).aio_execute()
     for r in rs:
         setattr(r, 'ra', single_ra(r))
         b30.append(r)
     b30.sort(key=lambda x: x.ra, reverse=True)
-    rs2 = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', player.id)
+    rs2 = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', player.id).aio_execute()
     for r in rs2:
         r10.append(r)
     return b30[:30], r10
 
 
 async def compute_ra(player: Player):
-    b30, r10 = get_b30_and_r10(player)
+    b30, r10 = await get_b30_and_r10(player)
     total = 0.0
     for record in b30:
         total += single_ra(record)
@@ -216,7 +216,7 @@ async def compute_ra(player: Player):
     rating = total / 40
     player.chuni_rating = rating
     player.access_time = time.time()
-    player.save()
+    await player.aio_save()
     return rating
     
 
@@ -228,8 +228,8 @@ async def player_records_chuni():
     获取用户的成绩数据，以 JSON 格式返回。
     """
     
-    rs = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', g.user.id)
-    rs2 = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', g.user.id)
+    rs = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', g.user.id).aio_execute()
+    rs2 = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', g.user.id).aio_execute()
     await compute_ra(g.user)
     return {
         "records": {
@@ -248,9 +248,9 @@ async def player_records_chunitest():
     获取测试用户的成绩数据，调试前端时使用。
     """
 
-    p = Player.get_by_id(636)
-    rs = ChuniRecord.raw('select * from chunirecord where player_id = 636 and recent = 0')
-    rs2 = ChuniRecord.raw('select * from chunirecord where player_id = 636 and recent = 1')
+    p = await Player.aio_get_by_id(636)
+    rs = await ChuniRecord.raw('select * from chunirecord where player_id = 636 and recent = 0').aio_execute()
+    rs2 = await ChuniRecord.raw('select * from chunirecord where player_id = 636 and recent = 1').aio_execute()
     # await compute_ra(p)
     return {
         "records": {
@@ -271,10 +271,10 @@ async def query_player_chuni():
     obj = await request.json
     try:
         if "qq" in obj:
-            p: Player = Player.by_qq(obj["qq"])
+            p: Player = await Player.by_qq(obj["qq"])
         else:
             username = obj["username"]
-            p: Player = Player.get(Player.username == username)
+            p: Player = await Player.aio_get(Player.username == username)
     except Exception:
         return {
             "message": "user not exists"
@@ -290,7 +290,7 @@ async def query_player_chuni():
             return {"status": "error", "message": "会话过期"}, 403
         if token['username'] != obj["username"]:
             return {"status": "error", "message": "已设置隐私"}, 403
-    b30, r10 = get_b30_and_r10(p)
+    b30, r10 = await get_b30_and_r10(p)
     asyncio.create_task(compute_ra(p))
     nickname = p.nickname
     if nickname == "":
@@ -320,15 +320,15 @@ async def dev_get_records_chuni():
         return {"message": "no such user"}, 400
     try:
         if qq == "":
-            player: Player = Player.get(Player.username == username)
+            player: Player = await Player.aio_get(Player.username == username)
         else:
-            player: Player = Player.by_qq(qq)
+            player: Player = await Player.by_qq(qq)
     except Exception:
         return {"message": "no such user"}, 400
     if player.privacy or not player.accept_agreement:
         return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
-    rs = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id)
-    rs2 = ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', player.id)
+    rs = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id).aio_execute()
+    rs2 = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', player.id).aio_execute()
     await compute_ra(player)
     return {
         "records": {

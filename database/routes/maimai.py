@@ -64,7 +64,7 @@ async def agreement():
         obj = await request.json
         if "accept_agreement" in obj:
             g.user.accept_agreement = obj["accept_agreement"]
-            g.user.save()
+            await g.user.aio_save()
         return {"message": "success"}
 
 
@@ -96,7 +96,7 @@ async def profile():
                 bind_qq = obj["bind_qq"]
                 if bind_qq != "":
                     try:
-                        player = Player.get((Player.bind_qq == bind_qq) & (Player.id != g.user.id))
+                        player = await Player.aio_get((Player.bind_qq == bind_qq) & (Player.id != g.user.id))
                         # Not found -> except
                         return {
                         "message": f"此 QQ 号已经被用户名为{player.username}的用户绑定，请先解绑再进行操作~"
@@ -109,7 +109,7 @@ async def profile():
                 qq_channel_uid = obj["qq_channel_uid"]
                 if qq_channel_uid != "":
                     try:
-                        player = Player.get((Player.qq_channel_uid == qq_channel_uid) & (Player.id != g.user.id))
+                        player = await Player.aio_get((Player.qq_channel_uid == qq_channel_uid) & (Player.id != g.user.id))
                         # Not found -> except
                         return {
                         "message": f"此频道 ID 已经被用户名为{player.username}的用户绑定，请先解绑再进行操作~"
@@ -122,7 +122,7 @@ async def profile():
                     g.user.__setattr__(key, obj[key])
                 if key == "user_general_data":
                     g.user.__setattr__(key, json.dumps(obj[key]))
-            g.user.save()
+            await g.user.aio_save()
             u: Player = g.user
             return u.user_json()
 
@@ -141,7 +141,7 @@ async def import_token():
     生成一个新的导入 Token，并覆盖旧 Token。
     """
     return {
-        "token": g.user.generate_import_token()
+        "token": await g.user.generate_import_token()
     }
 
 
@@ -168,7 +168,7 @@ async def get_records():
     *需要登录
     获取用户的成绩信息。
     """
-    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', g.user.id)
+    r = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', g.user.id).aio_execute()
     await compute_ra(g.user)
     records = []
     for record in r:
@@ -186,8 +186,8 @@ async def get_records():
 
 @app.route("/player/test_data", methods=['GET'])
 async def get_records_test():
-    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', '636')
-    user = Player.get(Player.id == 636)
+    r = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', '636').aio_execute()
+    user = await Player.aio_get(Player.id == 636)
     await compute_ra(user)
     records = []
     for record in r:
@@ -217,14 +217,14 @@ async def dev_get_records():
         return {"message": "no such user"}, 400
     try:
         if qq == "":
-            player: Player = Player.get(Player.username == username)
+            player: Player = await Player.aio_get(Player.username == username)
         else:
-            player: Player = Player.by_qq(qq)
+            player: Player = await Player.by_qq(qq)
     except Exception:
         return {"message": "no such user"}, 400
     if player.privacy or not player.accept_agreement:
         return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
-    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
+    r = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id).aio_execute()
     await compute_ra(player)
     records = []
     for record in r:
@@ -250,10 +250,10 @@ async def dev_get_record():
     obj = await request.json
     try:
         if "qq" in obj:
-            p: Player = Player.by_qq(obj["qq"])
+            p: Player = await Player.by_qq(obj["qq"])
         else:
             username = obj["username"]
-            p: Player = Player.get(Player.username == username)
+            p: Player = await Player.aio_get(Player.username == username)
     except Exception:
         return {"message": "no such user"}, 400
         
@@ -273,7 +273,7 @@ async def dev_get_record():
 
     query_str = f'({",".join(["%s"] * len(music_ids))})'
     
-    r = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and music.id in ' + query_str + ' and chart_id = chart.id and chart.music_id = music.id', p.id, *music_ids)
+    r = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and music.id in ' + query_str + ' and chart_id = chart.id and chart.music_id = music.id', p.id, *music_ids).aio_execute()
     records = defaultdict(lambda: [])
     for record in r:
         elem = record_json(record, p.mask)
@@ -281,8 +281,8 @@ async def dev_get_record():
     return records
 
 
-def get_dx_and_sd(player):
-    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
+async def get_dx_and_sd(player):
+    l = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id).aio_execute()
     l1 = []
     l2 = []
     for r in l:
@@ -296,8 +296,8 @@ def get_dx_and_sd(player):
     return l1[:25], l2[:15]
 
 
-def get_dx_and_sd_for50(player):
-    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id and chart.music_id < 100000', player.id)
+async def get_dx_and_sd_for50(player):
+    l = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id and chart.music_id < 100000', player.id).aio_execute()
     l1 = []
     l2 = []
     for r in l:
@@ -311,8 +311,8 @@ def get_dx_and_sd_for50(player):
     return l1[:35], l2[:15]
 
 
-def getplatelist(player, version: List[Dict]):
-    l = NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.version as `version`, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id)
+async def getplatelist(player, version: List[Dict]):
+    l = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.version as `version`, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id).aio_execute()
     fl = recordList()
     vl = []
     for r in l:
@@ -327,10 +327,10 @@ async def query_player():
     obj = await request.json
     try:
         if "qq" in obj:
-            p: Player = Player.by_qq(obj["qq"])
+            p: Player = await Player.by_qq(obj["qq"])
         else:
             username = obj["username"]
-            p: Player = Player.get(Player.username == username)
+            p: Player = await Player.aio_get(Player.username == username)
     except Exception:
         return {
             "message": "user not exists"
@@ -347,9 +347,9 @@ async def query_player():
         if token['username'] != obj["username"]:
             return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
     if "b50" in obj:
-        sd, dx = get_dx_and_sd_for50(p)
+        sd, dx = await get_dx_and_sd_for50(p)
     else:
-        sd, dx = get_dx_and_sd(p)
+        sd, dx = await get_dx_and_sd(p)
     await compute_ra(p)
     nickname = p.nickname
     if nickname == "":
@@ -382,10 +382,10 @@ async def query_plate():
     obj = await request.json
     try:
         if "qq" in obj:
-            p: Player = Player.by_qq(obj["qq"])
+            p: Player = await Player.by_qq(obj["qq"])
         else:
             username = obj["username"]
-            p: Player = Player.get(Player.username == username)
+            p: Player = await Player.aio_get(Player.username == username)
     except Exception:
         return {"message": "user not exists"}, 400
     if p.privacy or not p.accept_agreement:
@@ -400,7 +400,7 @@ async def query_plate():
         if token['username'] != obj["username"]:
             return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
     v: List[Dict] = obj["version"]
-    vl = getplatelist(p, v)
+    vl = await getplatelist(p, v)
     return {
         "verlist": [platerecord_json(c, p.mask) for c in vl]
     }
@@ -408,14 +408,14 @@ async def query_plate():
 
 async def compute_ra(player: Player):
     rating = 0
-    sd, dx = get_dx_and_sd_for50(player)
+    sd, dx = await get_dx_and_sd_for50(player)
     for t in sd:
         rating += int(t.ra)
     for t in dx:
         rating += int(t.ra)
     player.rating = rating
     player.access_time = time.time()
-    player.save()
+    await player.aio_save()
     return rating
 
 
@@ -440,14 +440,14 @@ async def update_records():
         title = record['title']
         _type = record['type']
         level = record['level_index']
-        m = get_music_by_title(md_cache, title, _type)
+        m = get_music_by_title(md_title_type_map, title, _type)
         if m is None or level >= len(m["cids"]):
             continue
         cid = m["cids"][level]
         dicts[cid] = (min(record["achievements"], max_achievements(m)), std_fc(record["fc"]),
                         std_fs(record["fs"]), record["dxScore"])
-    rs = NewRecord.raw(
-        'select * from newrecord where player_id = %s', g.user.id)
+    rs = await NewRecord.raw(
+        'select * from newrecord where player_id = %s', g.user.id).aio_execute()
     updates = []
     creates = []
     for r in rs:
@@ -465,10 +465,11 @@ async def update_records():
         v = dicts[k]
         creates.append({"chart": k, "player": g.user.id,
                        "fc": std_fc(v[1]), "fs": std_fs(v[2]), "dxScore": v[3], "achievements": v[0]})
-    NewRecord.insert_many(creates).execute()
-    # print(updates)
-    NewRecord.bulk_update(updates, fields=[
-                          NewRecord.achievements, NewRecord.fc, NewRecord.fs, NewRecord.dxScore])
+    if len(creates) > 0:
+        await NewRecord.insert_many(creates).aio_execute()
+    if len(updates) > 0:
+        await NewRecord.aio_bulk_update(updates, fields=[
+                            NewRecord.achievements, NewRecord.fc, NewRecord.fs, NewRecord.dxScore])
     await compute_ra(g.user)
     return {
         "message": "更新成功",
@@ -497,7 +498,7 @@ async def update_records_html():
         password = request.headers.get("password", default="")
         try:
             if username != "":
-                g.user: Player = Player.get(Player.username == username)
+                g.user: Player = await Player.aio_get(Player.username == username)
                 g.username = username
                 if md5(password + g.user.salt) != g.user.password:
                     raise Exception()
@@ -518,14 +519,14 @@ async def update_records_html():
         title = record['title']
         _type = record['type']
         level = record['level_index']
-        m = get_music_by_title(md_cache, title, _type)
+        m = get_music_by_title(md_title_type_map, title, _type)
         if m is None or level >= len(m["cids"]):
             continue
         cid = m["cids"][level]
         dicts[cid] = (min(record["achievements"], max_achievements(m)), std_fc(record["fc"]),
                         std_fs(record["fs"]), record["dxScore"])
-    rs = NewRecord.raw(
-        'select * from newrecord where player_id = %s', g.user.id)
+    rs = await NewRecord.raw(
+        'select * from newrecord where player_id = %s', g.user.id).aio_execute()
     updates = []
     creates = []
     for r in rs:
@@ -544,10 +545,10 @@ async def update_records_html():
         creates.append({"chart": k, "player": g.user.id,
                        "fc": std_fc(v[1]), "fs": std_fs(v[2]), "dxScore": v[3], "achievements": v[0]})
     if len(creates) > 0:
-        NewRecord.insert_many(creates).execute()
+        await NewRecord.insert_many(creates).aio_execute()
     # print(updates)
     if len(updates) > 0:
-        NewRecord.bulk_update(updates, fields=[
+        await NewRecord.aio_bulk_update(updates, fields=[
                           NewRecord.achievements, NewRecord.fc, NewRecord.fs, NewRecord.dxScore])
     await compute_ra(g.user)
     return {
@@ -569,17 +570,17 @@ async def update_record():
     title = record['title']
     _type = record['type']
     level = record['level_index']
-    m = get_music_by_title(md_cache, title, _type)
+    m = get_music_by_title(md_title_type_map, title, _type)
     if m is None:
         return
     cid = m["cids"][level]
-    r: NewRecord = NewRecord.get(
+    r: NewRecord = await NewRecord.aio_get(
         (NewRecord.player == g.user.id) & (NewRecord.chart == cid))
     assert r
     r.achievements = min(record['achievements'], max_achievements(m))
     r.fc = std_fc(record['fc'])
     r.fs = std_fs(record['fs'])
-    r.save()
+    await r.aio_save()
     await compute_ra(g.user)
     return {
         "message": "更新成功",
@@ -595,17 +596,17 @@ async def delete_records():
     """
     global cs_need_update
     cs_need_update = True
-    nums = NewRecord.delete().where(NewRecord.player == g.user.id).execute()
+    nums = await NewRecord.delete().where(NewRecord.player == g.user.id).aio_execute()
     await compute_ra(g.user)
     return {
         "message": nums
     }
 
 
-def get_hot_music_data():
-    cursor = NewRecord.raw(
+async def get_hot_music_data():
+    cursor = await NewRecord.raw(
         'select chart.music_id as music_id, sum(record.c) as cnt from (select chart_id, count(id) as c from newrecord group by chart_id) as record join chart on chart.id = chart_id group by chart.music_id ;'
-    )
+    ).aio_execute()
     all_count = 0
     hot_music = defaultdict(lambda: 0)
     for elem in cursor:
@@ -643,7 +644,7 @@ async def hot_music():
     hot_music = await redis.get("maimaidxprober_hot_music")
     if hot_music is not None:
         return json.loads(hot_music)
-    hot_music = get_hot_music_data()
+    hot_music = await get_hot_music_data()
     await redis.set("maimaidxprober_hot_music", json.dumps(hot_music), ex=86400)
     return hot_music
 
@@ -657,23 +658,23 @@ async def get_random_hot(value):
     return 0
 
 
-def up_vote(music_id):
+async def up_vote(music_id):
     try:
-        m = VoteResult.get(VoteResult.music_id == music_id)
+        m = await VoteResult.aio_get(VoteResult.music_id == music_id)
         m.total_vote += 1
-        m.save()
+        await m.aio_save()
     except Exception:
-        VoteResult.create(music_id=music_id, total_vote=1, up_vote=1)
+        await VoteResult.aio_create(music_id=music_id, total_vote=1, up_vote=1)
 
 
-def down_vote(music_id):
+async def down_vote(music_id):
     try:
-        m = VoteResult.get(VoteResult.music_id == music_id)
+        m = await VoteResult.aio_get(VoteResult.music_id == music_id)
         m.down_vote += 1
         m.total_vote += 1
-        m.save()
+        await m.aio_save()
     except Exception:
-        VoteResult.create(music_id=music_id, total_vote=1, down_vote=1)
+        await VoteResult.aio_create(music_id=music_id, total_vote=1, down_vote=1)
 
 
 @app.route("/vote_result", methods=['GET'])
@@ -681,7 +682,7 @@ async def vote_result():
     """
     返回投票结果。
     """
-    results = VoteResult.select()
+    results = await VoteResult.select().aio_execute()
     data = []
     for result in results:
         data.append({
@@ -723,14 +724,14 @@ async def vote_box():
         right = data["right"]
         await redis.delete("maimaidxprober_vote_box_" + token)
         if vote == 1:
-            up_vote(left)
-            down_vote(right)
+            await up_vote(left)
+            await down_vote(right)
         if vote == 2:
-            down_vote(left)
-            up_vote(right)
+            await down_vote(left)
+            await up_vote(right)
         if vote == 3:
-            down_vote(left)
-            down_vote(right)
+            await down_vote(left)
+            await down_vote(right)
         # get rank of left and right
         results = sorted(await vote_result(), key=lambda x: x["down_vote"] / x["total_vote"])
         left_rank = 1
@@ -756,7 +757,7 @@ async def rating_ranking():
     """
     返回 rating 排行榜（设置隐私的用户不包含在内）。
     """
-    players = Player.select().where((Player.rating != 0) & (Player.privacy == False))
+    players = await Player.select().where((Player.rating != 0) & (Player.privacy == False)).aio_execute()
     data = []
     for player in players:
         data.append({"username": player.username, "ra": player.rating})
@@ -783,7 +784,7 @@ async def chart_stats():
         resp.headers['content-type'] = "application/json; charset=utf-8"
         resp.headers['cache-control'] = "private, max_age=86400"
         return resp
-    cursor2 = NewRecord.raw('''select c.difficulty as diff,
+    cursor2 = await NewRecord.raw('''select c.difficulty as diff,
         SUM(recordanalysis.sum_achievements) / SUM(recordanalysis.cnt) as ach,
         SUM(recordanalysis.d) / SUM(recordanalysis.cnt) as d,
         SUM(recordanalysis.c) / SUM(recordanalysis.cnt) as c,
@@ -803,7 +804,7 @@ async def chart_stats():
         SUM(recordanalysis.fcp) / SUM(recordanalysis.cnt) as fcp,
         SUM(recordanalysis.ap) / SUM(recordanalysis.cnt) as ap,
         SUM(recordanalysis.app) / SUM(recordanalysis.cnt) as app
-        from recordanalysis join chart c on recordanalysis.chart_id = c.id group by c.difficulty;''')
+        from recordanalysis join chart c on recordanalysis.chart_id = c.id group by c.difficulty;''').aio_execute()
     diff_data = {}
     for elem in cursor2:
         diff_data[elem.diff] = {
@@ -812,11 +813,11 @@ async def chart_stats():
             "fc_dist": [1 - float(elem.fc) - float(elem.fcp) - float(elem.ap) - float(elem.app), float(elem.fc), elem.fcp, elem.ap, elem.app]
         }
 
-    cursor = NewRecord.raw(
+    cursor = await NewRecord.raw(
         '''select recordanalysis.*, rst.std_dev as std_dev, c2.music_id as mid, c2.level as level, c2.difficulty as diff from recordanalysis
         join record_stddev_table rst on recordanalysis.chart_id = rst.c
         join chart c2 on recordanalysis.chart_id = c2.id;'''
-    )
+    ).aio_execute()
     charts = []
     charts = defaultdict(lambda: [{}, {}, {}, {}, {}])
     for elem in cursor:
@@ -919,3 +920,73 @@ async def maidle_answer():
     return {
         "msg": "error"
     }, 400
+
+
+# Vote 2025
+@app.route("/vote2025/data", methods=['GET'])
+async def vote2025_data():
+    data = []
+    for cursor in Vote2025.select().iterator():
+        data.append(json.loads(cursor.vote_body))
+    return data
+
+
+@app.route("/vote2025", methods=['GET', 'POST'])
+@login_required
+async def vote2025():
+    """
+    获取、提交用户的投票信息。
+    """
+    if request.method == 'GET':
+        # 获取用户的投票信息
+        try:
+            vote = await Vote2025.aio_get(Vote2025.player == g.user.id)
+            return json.loads(vote.vote_body)
+        except Exception:
+            return {
+                "unvoted": True
+            }
+    elif request.method == 'POST':
+        try: 
+            vote = await Vote2025.aio_get(Vote2025.player == g.user.id)
+            return {
+                "message": "您已经投过票了，请勿重复投票"
+            }, 400
+        except Exception:
+            pass
+        obj = await request.json
+        vote_list = obj.get("vote_list", [])
+        if len(vote_list) > 40:
+            return {
+                "message": "最多只能投 40 首歌"
+            }, 400
+        vote_list = list(set(vote_list))
+        for vote_id in vote_list:
+            if str(vote_id) not in md_map:
+                return {
+                    "message": f"歌曲 ID {vote_id} 不存在"
+                }, 400
+        suggest_id = obj.get("suggest_id", 0)
+        if str(suggest_id) not in md_map:
+            return {
+                "message": "真爱歌曲 ID 不存在"
+            }, 400
+        suggest_comment = obj.get("suggest_comment", "")
+        remote_addr = request.remote_addr
+        xip = request.headers.get("X-Real-IP", default="")
+        if xip != "":
+            remote_addr = xip
+        ts = int(time.time_ns() / 1e6)
+        await Vote2025.aio_create(
+            player=g.user.id,
+            vote_body=json.dumps({
+                "vote_list": vote_list,
+                "suggest_id": suggest_id,
+                "suggest_comment": suggest_comment
+            }, ensure_ascii=False),
+            remote_addr=remote_addr,
+            timestamp=ts
+        )
+        return {
+            "message": "投票成功"
+        }

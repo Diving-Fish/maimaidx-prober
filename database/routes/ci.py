@@ -3,6 +3,9 @@ from quart import Quart, request, g, make_response
 import json
 import asyncio
 import random
+from models.base import *
+import string
+from tools.mail import send_mail
 
 IMAGE_NAME = "divingfish/maimaidx-prober"
 ci_status = ...
@@ -140,8 +143,8 @@ async def ci_developer_token():
         if token == "":
             res = []
             # return all entries of developer token
-            for developer in NewDeveloper.select():
-                player: Player = developer.player
+            for developer in await NewDeveloper.select().aio_execute():
+                player: Player = await Player.aio_get(Player.id == developer.player_id)
                 res.append({
                     'username': player.username,
                     'token': developer.token,
@@ -155,11 +158,11 @@ async def ci_developer_token():
         else:
             try:
                 try:
-                    Developer.get(Developer.token == token)
+                    await Developer.aio_get(Developer.token == token)
                     is_migrate = True
                 except Exception:
                     is_migrate = False
-                developer: NewDeveloper = NewDeveloper.get(NewDeveloper.token == token)
+                developer: NewDeveloper = await NewDeveloper.aio_get(NewDeveloper.token == token)
                 player: Player = developer.player
                 return {
                     'qq': player.bind_qq,
@@ -177,7 +180,7 @@ async def ci_developer_token():
     if request.method == 'POST':
         j = await request.json
         token = j['token']
-        developer: NewDeveloper = NewDeveloper.get(NewDeveloper.token == token)
+        developer: NewDeveloper = await NewDeveloper.aio_get(NewDeveloper.token == token)
         developer.bind_qq = developer.player.bind_qq
         developer.level = j['level']
         developer.comment = j['comment']
@@ -209,5 +212,5 @@ async def ci_developer_token():
                 },
                 mail_config=mail_config
             ))
-        developer.save()
+        await developer.aio_save()
         return {"message": "ok"}, 200
