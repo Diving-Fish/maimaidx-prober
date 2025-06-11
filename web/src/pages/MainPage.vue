@@ -943,7 +943,7 @@ export default {
         record.ds = this.music_data_dict[record.song_id].ds[record.level_index];
       if (record.ds && record.ds >= 7.0) {
         let arr = ("" + record.ds).split(".");
-        if (["7", "8", "9"].indexOf(arr[1]) != -1) {
+        if (["6", "7", "8", "9"].indexOf(arr[1]) != -1) {
           record.level = arr[0] + "+";
         } else {
           record.level = arr[0];
