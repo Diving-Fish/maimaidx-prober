@@ -444,8 +444,8 @@ async def update_records():
         if m is None or level >= len(m["cids"]):
             continue
         cid = m["cids"][level]
-        dicts[cid] = (min(record["achievements"], max_achievements(m)), std_fc(record["fc"]),
-                        std_fs(record["fs"]), record["dxScore"])
+        dicts[cid] = (min(record["achievements"], max_achievements(m)), std_fc(record.get("fc", "")),
+                        std_fs(record.get("fs", "")), record["dxScore"])
     rs = await NewRecord.raw(
         'select * from newrecord where player_id = %s', g.user.id).aio_execute()
     updates = []
@@ -523,8 +523,8 @@ async def update_records_html():
         if m is None or level >= len(m["cids"]):
             continue
         cid = m["cids"][level]
-        dicts[cid] = (min(record["achievements"], max_achievements(m)), std_fc(record["fc"]),
-                        std_fs(record["fs"]), record["dxScore"])
+        dicts[cid] = (min(record["achievements"], max_achievements(m)), std_fc(record.get("fc", "")),
+                        std_fs(record.get("fs", "")), record["dxScore"])
     rs = await NewRecord.raw(
         'select * from newrecord where player_id = %s', g.user.id).aio_execute()
     updates = []
@@ -931,6 +931,34 @@ async def vote2025_data():
     return data
 
 
+with open('music_data_2024_last.json', 'r', encoding='utf-8') as f:
+    vote2025_md = json.load(f)
+    vote2025_md_etag = md5(json.dumps(vote2025_md, ensure_ascii=False))
+    vote2025_md_map = {}
+    for elem in vote2025_md:
+        vote2025_md_map[str(elem['id'])] = elem
+    print(vote2025_md_map.keys())
+
+@app.route("/vote2025/music_data", methods=['GET'])
+async def vote2025_music_data():
+    # Return the content of music_data_2024_last.json with proper cache headers
+    try:
+        # Check if we can return 304 Not Modified
+        if request.headers.get('If-None-Match') == f'"{vote2025_md_etag}"':
+            resp = await make_response("", 304)
+            resp.headers['cache-control'] = "private, max_age=86400"
+            return resp
+            
+        # Otherwise return the full response with cache headers
+        resp = await make_response(json.dumps(vote2025_md, ensure_ascii=False))
+        resp.headers['ETag'] = f'"{vote2025_md_etag}"'
+        resp.headers['content-type'] = "application/json; charset=utf-8"
+        resp.headers['cache-control'] = "private, max_age=86400"
+        return resp
+    except Exception as e:
+        return {"message": f"Error loading music data: {str(e)}"}, 500
+
+
 @app.route("/vote2025", methods=['GET', 'POST'])
 @login_required
 async def vote2025():
@@ -962,12 +990,12 @@ async def vote2025():
             }, 400
         vote_list = list(set(vote_list))
         for vote_id in vote_list:
-            if str(vote_id) not in md_map:
+            if str(vote_id) not in vote2025_md_map:
                 return {
                     "message": f"歌曲 ID {vote_id} 不存在"
                 }, 400
         suggest_id = obj.get("suggest_id", 0)
-        if str(suggest_id) not in md_map:
+        if str(suggest_id) not in vote2025_md_map:
             return {
                 "message": "真爱歌曲 ID 不存在"
             }, 400

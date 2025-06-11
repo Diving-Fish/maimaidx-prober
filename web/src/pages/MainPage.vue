@@ -241,7 +241,7 @@
               <v-card-text>
                 <v-tabs v-model="tab">
                   <v-tab key="sd">旧乐谱</v-tab>
-                  <v-tab key="dx">DX 2024</v-tab>
+                  <v-tab key="dx">DX 2025</v-tab>
                 </v-tabs>
                 <v-tabs-items v-model="tab">
                   <v-tab-item key="sd">
@@ -610,7 +610,9 @@ export default {
           return !this.is_new(elem);
         })
         .sort((a, b) => {
-          return b.ra - a.ra;
+          if (b.ra !== a.ra) return b.ra - a.ra;
+          if (b.ds !== a.ds) return b.ds - a.ds;
+          return b.achievements - a.achievements;
         });
       for (let i = 0; i < data.length; i++) {
         data[i].rank = i + 1;
@@ -623,7 +625,9 @@ export default {
           return this.is_new(elem);
         })
         .sort((a, b) => {
-          return b.ra - a.ra;
+          if (b.ra !== a.ra) return b.ra - a.ra;
+          if (b.ds !== a.ds) return b.ds - a.ds;
+          return b.achievements - a.achievements;
         });
       for (let i = 0; i < data.length; i++) {
         data[i].rank = i + 1;
