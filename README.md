@@ -186,7 +186,7 @@ chmod +x <文件名>
   .then(res => fetch('https://www.diving-fish.com/api/pageparser/page', {
     method: 'POST',
     headers:(new Headers({'Content-Type':'text/plain'})),
-    body: "<login><u>"+u+"</u><p>"+p+"</p></login>" + res.match(/<html.*>([\s\S]*)<\/html>/)[1].replace(/\s+/g,' ')
+    body: "<login><u>"+u+"</u><p>"+p+"</p></login>" + res.match(/<html.*>([\s\S]*)<\/html>/)[1].replace(/(\s)\s+/g,'$1')
   }))
   .then(r => r.json())
   .then(res => {console.log(diffName, res.message, res);if(res.message!='success')throw new Error(diffName+' 上传分数出错')})
