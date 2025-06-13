@@ -711,7 +711,7 @@ export default {
             more_ra.push({
               ds: ds,
               achievements: ans / 10000,
-              rating: curr_max_ra,
+              rating: new ScoreCoefficient(ans / 10000).ra(ds),
             });
           }
         }
