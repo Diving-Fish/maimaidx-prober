@@ -122,7 +122,7 @@ const pageToRecordList = function (pageData) {
     '//div[@class="music_name_block t_l f_13 break"]',
     doc
   );
-  const labels = ["basic", "advanced", "expert", "master", "remaster"];
+  const labels = ["basic", "advanced", "expert", "master", "remaster", ""];
   for (const name of names) {
     let title = name.textContent;
     let diffNode = getSibN(name, -6);
@@ -141,9 +141,10 @@ const pageToRecordList = function (pageData) {
     let fcNode = getSibN(name, 8);
     let rateNode = getSibN(name, 10);
 
-    const level_index = labels.indexOf(
+    let level_index = labels.indexOf(
       diffNode.getAttribute("src").match("diff_(.*).png")[1]
     );
+
     if (title == "Link") {
       if (typeNode) {
         dxScore = parseInt(dxScoreNode.textContent.split('/')[1])
@@ -161,7 +162,7 @@ const pageToRecordList = function (pageData) {
     let record_data = {
       title: title,
       level: levelNode.textContent,
-      level_index: level_index,
+      level_index: level_index === 5 ? 0 : level_index,
       type: "",
       achievements: parseFloat(scoreNode.textContent),
       dxScore: parseInt(dxScoreNode.textContent.replace(",", "")),
@@ -196,6 +197,11 @@ const pageToRecordList = function (pageData) {
       if (s == "standard") record_data.type = "SD";
       else record_data.type = "DX";
     }
+
+    if (level_index == 5) {
+      record_data.type = "DX";
+    }
+
     records.push(record_data);
   }
   return records;

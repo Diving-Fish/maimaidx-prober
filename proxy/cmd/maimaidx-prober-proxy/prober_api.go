@@ -89,7 +89,7 @@ func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Co
 	c.cl.Jar.SetCookies(req0.URL, cookies)
 
 	labels := []string{
-		"Basic", "Advanced", "Expert", "Master", "Re: MASTER",
+		"Basic", "Advanced", "Expert", "Master", "Re: MASTER", "", "", "", "", "", "UTAGE",
 	}
 	versionTags := []string{
 		"V-0", "V-1", "V-2", "V-3", "V-4", "V-5", "V-6", "V-7", "V-8", "V-9", "V-10", "V-11", "V-12", "V-13", "V-15", "V-17", "V-19",
