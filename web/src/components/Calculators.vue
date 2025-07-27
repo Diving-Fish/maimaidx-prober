@@ -336,7 +336,7 @@
                 v-model="rating_input"
                 :rules="[
                   (u) =>
-                    (isFinite(+u) && +u >= 0 && +u <= 300) || '请输入合法数据',
+                    (isFinite(+u) && +u >= 0 && +u <= 337) || '请输入合法数据',
                 ]"
               ></v-text-field>
               <v-data-table
