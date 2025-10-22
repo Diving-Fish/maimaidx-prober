@@ -40,7 +40,7 @@ async def startup():
 def cors(environ):
     environ.headers['Access-Control-Allow-Origin'] = '*'
     environ.headers['Access-Control-Allow-Method'] = '*'
-    environ.headers['Access-Control-Allow-Headers'] = 'x-requested-with,content-type'
+    environ.headers['Access-Control-Allow-Headers'] = 'x-requested-with,content-type,import-token'
     if getattr(g, "user", None) is not None and request.method != 'OPTIONS':
         environ.set_cookie('jwt_token', username_encode(g.username), max_age=30 * 86400)
     return environ
