@@ -80,13 +80,17 @@ func getMaiDiffs(MaiDiffs []string) (diffs []int, err error) {
 		"rem":       4,
 		"remaster":  4,
 		"re:master": 4,
+		"10":        10,
+		"uta":       10,
+		"utage":     10,
 	}
 	if len(MaiDiffs) == 0 {
 		for i := 0; i <= 4; i++ {
 			diffs = append(diffs, i) // 添加元素
 		}
+		diffs = append(diffs, 10)
 	} else {
-		diffList := []string{"Basic", "Advanced", "Expert", "Master", "Re:MASTER"}
+		diffList := []string{"Basic", "Advanced", "Expert", "Master", "Re:MASTER", "", "", "", "", "", "UTAGE"}
 		diffStr := ""
 		for _, diff := range MaiDiffs {
 			if intDiff, exist := maiDiffMap[strings.ToLower(diff)]; exist {
