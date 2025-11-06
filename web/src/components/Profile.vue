@@ -68,7 +68,7 @@
                   <template v-slot:activator="{ on }">
                     <v-icon v-on="on"> mdi-help-circle-outline </v-icon>
                   </template>
-                  绑定 QQ 号后，您可以直接输入 b40 以在千雪 bot
+                  绑定 QQ 号后，您可以直接在非官方 QQ bot
                   查询您自己的成绩。
                 </v-tooltip>
               </template></v-text-field
@@ -79,7 +79,7 @@
                   <template v-slot:activator="{ on }">
                     <v-icon v-on="on"> mdi-help-circle-outline </v-icon>
                   </template>
-                  您可以在频道中输入 cuid 查询自己的频道 ID。
+                  此功能仅供特殊用户使用，使用官方 bot 查分请使用 token 或用户名。
                 </v-tooltip>
               </template></v-text-field
             >
