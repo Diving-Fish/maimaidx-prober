@@ -350,6 +350,18 @@ const serve = (pageParser) => {
         computeRecord(record);
       }
       if (records === undefined) throw new Error("Records is undefined")
+      const token = req.headers['Import-Token'] || req.headers['import-token'];
+      if (token) {
+        await axios.post(
+          "https://www.diving-fish.com/api/maimaidxprober/player/update_records",
+          records,
+          {
+            headers: {
+              'Import-Token': token,
+            },
+          }
+        );
+      }
     }
     catch (err) {
       console.log(err)
@@ -381,6 +393,14 @@ const serve = (pageParser) => {
 
 const app = express();
 app.use(bodyParser.text({ limit: "32MB" }));
+// Simple request logger
+app.use((req, res, next) => {
+  const len = req.headers["content-length"];
+  const lengthInfo = len ? ` (${len}b)` : "";
+  const now = new Date().toISOString();
+  console.log(`[${now}] ${req.method} ${req.originalUrl}${lengthInfo}`);
+  next();
+});
 app.all("*", function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "content-type");
@@ -389,6 +409,54 @@ app.all("*", function (req, res, next) {
   else next();
 });
 const port = 8089;
+
+// Echo token endpoint: GET /shadowrocket?token=... -> returns the token as plain text
+app.get("/shadowrocket", (req, res) => {
+  const { token } = req.query;
+  if (typeof token === "undefined") {
+    res.status(400).type("text/plain").send("token required");
+    return;
+  }
+  const ret = `#!name=舞萌数据转发
+#!desc=抓取舞萌成绩页面并上传数据到舞萌数据站点
+#!author=Diving-Fish
+#!mitm=2
+#!total=1
+
+[Script]
+SCRIPT_upload = type=http-response, requires-body=1, binary-body-mode=0, max-size=100000000, timeout=60, pattern=^https:\\\/\\\/maimai\\\.wahlap\\\.com\\\/maimai-mobile\\\/record\\\/musicSort\\\/search\\\/\\\?search=A&sort=1&playCheck=on&diff=[0-4]$, script-path=https://www.diving-fish.com/api/pageparser/upload.js?token=${token}
+
+[Mitm]
+hostname=%APPEND% maimai.wahlap.com
+`
+  res.type("text/plain").send(ret);
+});
+
+app.get("/upload.js", (req, res) => {
+  const { token } = req.query;
+  if (typeof token === "undefined") {
+    res.status(400).type("text/plain").send("token required");
+    return;
+  }
+  // Prevent caching for dynamic JS
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  });
+  const jsCode = `const upload = () => {
+  $httpClient.post({
+    url: "https://www.diving-fish.com/api/pageparser/page",
+    headers: { 
+      "Content-Type": "text/plain; charset=utf-8",
+      "Import-Token": "${token}"
+    },
+    body: $response.body
+  }, (error) => $done({}));
+};
+upload();`.trim();
+  res.type("application/javascript").send(jsCode);
+});
 
 app.post("/page/friendVS", serve(friendVSPageToRecordList));
 app.post("/page", serve(pageToRecordList));

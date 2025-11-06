@@ -479,6 +479,7 @@ async def update_records():
 
 
 @app.route("/player/update_records_html", methods=['POST'])
+@login_or_token_required
 async def update_records_html():
     """
     *需要登录
@@ -553,6 +554,8 @@ async def update_records_html():
     await compute_ra(g.user)
     return {
         "message": "更新成功",
+        "updates": len(updates),
+        "creates": len(creates)
     }
 
 
@@ -926,8 +929,11 @@ async def maidle_answer():
 @app.route("/vote2025/data", methods=['GET'])
 async def vote2025_data():
     data = []
-    for cursor in Vote2025.select().iterator():
-        data.append(json.loads(cursor.vote_body))
+    for cursor in await Vote2025.select().aio_execute():
+        body = json.loads(cursor.vote_body)
+        player = await Player.aio_get(Player.id == cursor.player_id)
+        body['player'] = player.nickname if player.nickname else player.username
+        data.append(body)
     return data
 
 
@@ -972,9 +978,12 @@ async def vote2025():
             return json.loads(vote.vote_body)
         except Exception:
             return {
-                "unvoted": True
+                "unvoted": False
             }
     elif request.method == 'POST':
+        return {
+            "message": "投票已结束"
+        }
         try: 
             vote = await Vote2025.aio_get(Vote2025.player == g.user.id)
             return {

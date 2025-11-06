@@ -145,13 +145,19 @@ async def ci_developer_token():
             # return all entries of developer token
             for developer in await NewDeveloper.select().aio_execute():
                 player: Player = await Player.aio_get(Player.id == developer.player_id)
+                available = 0
+                if developer.available:
+                    available = 2
+                elif developer.confirm_token != '':
+                    available = 1
                 res.append({
                     'username': player.username,
                     'token': developer.token,
+                    'qq': developer.bind_qq,
                     # 'reason': developer.reason,
                     # 'pic': json.loads(developer.pic),
                     'level': developer.level,
-                    'available': developer.available or developer.confirm_token != '',
+                    'available': available,
                     'comment': developer.comment
                 })
             return res
@@ -163,7 +169,7 @@ async def ci_developer_token():
                 except Exception:
                     is_migrate = False
                 developer: NewDeveloper = await NewDeveloper.aio_get(NewDeveloper.token == token)
-                player: Player = developer.player
+                player: Player = await Player.aio_get(developer.player_id == Player.id)
                 return {
                     'qq': player.bind_qq,
                     'username': player.username,
@@ -181,7 +187,7 @@ async def ci_developer_token():
         j = await request.json
         token = j['token']
         developer: NewDeveloper = await NewDeveloper.aio_get(NewDeveloper.token == token)
-        developer.bind_qq = developer.player.bind_qq
+        developer.bind_qq = (await Player.aio_get(developer.player_id == Player.id)).bind_qq
         developer.level = j['level']
         developer.comment = j['comment']
         if developer.level > 0: # approved
