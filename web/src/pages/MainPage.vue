@@ -9,7 +9,7 @@
       <agreement></agreement>
       <v-divider class="mt-4 mb-4" />
       <p>
-        <v-btn href="/maimaidx/prober_guide" target="_blank" color="primary">数据导入指南</v-btn>
+        <v-btn href="/maimaidx/docs" target="_blank" color="primary">使用指南</v-btn>
         <tutorial ref="tutorial" />
       </p>
       <p class="mb-2">点个 Star 吧！</p>

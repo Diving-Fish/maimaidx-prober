@@ -4,6 +4,7 @@ dist
 package-lock.json
 database/config.json
 database/advertisement.json
+doc/build.sh
 
 
 # local env files

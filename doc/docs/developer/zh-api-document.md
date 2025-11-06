@@ -1,43 +1,8 @@
-# diving-fish 查分器 API 文档
-
+---
+sidebar_position: 1
 ---
 
-## 目录
-
-- [diving-fish 查分器 API 文档](#diving-fish-查分器-api-文档)
-  - [目录](#目录)
-  - [1. API端点](#1-api端点)
-  - [2. 身份验证](#2-身份验证)
-    - [2.1 无需验证要求](#21-无需验证要求)
-    - [2.2 Import-Token验证要求](#22-import-token验证要求)
-    - [2.3 Developer-Token验证要求](#23-developer-token验证要求)
-    - [2.4 登录验证](#24-登录验证)
-  - [3. 端点交互](#3-端点交互)
-    - [3.1 maimaidxprober](#31-maimaidxprober)
-      - [3.1.1 获取 / 更新用户是否同意用户协议](#311-获取--更新用户是否同意用户协议)
-      - [3.1.2 获取 / 更新用户资料](#312-获取--更新用户资料)
-      - [3.1.3 生成一个新的 Import-Token ，并覆盖旧 Token](#313-生成一个新的-import-token-并覆盖旧-token)
-      - [3.1.4 获取 maimai 的歌曲数据](#314-获取-maimai-的歌曲数据)
-      - [3.1.5 获取用户的完整成绩信息](#315-获取用户的完整成绩信息)
-      - [3.1.6 获取用户的单曲成绩信息](#316-获取用户的单曲成绩信息)
-      - [3.1.7 获取用户的简略成绩信息](#317-获取用户的简略成绩信息)
-      - [3.1.8 按版本获取用户的成绩信息](#318-按版本获取用户的成绩信息)
-      - [3.1.9 按 ID 获取歌曲的封面图片](#319-按-id-获取歌曲的封面图片)
-      - [3.1.10 获取公开的 用户-rating 完整数据](#3110-获取公开的-用户-rating-完整数据)
-      - [3.1.11 更新用户的成绩信息](#3111-更新用户的成绩信息)
-      - [3.1.12 通过 html 格式的数据更新用户的成绩信息](#3112-通过-html-格式的数据更新用户的成绩信息)
-      - [3.1.13 更新用户的单曲成绩](#3113-更新用户的单曲成绩)
-      - [3.1.14 清除用户的所有 maimai 成绩信息](#3114-清除用户的所有-maimai-成绩信息)
-      - [3.1.15 返回谱面的拟合难度等数据](#3115-返回谱面的拟合难度等数据)
-    - [3.2 chunithmprober](#32-chunithmprober)
-    - [3.3 public](#33-public)
-      - [3.3.1 使用 diving-fish 账号登录](#331-使用-diving-fish-账号登录)
-      - [3.3.2 获取查分器主页的views次数](#332-获取查分器主页的views次数)
-      - [3.3.3 验证服务器状态](#333-验证服务器状态)
-      - [3.3.4 获取 / 提交查分器主页的今日留言](#334-获取--提交查分器主页的今日留言)
-      - [3.3.5 获取查分器主页的广告](#335-获取查分器主页的广告)
-
----
+# 查分器 API 文档
 
 ## 1. API端点
 
@@ -92,7 +57,7 @@ https://www.diving-fish.com/api/maimaidxprober/player/profile
 
 public 类的端点中还包含一些其他功能如注册账户、重置账户、提交反馈等。出于便捷性和安全性考虑，此类功能以及大部分 public 类的功能均建议前往 [diving-fish 查分器主页](https://www.diving-fish.com/maimaidx/prober/) 进行操作。
 
-查看详细的源代码以了解访问过程中进行交互的详细数据结构或了解其他功能，可访问项目的 github 链接: <https://github.com/Diving-Fish/maimaidx-prober>
+查看详细的源代码以了解访问过程中进行交互的详细数据结构或了解其他功能，可访问项目的 github 链接: [https://github.com/Diving-Fish/maimaidx-prober](https://github.com/Diving-Fish/maimaidx-prober)
 
 ---
 
@@ -108,7 +73,7 @@ public 类的端点中还包含一些其他功能如注册账户、重置账户�
 
 ### 2.2 Import-Token验证要求
 
-该验证仅用于用户完整成绩信息的获取。对于此类请求，用户需要提供自己的 `Import-Token` 完成请求，用户可以在 <https://www.diving-fish.com/maimaidx/prober/> 登录后，在“编辑个人资料”中生成 `Import-Token` 并提供给您。
+该验证仅用于用户完整成绩信息的获取。对于此类请求，用户需要提供自己的 `Import-Token` 完成请求，用户可以在 [https://www.diving-fish.com/maimaidx/prober/](https://www.diving-fish.com/maimaidx/prober/) 登录后，在“编辑个人资料”中生成 `Import-Token` 并提供给您。
 
 您可以在 `headers` 中添加 `Import-Token` 信息进行验证，例如：
 
@@ -134,7 +99,7 @@ headers = {
 
 ### 2.3 Developer-Token验证要求
 
-部分端点访问要求 `Developer-Token` ，需要在查分器官网 <https://www.diving-fish.com/maimaidx/prober/> 申请获得。您可以在登录个人账号后在 `编辑个人资料` - `需要查分器中的玩家数据用于其他应用程序开发？请点击这里~` 中找到相关界面。
+部分端点访问要求 `Developer-Token` ，需要在查分器官网 [https://www.diving-fish.com/maimaidx/prober/](https://www.diving-fish.com/maimaidx/prober/) 申请获得。您可以在登录个人账号后在 `编辑个人资料` - `需要查分器中的玩家数据用于其他应用程序开发？请点击这里~` 中找到相关界面。
 
 通过该验证方式，您可以获取如下信息：
 
@@ -293,7 +258,7 @@ https://www.diving-fish.com/api/maimaidxprober/{端点路径}
 https://www.diving-fish.com/api/maimaidxprober/player/profile
 ```
 
-查看源代码以了解更多细节，可以访问 <https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/maimai.py>
+查看源代码以了解更多细节，可以访问 [https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/maimai.py](https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/maimai.py)
 
 #### 3.1.1 获取 / 更新用户是否同意用户协议
 
@@ -343,7 +308,7 @@ https://www.diving-fish.com/api/maimaidxprober/player/profile
 | `user_general_data` |-----| 暂无实际作用 |
 | `username` | `str` | 用户账号的用户名 **（不可修改）** |
 
-完整的用户模型还包含一些其他不可获取的参数，具体可查看 <https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/models/base.py>
+完整的用户模型还包含一些其他不可获取的参数，具体可查看 [https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/models/base.py](https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/models/base.py)
 
 获取用户资料可以向端点发送 GET 请求，一旦请求成功，服务器会返回一个 `200` 的状态码，并在响应体中包含一个 JSON 格式的数据，包含以上用户资料信息，如：
 
@@ -645,7 +610,7 @@ class ProberAPIClient:
 }
 ```
 
-随后您可以根据自身需求决定对数据的保存和处理方法。如果您希望获得一份**完整的用户成绩参考数据**用于测试及开发，可以对 `/player/test_data` 端点发送 GET 请求，服务器即会返回一份完整的参考数据。此端点不设验证要求，这意味着您可以直接通过浏览器访问该 URL 查看此参考数据：<https://www.diving-fish.com/api/maimaidxprober/player/test_data>
+随后您可以根据自身需求决定对数据的保存和处理方法。如果您希望获得一份**完整的用户成绩参考数据**用于测试及开发，可以对 `/player/test_data` 端点发送 GET 请求，服务器即会返回一份完整的参考数据。此端点不设验证要求，这意味着您可以直接通过浏览器访问该 URL 查看此参考数据：[https://www.diving-fish.com/api/maimaidxprober/player/test_data](https://www.diving-fish.com/api/maimaidxprober/player/test_data)
 
 #### 3.1.6 获取用户的单曲成绩信息
 
@@ -769,7 +734,7 @@ class ProberAPIClient:
 https://www.diving-fish.com/covers/{cover_id}.png
 ```
 
-其中 `{cover_id}` 为歌曲 ID，具体可参考 [maimai 歌曲数据](#314-获取-maimai-的歌曲数据) 中的歌曲 ID。**对于不足 5 位数的 ID，您需要在其前面补 `0` 以补足 5 位数**。如 ID 38 应当通过 <https://www.diving-fish.com/covers/00038.png> 访问。该方法不设验证要求，您可以直接通过浏览器打开 URL 进行访问。
+其中 `{cover_id}` 为歌曲 ID，具体可参考 [maimai 歌曲数据](#314-获取-maimai-的歌曲数据) 中的歌曲 ID。**对于不足 5 位数的 ID，您需要在其前面补 `0` 以补足 5 位数**。如 ID 38 应当通过 [https://www.diving-fish.com/covers/00038.png](https://www.diving-fish.com/covers/00038.png) 访问。该方法不设验证要求，您可以直接通过浏览器打开 URL 进行访问。
 
 在请求歌曲 ID 时，您可以对 ID 区间为 10001~11000 的歌曲做如下处理：
 
@@ -872,7 +837,7 @@ https://www.diving-fish.com/api/maimaidxprober/rating_ranking
 
 附加了登录验证信息并成功登录之后，您可以通过 html 格式的数据更新用户的成绩信息。
 
-该功能实际上用于在 [diving-fish 查分器主页](https://www.diving-fish.com/maimaidx/prober/) 手动根据网页源代码导入歌曲成绩，详情可见 <https://www.diving-fish.com/maimaidx/prober_guide> 中的方法二。服务器会通过 parser 解析网页的 html 源代码并导入指定页面包含的成绩数据。要通过其他更直观的方法导入成绩数据，请参考 [更新用户的成绩信息](#3111-更新用户的成绩信息) 。
+该功能实际上用于在 [diving-fish 查分器主页](https://www.diving-fish.com/maimaidx/prober/) 手动根据网页源代码导入歌曲成绩，详情可见 [https://www.diving-fish.com/maimaidx/prober_guide](https://www.diving-fish.com/maimaidx/prober_guide) 中的方法二。服务器会通过 parser 解析网页的 html 源代码并导入指定页面包含的成绩数据。要通过其他更直观的方法导入成绩数据，请参考 [更新用户的成绩信息](#3111-更新用户的成绩信息) 。
 
 #### 3.1.13 更新用户的单曲成绩
 
@@ -979,7 +944,7 @@ https://www.diving-fish.com/api/maimaidxprober/chart_stats
 
 拟合难度通过大量的成绩数据样本，对不同玩家的达成率、评级分布和 Full Combo 分布等因素进行综合分析后计算得出，提供了官标定数以外的参考难度，同时该方法提供的成绩分布等信息也具备价值。然而，由于个人差与其他各类因素的作用，拟合难度无法对每个用户都提供完全准确的难度判定，因此面向大量用户时，拟合难度仅作参考使用。
 
-了解拟合难度的详细算法，可以查看 <https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/maimai.py> 与 <https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/tools/maimai_analysis_curve.py> 中相关实现。
+了解拟合难度的详细算法，可以查看 [https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/maimai.py](https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/maimai.py) 与 [https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/tools/maimai_analysis_curve.py](https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/tools/maimai_analysis_curve.py) 中相关实现。
 
 `diff_data` 字典则提供了基于不同难度等级的统计数据。以下是一个示例：
 
@@ -1007,7 +972,7 @@ https://www.diving-fish.com/api/maimaidxprober/chart_stats
 
 ### 3.2 chunithmprober
 
-当前 `chunithmprober` 部分文档暂待贡献。您可以参考 <https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/chunithm.py> 的源码与 [`maimaidxprober`](#31-maimaidxprober) 部分的交互逻辑。
+当前 `chunithmprober` 部分文档暂待贡献。您可以参考 [https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/chunithm.py](https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/chunithm.py) 的源码与 [`maimaidxprober`](#31-maimaidxprober) 部分的交互逻辑。
 
 ---
 
@@ -1053,7 +1018,7 @@ https://www.diving-fish.com/api/maimaidxprober/chart_stats
 |-----|-----|-----|
 | `/message` | 无需验证 / [登录验证](#24-登录验证) | GET / POST |
 
-获取查分器主页的今日留言不设验证要求，您可以直接通过 <https://www.diving-fish.com/api/maimaidxprober/message> 进行访问。附加了登录验证信息并成功登录之后，您可以提交查分器主页的今日留言。
+获取查分器主页的今日留言不设验证要求，您可以直接通过 [https://www.diving-fish.com/api/maimaidxprober/message](https://www.diving-fish.com/api/maimaidxprober/message) 进行访问。附加了登录验证信息并成功登录之后，您可以提交查分器主页的今日留言。
 
 获取查分器主页的今日留言可以向端点发送 GET 请求，请求成功后，服务器会返回一个 JSON List 格式的响应体，包含留言文本、 `username` 、时间戳、马甲等。其中马甲可以在留言时实时指定而不与用户默认设定的 `nickname` 绑定。以下是一个可能的示例：
 
@@ -1082,7 +1047,7 @@ https://www.diving-fish.com/api/maimaidxprober/chart_stats
 |-----|-----|-----|
 | `/advertisements` | 无需验证 | GET |
 
-此方法不设验证要求，您可以直接通过 <https://www.diving-fish.com/api/maimaidxprober/advertisements> 进行访问。
+此方法不设验证要求，您可以直接通过 [https://www.diving-fish.com/api/maimaidxprober/advertisements](https://www.diving-fish.com/api/maimaidxprober/advertisements) 进行访问。
 
 向服务器发送 GET 请求成功后，服务器会以 JSON List 格式返回响应体，包含广告的超链接（点击跳转）以及广告图片 URL 。如：
 
