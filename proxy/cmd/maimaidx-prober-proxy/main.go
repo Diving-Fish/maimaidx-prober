@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"syscall"
 	"path/filepath"
+	"syscall"
 
 	"github.com/elazarl/goproxy"
 )

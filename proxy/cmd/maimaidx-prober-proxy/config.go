@@ -18,8 +18,7 @@ const (
 )
 
 type config struct {
-	UserName          string   `json:"username"`
-	Password          string   `json:"password"`
+	Token             string   `json:"token"`
 	Mode              string   `json:"mode,omitempty"`
 	MaiDiffs          []string `json:"mai_diffs,omitempty"`
 	Verbose           bool     `json:"verbose" default:"false"`
@@ -114,7 +113,7 @@ func initConfig(path string) (config, error) {
 	if err != nil {
 		// First run
 		lib.GenerateCert()
-		os.WriteFile(path, []byte("{\"username\": \"\", \"password\": \"\"}"), 0644)
+		os.WriteFile(path, []byte("{\"token\": \"\"}"), 0644)
 		return config{}, fmt.Errorf("初次使用请填写 %s 文件，并依据教程完成根证书的安装。", path)
 	}
 

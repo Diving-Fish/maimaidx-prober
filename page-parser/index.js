@@ -424,7 +424,7 @@ app.get("/shadowrocket", (req, res) => {
 #!total=1
 
 [Script]
-SCRIPT_upload = type=http-response, requires-body=1, binary-body-mode=0, max-size=100000000, timeout=60, pattern=^https:\\\/\\\/maimai\\\.wahlap\\\.com\\\/maimai-mobile\\\/record\\\/musicSort\\\/search\\\/\\\?search=A&sort=1&playCheck=on&diff=[0-4]$, script-path=https://www.diving-fish.com/api/pageparser/upload.js?token=${token}
+SCRIPT_upload = type=http-response, requires-body=1, binary-body-mode=0, max-size=100000000, timeout=60, pattern=^https:\\\/\\\/maimai\\\.wahlap\\\.com\\\/maimai-mobile\\\/record\\\/musicSort\\\/search\\\/\\\?search=A&sort=1&playCheck=on&diff=[0-4]+$, script-path=https://www.diving-fish.com/api/pageparser/upload.js?token=${token}
 
 [Mitm]
 hostname=%APPEND% maimai.wahlap.com

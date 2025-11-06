@@ -49,7 +49,7 @@ jobs:
             go build -o "output/$BINARY_NAME$BINARY_SUFFIX" -trimpath ./proxy/cmd/maimaidx-prober-proxy/
           fi
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ !github.head_ref }}
         with:
           name: ${{ matrix.goos }}_${{ matrix.goarch }}

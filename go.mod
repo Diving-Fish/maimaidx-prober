@@ -1,8 +1,13 @@
 module github.com/Diving-Fish/maimaidx-prober
 
-go 1.20
+go 1.25
 
 require (
-	github.com/elazarl/goproxy v0.0.0-20221015165544-a0805db90819
-	golang.org/x/sys v0.8.0
+	github.com/elazarl/goproxy v1.7.2
+	golang.org/x/sys v0.37.0
+)
+
+require (
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 )

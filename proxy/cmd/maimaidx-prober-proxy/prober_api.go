@@ -2,8 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,34 +15,26 @@ import (
 
 type proberAPIClient struct {
 	cl       http.Client
-	jwt      *http.Cookie
+	token    string
 	mode     workingMode
 	maiDiffs []int
 	slice    bool
 }
 
 func newProberAPIClient(cfg *config, networkTimeout int) (*proberAPIClient, error) {
-	body := map[string]interface{}{
-		"username": cfg.UserName,
-		"password": cfg.Password,
-	}
-	b, err := json.Marshal(&body)
-	if err != nil {
-		return nil, fmt.Errorf("配置文件读取出错，请按照教程指示填写: %w", err)
-	}
-	resp, err := http.Post("https://www.diving-fish.com/api/maimaidxprober/login", "application/json", bytes.NewReader(b))
-	if err != nil {
-		return nil, fmt.Errorf("登录失败: %w", err)
-	}
-	if resp.StatusCode != 200 {
-		return nil, errors.New("登录凭据错误")
+	req, _ := http.NewRequest("POST", "https://www.diving-fish.com/api/maimaidxprober/player/update_records", bytes.NewReader([]byte("[]")))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Add("Import-Token", cfg.Token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		return nil, fmt.Errorf("成绩导入 Token 无效，请检查 config.json 文件。")
 	}
 
 	Log(LogLevelInfo, "登录成功")
 
 	return &proberAPIClient{
 		cl:       http.Client{Timeout: time.Duration(networkTimeout) * time.Second},
-		jwt:      resp.Cookies()[0],
+		token:    cfg.Token,
 		mode:     cfg.getWorkingMode(),
 		maiDiffs: cfg.MaiIntDiffs,
 		slice:    cfg.Slice,
@@ -65,7 +55,7 @@ func (c *proberAPIClient) commit(data []byte) (err error) {
 		return
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.AddCookie(c.jwt)
+	req.Header.Add("Import-Token", c.token)
 	_, err = c.cl.Do(req)
 	if err != nil {
 		// 这里有一个已知的后端 bug，可能会导致 status 500，但是数据仍然导入，这里暂时不做处理
@@ -240,7 +230,7 @@ func (c *proberAPIClient) fetchDataChuniPerDiff(headers http.Header, cookies []*
 			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
 			return err
 		}
-		req2.AddCookie(c.jwt)
+		req2.Header.Add("Import-Token", c.token)
 		_, err = c.cl.Do(req2)
 		if err != nil {
 			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
