@@ -8,7 +8,7 @@ https://www.diving-fish.com/api/maimaidxprober/*
 import asyncio
 import time
 from collections import defaultdict
-from app import app, developer_required, login_required, login_or_token_required, md5, is_developer
+from app import app, developer_required, login_required, login_or_token_required, md5, is_developer, chart_stat_updated
 from quart import Quart, request, g, make_response
 from tools._jwt import *
 from models.maimai import *
@@ -20,7 +20,6 @@ from access.redis import redis
 from tools.maidle import Maidle, maidle_data as maidle_cache, songs_id_map as maidle_map
 
 
-cs_need_update = True
 cs_cache = {}
 cs_cache_eTag = md5(json.dumps(cs_cache, ensure_ascii=False))
 md_cache = music_data()
@@ -427,8 +426,6 @@ async def update_records():
     更新用户的成绩信息
     请求体为 JSON List，格式可以参考 `/player/records` 接口返回的数据。
     """
-    global cs_need_update
-    cs_need_update = True
     j = await request.get_json()
     dicts = {}
     if type(j) != type([]):
@@ -485,9 +482,6 @@ async def update_records_html():
     *需要登录
     通过 html 格式的数据更新您的舞萌 DX 查分器数据。
     """
-    global cs_need_update
-    cs_need_update = True
-
     try:
         token = decode(request.cookies['jwt_token'])
         if token == {}:
@@ -566,9 +560,6 @@ async def update_record():
     *需要登录
     更新单曲数据，请求体为 JSON，格式可以参考 `/player/records` 返回的 JSON List 中的一项。
     """
-    # must be update.
-    global cs_need_update
-    cs_need_update = True
     record = await request.get_json()
     title = record['title']
     _type = record['type']
@@ -597,8 +588,6 @@ async def delete_records():
     *需要登录
     清除所有舞萌 DX 的歌曲成绩记录。
     """
-    global cs_need_update
-    cs_need_update = True
     nums = await NewRecord.delete().where(NewRecord.player == g.user.id).aio_execute()
     await compute_ra(g.user)
     return {
@@ -774,9 +763,13 @@ async def chart_stats():
     """
     返回谱面的相对难度等数据。
     """
-    global cs_need_update
     global cs_cache
     global cs_cache_eTag
+
+    if chart_stat_updated:
+        cs_cache = {}
+        cs_cache_eTag = None
+        
     if len(cs_cache) > 0:
         if request.headers.get('If-None-Match') == '"' + cs_cache_eTag + '"':
             resp = await make_response("", 304)
@@ -845,7 +838,6 @@ async def chart_stats():
     data = {"charts": charts, "diff_data": diff_data}
     cs_cache = data
     cs_cache_eTag = md5(json.dumps(cs_cache, ensure_ascii=False, default=float))
-    cs_need_update = False
     resp = await make_response(json.dumps(data, ensure_ascii=False, default=float))
     resp.headers['content-type'] = "application/json; charset=utf-8"
     return resp
@@ -943,7 +935,7 @@ with open('music_data_2024_last.json', 'r', encoding='utf-8') as f:
     vote2025_md_map = {}
     for elem in vote2025_md:
         vote2025_md_map[str(elem['id'])] = elem
-    print(vote2025_md_map.keys())
+    # print(vote2025_md_map.keys())
 
 @app.route("/vote2025/music_data", methods=['GET'])
 async def vote2025_music_data():
