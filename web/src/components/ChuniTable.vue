@@ -1,11 +1,7 @@
 <template>
-  <v-data-table :items-per-page="40" :footer-props="{ 'items-per-page-options': [40, -1] }" :headers="headers"
+  <v-data-table :items-per-page="limit" :footer-props="{ 'items-per-page-options': [limit, -1] }" :headers="headers"
     :loading="loading" :items="items" :search="search" sort-by="rank" no-data-text="没有数据" loading-text="加载中……"
     no-results-text="没有符合条件的条目">
-    <template #item.rank="{ item }">
-      <span v-if="item.rank < 0" style="color: #00BCD4">R{{ item.rank + 11 }}</span>
-      <span v-else>{{ item.rank }}</span>
-    </template>
     <template #item.title="{ item }">
       <v-tooltip top :disabled="!music_data_dict[item.mid]">
         <template v-slot:activator="{ on, attrs }">
@@ -49,6 +45,14 @@
         getRate(item.score).toUpperCase()
       }}</v-chip>
     </template>
+    <template #item.ra="{ item }">
+      <span
+        style="color: #4caf50"
+        v-if="item.rank <= limit"
+        >{{ item.ra }}</span
+      >
+      <span v-else>{{ item.ra }}</span>
+    </template>
   </v-data-table>
 </template>
   
@@ -59,6 +63,7 @@ export default {
     items: Array,
     search: String,
     loading: Boolean,
+    limit: Number,
     music_data_dict: Object,
   },
   data: () => {

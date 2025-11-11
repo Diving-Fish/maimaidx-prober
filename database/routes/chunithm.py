@@ -32,6 +32,7 @@ for music in md_cache:
     for i, cid in enumerate(music['cids']):
         chart_id_map[cid] = (i, music)
 
+latest_version = ('CHUNITHM LUMINOUS PLUS', 'CHUNITHM VERSE')
 
 @app.route("/chuni/music_data")
 async def get_music_data_chuni():
@@ -192,32 +193,38 @@ def record_json(record: ChuniRecord):
     }
 
 
-async def get_b30_and_r10(player: Player):
-    b30 = []
-    r10 = []
+async def get_b50(player: Player):
+    old30 = []
+    new20 = []
     rs = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id).aio_execute()
     for r in rs:
         setattr(r, 'ra', single_ra(r))
-        b30.append(r)
-    b30.sort(key=lambda x: x.ra, reverse=True)
-    rs2 = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', player.id).aio_execute()
-    for r in rs2:
-        r10.append(r)
-    return b30[:30], r10
+        if chart_id_map[r.chart_id][1]['basic_info']['from'] in latest_version:
+            new20.append(r)
+        else:
+            old30.append(r)
+    old30.sort(key=lambda x: x.ra, reverse=True)
+    new20.sort(key=lambda x: x.ra, reverse=True)
+    return old30[:30], new20[:20]
 
 
 async def compute_ra(player: Player):
-    b30, r10 = await get_b30_and_r10(player)
+    old30, new20 = await get_b50(player)
     total = 0.0
-    for record in b30:
+    for record in old30:
         total += single_ra(record)
-    for record in r10:
+    for record in new20:
         total += single_ra(record)
-    rating = total / 40
+    rating = total / 50
     player.chuni_rating = rating
     player.access_time = time.time()
     await player.aio_save()
     return rating
+
+
+@app.route("/chuni/latest_version")
+async def _latest_version():
+    return {"version": list(latest_version)}
     
 
 @app.route("/chuni/player/records")
@@ -229,12 +236,11 @@ async def player_records_chuni():
     """
     
     rs = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', g.user.id).aio_execute()
-    rs2 = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', g.user.id).aio_execute()
     await compute_ra(g.user)
     return {
         "records": {
             "best": [record_json(c) for c in rs],
-            "r10": [record_json(c) for c in rs2],
+            "r10": [],
         },
         "username": g.username,
         "nickname": g.user.nickname,
@@ -248,14 +254,13 @@ async def player_records_chunitest():
     获取测试用户的成绩数据，调试前端时使用。
     """
 
-    p = await Player.aio_get_by_id(636)
+    p = await Player.aio_get(Player.id == 636)
     rs = await ChuniRecord.raw('select * from chunirecord where player_id = 636 and recent = 0').aio_execute()
-    rs2 = await ChuniRecord.raw('select * from chunirecord where player_id = 636 and recent = 1').aio_execute()
     # await compute_ra(p)
     return {
         "records": {
             "best": [record_json(c) for c in rs],
-            "r10": [record_json(c) for c in rs2],
+            "r10": [],
         },
         "username": p.username,
         "rating": p.chuni_rating
@@ -290,7 +295,7 @@ async def query_player_chuni():
             return {"status": "error", "message": "会话过期"}, 403
         if token['username'] != obj["username"]:
             return {"status": "error", "message": "已设置隐私"}, 403
-    b30, r10 = await get_b30_and_r10(p)
+    old30, new20 = await get_b50(p)
     asyncio.create_task(compute_ra(p))
     nickname = p.nickname
     if nickname == "":
@@ -300,8 +305,9 @@ async def query_player_chuni():
         "rating": p.chuni_rating,
         "nickname": nickname,
         "records": {
-            "b30": [record_json(c) for c in b30],
-            "r10": [record_json(c) for c in r10]
+            "b30": [record_json(c) for c in old30],
+            "n20": [record_json(c) for c in new20],
+            "r10": []
         }
     }
 
@@ -328,12 +334,11 @@ async def dev_get_records_chuni():
     if player.privacy or not player.accept_agreement:
         return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
     rs = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id).aio_execute()
-    rs2 = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 1', player.id).aio_execute()
     await compute_ra(player)
     return {
         "records": {
             "best": [record_json(c) for c in rs],
-            "r10": [record_json(c) for c in rs2],
+            "r10": [],
         },
         "username": player.username,
         "nickname": player.nickname,

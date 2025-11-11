@@ -153,7 +153,7 @@ export default {
       if (["ap", "app"].indexOf(r[0].fc) != -1) a += 8;
       if (r[0].achievements >= 100) a += 2;
       if (["fc", "fcp", "ap", "app"].indexOf(r[0].fc) != -1) a += 1;
-      // console.log(a);
+      // (a);
       return a;
     },
     init: function () {
@@ -181,7 +181,7 @@ export default {
           }
         }
       })();
-      console.log(this.available_plates())
+      // console.log(this.available_plates())
       // console.log(this.music_data);
     },
     filter_version: function(version) {

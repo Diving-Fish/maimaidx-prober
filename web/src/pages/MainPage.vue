@@ -9,7 +9,7 @@
       <agreement></agreement>
       <v-divider class="mt-4 mb-4" />
       <p>
-        <v-btn href="/maimaidx/docs" target="_blank" color="primary">使用指南</v-btn>
+        <v-btn href="/maimaidx/prober_guide" target="_blank" color="primary">数据导入指南</v-btn>
         <tutorial ref="tutorial" />
       </p>
       <p class="mb-2">点个 Star 吧！</p>
@@ -328,15 +328,26 @@
                   class="mb-4"></v-text-field>
               </v-card-title>
               <v-card-subtitle>
-                <span class="mr-2">Rating: {{ chuni_obj.rating ? chuni_obj.rating.toFixed(4) : 0 }}</span>
-                <span class="mr-2">无需推分可达到的最高Rating: {{ chuniBestRating.toFixed(4) }}</span>
+                <span class="mr-2">Rating: {{ chuniB30Rating.toFixed(4) }} + {{ chuniN20Rating.toFixed(4) }} = {{ (chuniB30Rating + chuniN20Rating).toFixed(4) }}</span>
               </v-card-subtitle>
               <filter-slider ref="filterSliderChuni"></filter-slider>
               <pro-settings-chuni v-show="proSettingChuni" ref="proSettingsChuni" :music_data="chuni_data"
                             :music_data_dict="chuni_data_dict" @setHeaders="setHeaders"></pro-settings-chuni>
               <v-card-text>
-                <chuni-table :search="searchKey" :items="chuniRecordDisplay" :music_data_dict="chuni_data_dict" :loading="chuniLoading">
-                </chuni-table>
+                <v-tabs v-model="chuniTab">
+                  <v-tab key="sd">旧乐谱</v-tab>
+                  <v-tab key="dx">中二节奏 2026</v-tab>
+                </v-tabs>
+                <v-tabs-items v-model="chuniTab">
+                  <v-tab-item key="sd">
+                    <chuni-table :search="searchKey" :items="chuniB30RecordDisplay" :music_data_dict="chuni_data_dict" :limit="30" :loading="chuniLoading">
+                    </chuni-table>
+                  </v-tab-item>
+                  <v-tab-item key="dx">
+                    <chuni-table :search="searchKey" :items="chuniN20RecordDisplay" :music_data_dict="chuni_data_dict" :limit="20" :loading="chuniLoading">
+                    </chuni-table>
+                  </v-tab-item>
+                </v-tabs-items>
               </v-card-text>
             </v-window-item>
           </v-window>
@@ -494,6 +505,7 @@ export default {
     return {
       tableMode: 0, // mai or chuni
       tab: "",
+      chuniTab: "",
       loginForm: {
         username: "",
         password: "",
@@ -513,7 +525,7 @@ export default {
       records: [],
       music_data: [],
       music_data_dict: {},
-      chuni_obj: {},
+      chuni_latest_version: [],
       chuni_records: [],
       chuni_data: [],
       chuni_data_dict: {},
@@ -560,23 +572,65 @@ export default {
     };
   },
   computed: {
-    chuniBestRating: function() {
-      let ra = 0;
-      if (this.chuni_obj.records == undefined) return 0.0;
-      if (this.chuni_obj.records.best.length > 0) ra += this.chuni_obj.records.best[0].ra * 10;
-      for (let i = 0; i < Math.min(this.chuni_obj.records.best.length, 30); i++)
-      {
-        ra += this.chuni_obj.records.best[i].ra;
+    chuniB30Rating: function() {
+      let sum = 0;
+      for (let i = 0; i < Math.min(this.chuniB30Record.length, 30); i++) {
+        sum += this.chuniB30Record[i].ra;
       }
-      return ra / 40;
+      return sum / 50;
     },
-    chuniRecordDisplay: function() {
+    chuniN20Rating: function() {
+      let sum = 0;
+      for (let i = 0; i < Math.min(this.chuniN20Record.length, 30); i++) {
+        sum += this.chuniN20Record[i].ra;
+      }
+      return sum / 50;
+    },
+    chuniB30RecordDisplay: function() {
       const that = this;
-      return this.chuni_records.filter((elem) => {
+      return this.chuniB30Record.filter((elem) => {
         return (
             that.$refs.filterSliderChuni.f(elem) &&
             (!that.proSettingChuni || that.$refs.proSettingsChuni.f(elem)))
       });
+    },
+    chuniN20RecordDisplay: function() {
+      const that = this;
+      return this.chuniN20Record.filter((elem) => {
+        return (
+            that.$refs.filterSliderChuni.f(elem) &&
+            (!that.proSettingChuni || that.$refs.proSettingsChuni.f(elem)))
+      });
+    },
+    chuniB30Record: function() {
+      let data = this.chuni_records
+        .filter((elem) => {
+          return !this.chuni_new(elem);
+        })
+        .sort((a, b) => {
+          if (b.ra !== a.ra) return b.ra - a.ra;
+          if (b.ds !== a.ds) return b.ds - a.ds;
+          return b.achievements - a.achievements;
+        });
+      for (let i = 0; i < data.length; i++) {
+        data[i].rank = i + 1;
+      }
+      return data;
+    },
+    chuniN20Record: function() {
+      let data = this.chuni_records
+        .filter((elem) => {
+          return this.chuni_new(elem);
+        })
+        .sort((a, b) => {
+          if (b.ra !== a.ra) return b.ra - a.ra;
+          if (b.ds !== a.ds) return b.ds - a.ds;
+          return b.achievements - a.achievements;
+        });
+      for (let i = 0; i < data.length; i++) {
+        data[i].rank = i + 1;
+      }
+      return data;
     },
     title2id: function () {
       let obj = {};
@@ -596,7 +650,6 @@ export default {
     },
     dxDisplay: function () {
       const that = this;
-      console.log(this.dxData);
       return this.dxData.filter((elem) => {
         return (
           that.$refs.filterSlider.f(elem) &&
@@ -806,6 +859,18 @@ export default {
           this.$message.error("反馈发送失败！");
         });
     },
+    fetchChunithmUserData: async function() {
+      this.chuni_latest_version = (await axios.get("https://www.diving-fish.com/api/chunithmprober/latest_version")).data.version;
+      try {
+        this.chuni_records = (await axios.get(
+          DEBUG ? "https://www.diving-fish.com/api/chunithmprober/player/test_data" : "https://www.diving-fish.com/api/chunithmprober/player/records"
+        )).data.records.best;
+      } catch (error) {
+        this.$message.warning("未获取用户分数");
+      } finally {
+        this.chuniLoading = false;
+      }
+    },
     fetchMusicData: function () {
       const that = this;
       that.chuniLoading = true;
@@ -819,24 +884,7 @@ export default {
             return acc;
           }, {});
           this.$message.success("中二节奏乐曲信息获取完成，正在获取用户分数信息……");
-          axios.get(
-            DEBUG ? "https://www.diving-fish.com/api/chunithmprober/player/test_data" : "https://www.diving-fish.com/api/chunithmprober/player/records"
-          ).then(resp => {
-            this.chuni_obj = resp.data;
-            this.chuni_obj.records.best = this.chuni_obj.records.best.sort((a, b) => {return b.ra - a.ra})
-            this.chuni_obj.records.r10 = this.chuni_obj.records.r10.sort((a, b) => {return b.ra - a.ra})
-            this.chuni_records = JSON.parse(JSON.stringify(this.chuni_obj.records.r10))
-            this.chuni_records = this.chuni_records.concat(JSON.parse(JSON.stringify(this.chuni_obj.records.best)))
-            let rank = -10;
-            for (let i of this.chuni_records) {
-              i.rank = rank;
-              rank++;
-              if (rank == 0) rank++;
-            }
-            this.chuniLoading = false;
-          }).catch(() => {
-            this.$message.warning("未获取用户分数");
-          })
+          this.fetchChunithmUserData();
         })
       axios.get("https://www.diving-fish.com/api/maimaidxprober/music_data")
         .then((resp) => {
@@ -910,28 +958,7 @@ export default {
               this.$message.error("加载舞萌乐曲数据失败！");
             });
           this.$message.success("加载中二乐曲数据中……");
-          axios
-              .get(
-                  "https://www.diving-fish.com/api/chunithmprober/player/records"
-              )
-              .then((resp) => {
-                this.chuni_obj = resp.data;
-                this.chuni_obj.records.best = this.chuni_obj.records.best.sort((a, b) => {return b.ra - a.ra})
-                this.chuni_obj.records.r10 = this.chuni_obj.records.r10.sort((a, b) => {return b.ra - a.ra})
-                this.chuni_records = JSON.parse(JSON.stringify(this.chuni_obj.records.r10))
-                this.chuni_records = this.chuni_records.concat(JSON.parse(JSON.stringify(this.chuni_obj.records.best)))
-                let rank = -10;
-                for (let i of this.chuni_records) {
-                  i.rank = rank;
-                  rank++;
-                  if (rank == 0) rank++;
-                }
-                this.chuniLoading = false;
-              })
-              .catch(() => {
-                this.$message.error("加载中二乐曲数据失败！");
-                this.chuniLoading = false;
-              })
+          this.fetchChunithmUserData();
         })
         .catch((err) => {
           this.$message.error("登录失败！");
@@ -1041,6 +1068,9 @@ export default {
     },
     is_new: function (record) {
       return this.music_data_dict[record.song_id].basic_info.is_new;
+    },
+    chuni_new: function (record) {
+      return this.chuni_latest_version.includes(this.chuni_data_dict[record.mid].basic_info.from);
     },
     merge: function (records) {
       // console.log(records);

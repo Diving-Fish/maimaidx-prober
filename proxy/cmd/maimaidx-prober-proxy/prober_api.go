@@ -161,9 +161,9 @@ func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Coo
 	hds := req0.Header.Clone()
 	hds.Del("Cookie")
 	labels := []string{
-		"Basic 难度", "Advanced 难度", "Expert 难度", "Master 难度", "Ultima 难度", "World's End 难度", "Best 10 ",
+		"Basic 难度", "Advanced 难度", "Expert 难度", "Master 难度", "Ultima 难度", "World's End 难度",
 	}
-	for i := 0; i < 7; i++ {
+	for i := 0; i < 6; i++ {
 		Log(LogLevelInfo, "正在导入 %s……", labels[i])
 		for {
 			err := c.fetchDataChuniPerDiff(hds, cookies, i)
@@ -189,7 +189,6 @@ func (c *proberAPIClient) fetchDataChuniPerDiff(headers http.Header, cookies []*
 		"/record/musicGenre/master",
 		"/record/musicGenre/ultima",
 		"/record/worldsEndList/",
-		"/home/playerData/ratingDetailRecent/",
 	}
 	if diff < 5 {
 		formData := url.Values{
