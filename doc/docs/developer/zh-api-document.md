@@ -1,5 +1,7 @@
 ---
 sidebar_position: 1
+toc_min_heading_level: 2
+toc_max_heading_level: 5
 ---
 
 # 查分器 API 文档
@@ -44,7 +46,14 @@ https://www.diving-fish.com/api/maimaidxprober/player/profile
 | `maimaidxprober` | [`/player/update_record`](#3113-更新用户的单曲成绩) | 登录验证 / Import-Token | 更新用户的单曲成绩 |
 | `maimaidxprober` | [`/player/delete_records`](#3114-清除用户的所有-maimai-成绩信息) | 登录验证 / Import-Token | 清除用户的所有 maimai 成绩信息 |
 | `maimaidxprober` | [`/chart_stats`](#3115-返回谱面的拟合难度等数据) | 无需验证 | 返回谱面的拟合难度等数据 |
-| `chunithmprober` | `（待贡献）` | ----- | ----- |
+| `chunithmprober` | [`/music_data`](#321-获取-chunithm-的歌曲数据) | 无需验证 | 获取 CHUNITHM 的歌曲数据 |
+| `chunithmprober` | [`/latest_version`](#322-获取当前新歌版本标识) | 无需验证 | 获取当前版本作为“新曲”的版本标识 |
+| `chunithmprober` | [`/player/records`](#323-获取用户的完整成绩数据) | 登录验证 / Import-Token | 获取用户的成绩数据（best 部分） |
+| `chunithmprober` | [`/player/test_data`](#324-获取用于测试的成绩数据) | 无需验证 | 获取用于测试与联调的成绩数据 |
+| `chunithmprober` | [`/query/player`](#327-查询用户的简略成绩信息) | 无需验证 | 获取用户的简略成绩信息（b30+n20） |
+| `chunithmprober` | [`/player/update_records_html`](#325-通过-html-格式的数据更新chunithm-成绩) | 登录验证 / Import-Token | 通过 HTML 源码导入成绩 |
+| `chunithmprober` | [`/player/delete_records`](#326-删除用户的-chunithm-成绩数据) | 登录验证 / Import-Token | 删除用户的 CHUNITHM 成绩数据 |
+| `chunithmprober` | [`/dev/player/records`](#323-获取用户的完整成绩数据) | Developer-Token | 获取指定用户的成绩数据 |
 | `public` | [`/login`](#24-登录验证) | 登录验证 | 使用 diving-fish 账号登录 |
 | `public` | [`/count_view`](#332-获取查分器主页的views次数) | 无需验证 | 获取查分器主页的views次数 |
 | `public` | [`/alive_check`](#333-验证服务器状态) | 无需验证 | 验证服务器状态 |
@@ -972,9 +981,171 @@ https://www.diving-fish.com/api/maimaidxprober/chart_stats
 
 ### 3.2 chunithmprober
 
-当前 `chunithmprober` 部分文档暂待贡献。您可以参考 [https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/chunithm.py](https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/chunithm.py) 的源码与 [`maimaidxprober`](#31-maimaidxprober) 部分的交互逻辑。
+所有对于 `chunithmprober` 类的请求，都应该发送到以下 URL：
 
----
+```plaintext
+https://www.diving-fish.com/api/chunithmprober/{端点路径}
+```
+
+部分端点与 `maimaidxprober` 在交互与鉴权上保持一致；数据结构以 CHUNITHM 为准，谱面难度标签包含 Ultima 与 World's End。
+
+查看源代码以了解更多细节，可访问
+[https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/chunithm.py](https://github.com/Diving-Fish/maimaidx-prober/blob/main/database/routes/chunithm.py)
+
+#### 3.2.1 获取 CHUNITHM 的歌曲数据
+
+| 端点路径 | 权限要求 | 请求方法 |
+|-----|-----|-----|
+| `/music_data` | 无需验证 | GET |
+
+使用 GET 请求获取现行版本下所有 CHUNITHM 歌曲与谱面的信息，信息结构如下：
+
+| **字段** | **类型** | **说明** |
+|-----|-----|-----|
+| `id` | `int` | 歌曲的唯一标识符，其与现行的歌曲 ID 号一致 |
+| `title` | `string` | 歌曲的标题 |
+| `ds` | `array of float` | 歌曲的难度定数列表，由 Basic 至 Ultima，特别地，World's End 歌曲将在 `ds[5]` 给出定数 |
+| `level` | `array of string` | 歌曲的难度等级列表，与 `ds` 的区别在于仅精确到整数或 "+" 等级 |
+| `cids` | `array of int` | 歌曲特定难度谱面的唯一标识符 |
+| `charts` | `array of object` | 歌曲的谱面信息列表，每个对象包含以下字段： |
+| `charts[].combo` | `int` | 谱面的音符数量 |
+| `charts[].charter` | `string` | 谱师信息 |
+| `basic_info` | `object` | 歌曲的基本信息，包含以下字段： |
+| `basic_info.title` | `string` | 歌曲的标题 |
+| `basic_info.artist` | `string` | 曲师信息 |
+| `basic_info.genre` | `string` | 歌曲的流派 |
+| `basic_info.bpm` | `int` | 歌曲的 BPM 信息 |
+| `basic_info.from` | `string` | 歌曲的稼动版本（以日服版本号为准） |
+
+返回体带有 `ETag` 响应头与 `cache-control: private, max_age=86400`。后续请求可将该 `ETag` 以完整带引号的字符串传入 `If-None-Match` 请求头以进行缓存校验，匹配则返回 304。
+
+#### 3.2.2 获取当前新歌版本标识
+
+| 端点路径 | 权限要求 | 请求方法 |
+|-----|-----|-----|
+| `/latest_version` | 无需验证 | GET |
+
+返回一个数组字段 `version`，用于标识哪些歌曲版本被视为“新曲”（用于 b50 的新曲区分）。例如：
+
+```json
+{"version": ["CHUNITHM LUMINOUS PLUS", "CHUNITHM VERSE"]}
+```
+
+#### 3.2.3 获取用户的完整成绩数据
+
+| 端点路径 | 权限要求 | 请求方法 |
+|-----|-----|-----|
+| `/player/records` | 登录验证 / Import-Token | GET |
+| `/dev/player/records` | Developer-Token | GET |
+
+根据您采用的验证方式选择对应的端点。
+
+需要注意的是，获取完整成绩信息数据量较大，**如果您只是需要用于绘制b50等功能的简略成绩信息**，请参考 [获取用户的简略成绩信息](#327-查询用户的简略成绩信息b30n20)
+
+对于 `/player/records` 端点，您需要正确附加所需的验证信息。验证信息本身已经包含了对应用户的凭证，因此服务器会直接返回该用户的完整成绩信息。
+
+对于 `/dev/player/records` 端点，您除了要附加您的 `Developer-Token` 验证信息外，还需要在 URL 查询参数中附加指定用户的 `username` 或 `qq` 参数，如：
+
+```json
+{"url": "https://www.diving-fish.com/api/chunithmprober/dev/player/records?username=your_username"}
+```
+
+或：
+
+```json
+{"url": "https://www.diving-fish.com/api/chunithmprober/dev/player/records?qq=your_qq"}
+```
+
+对于通过 `Developer-Token` 的访问，如果所请求的用户参数对应用户不存在，服务器会返回以下错误信息：
+
+```plaintext
+状态码： `400`
+{"message": "no such user"}
+```
+
+
+成功获取用户完整信息后，您会得到如下结构的 JSON 数据：
+| **字段**                  | **类型**   | **说明**                                               |
+|---------------------------|------------|--------------------------------------------------------|
+| `username`                | `string`   | 用户的用户名                                            |
+| `nickname`                | `string`   | 用户的昵称                                             |
+| `rating`                  | `number`   | 用户rating                                            |
+| `records`                 | `object`   | 用户的成绩记录对象                                     |
+| `records.best`            | `array`    | 用户的最佳成绩，以具体难度谱面为单位                    |
+| `records.best[].cid `          | `string`   | 谱面的唯一标识符                                       |
+| `records.best[].ds`            | `number`   | 谱面定数                                               |
+| `records.best[].fc`            | `string`   | FC状态（`fullcombo` 或 `alljustice`）                     |
+| `records.best[].level`         | `string`   | 谱面等级，与 `ds` 的区别在于仅精确到整数或 "+" 等级         |
+| `records.best[].level_index`   | `number`   | 谱面难度在歌曲里的索引，由 0 到 5 对应 Basic 到 World's End    |
+| `records.best[].level_label`   | `string`   | 等级标签（如 `Master`）                                 |
+| `records.best[].mid`           | `number`   | 歌曲的唯一标识符                                       |
+| `records.best[].ra`            | `number`   | 单曲rating                                             |
+| `records.best[].score`         | `number`   | 成绩（最大值为 1010000）                                |
+| `records.best[].title`         | `string`   | 歌曲标题                                               |
+| `records.r10`             | `array`    | 中二节奏 2026 版本后为空数组                   |
+
+#### 3.2.4 获取用于测试的成绩数据
+
+| 端点路径 | 权限要求 | 请求方法 |
+|-----|-----|-----|
+| `/player/test_data` | 无需验证 | GET |
+
+用于调试前端或联调接口，返回固定测试用户的数据，结构与 [3.2.3 获取用户的完整成绩数据](#323-获取用户的完整成绩数据) 一致。
+
+#### 3.2.5 通过 HTML 格式的数据更新CHUNITHM 成绩
+
+| 端点路径 | 权限要求 | 请求方法 |
+|-----|-----|-----|
+| `/player/update_records_html` | 登录验证 / Import-Token | POST |
+
+将 CHUNITHM 官方页面的 HTML 源码作为请求体上传，由服务器解析并导入成绩。
+
+查询参数：
+
+- `recent`：0，默认 0。0 表示导入“完整成绩”，1 表示导入“最近游玩数据”，但中二节奏 2026 版本后导入最近游玩数据无任何效果。
+
+注意事项：
+
+- 解析失败将返回 400，形如 `{"message": "<解析错误信息>"}`。
+- 分数会被截断到不超过 1,010,000。
+
+#### 3.2.6 删除用户的 CHUNITHM 成绩数据
+
+| 端点路径 | 权限要求 | 请求方法 |
+|-----|-----|-----|
+| `/player/delete_records` | 登录验证 / Import-Token | DELETE |
+
+删除当前用户的全部 CHUNITHM 成绩（包括 best 与 recent）。返回删除条数：
+
+```json
+{"message": 123}
+```
+
+#### 3.2.7 查询用户的简略成绩信息
+
+| 端点路径 | 权限要求 | 请求方法 |
+|-----|-----|-----|
+| `/query/player` | 无需验证 | POST |
+
+请求体为 JSON，需包含 `qq` 或 `username` 其中之一。成功时返回：
+
+| **字段**                  | **类型**   | **说明**                                               |
+|--|--|--|
+| `username`                | `string`   | 用户的用户名                                            |
+| `nickname`                | `string`   | 用户的昵称                                             |
+| `rating`                  | `number`   | 用户rating                                            |
+| `records`                 | `object`   | 用户的成绩记录对象                                     |
+| `records.b30`            | `array`    | 用户非最新版本的最佳 30 张谱面的成绩，以具体难度谱面为单位 |
+| `records.n20`             | `array`    | 用户最新版本的最佳 20 张谱面的成绩，以具体难度谱面为单位  |
+| `records.r10`             | `array`    | 中二节奏 2026 版本后为空数组                           |
+
+错误场景：
+
+- 用户不存在：400，`{"message": "user not exists"}`
+- 用户设置隐私且以用户名查询、会话不匹配或过期：403，`{"status":"error","message":"已设置隐私"}` 或 `{"status":"error","message":"会话过期"}`
+
+成绩条目结构同 [3.2.3 获取用户的完整成绩数据](#323-获取用户的完整成绩数据)。
+
 
 ### 3.3 public
 
