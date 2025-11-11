@@ -20,13 +20,7 @@
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-card-title>
-      <v-card-text>
-        先别管投票箱了，来看看最新最热的<a href="/maimaidx/vote-2025">舞萌 DX 2025 人气乐曲投票</a>吧！
-      </v-card-text>
-      <v-card-actions class="mt-4">
-        <v-checkbox v-model="auto_open" label="自动打开"></v-checkbox>
-      </v-card-actions>
-      <!-- <v-alert
+      <v-alert
         dense
         v-if="alert.message !== ''"
         :type="alert.type"
@@ -113,7 +107,7 @@
         <span class="mb-4">投了五组啦，休息一下明天再来吧！</span>
         <a href="/maimaidx/vote-result" target="_blank">查看投票结果</a>
         <v-btn @click="getNewVote(true)" class="mt-2 mb-4">我偏要继续</v-btn>
-      </div> -->
+      </div>
     </v-card>
   </v-dialog>
 </template>
@@ -142,7 +136,7 @@ export default {
   },
   watch: {
     music_data: function() {
-      this.auto_open = !(localStorage.getItem('maiprober_vote_auto_open2') === 'false');
+      this.auto_open = !(localStorage.getItem('maiprober_vote_auto_open') === 'false');
       this.remain = localStorage.getItem('maiprober_vote_remain');
       const timestamp = localStorage.getItem('maiprober_vote_timestamp');
       if (this.remain === null || timestamp === null || Date.now() - timestamp > 86400000) {
@@ -154,7 +148,7 @@ export default {
       this.getNewVote();
     },
     auto_open: function() {
-      localStorage.setItem('maiprober_vote_auto_open2', this.auto_open);
+      localStorage.setItem('maiprober_vote_auto_open', this.auto_open);
     }
   },
   methods: {
