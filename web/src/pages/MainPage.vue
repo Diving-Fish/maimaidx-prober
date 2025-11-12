@@ -581,7 +581,7 @@ export default {
     },
     chuniN20Rating: function() {
       let sum = 0;
-      for (let i = 0; i < Math.min(this.chuniN20Record.length, 30); i++) {
+      for (let i = 0; i < Math.min(this.chuniN20Record.length, 20); i++) {
         sum += this.chuniN20Record[i].ra;
       }
       return sum / 50;
