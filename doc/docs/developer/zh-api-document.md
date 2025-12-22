@@ -38,7 +38,7 @@ https://www.diving-fish.com/api/maimaidxprober/player/profile
 | `maimaidxprober` | [`/dev/player/records`](#315-获取用户的完整成绩信息) | Developer-Token | 获取用户的完整成绩信息 |
 | `maimaidxprober` | [`/dev/player/record`](#316-获取用户的单曲成绩信息) | Developer-Token | 获取用户的单曲成绩信息 |
 | `maimaidxprober` | [`/query/player`](#317-获取用户的简略成绩信息) | 无需验证 | 获取用户的简略成绩信息 |
-| `maimaidxprober` | [`/query_plate`](#318-按版本获取用户的成绩信息) | 无需验证 | 按版本获取用户的成绩信息 |
+| `maimaidxprober` | [`/query_plate`](#318-按版本获取用户的成绩信息) | Developer-Token | 按版本获取用户的成绩信息 |
 | `maimaidxprober` | [`*/covers`](#319-按-id-获取歌曲的封面图片) | 无需验证 | 按 ID 获取歌曲的封面图片 |
 | `maimaidxprober` | [`/rating_ranking`](#3110-获取公开的-用户-rating-完整数据) | 无需验证 | 获取公开的 用户-rating 完整数据 |
 | `maimaidxprober` | [`/player/update_records`](#3111-更新用户的成绩信息) | 登录验证 / Import-Token | 更新用户的成绩信息 |
@@ -89,7 +89,7 @@ public 类的端点中还包含一些其他功能如注册账户、重置账户�
 ```python
 headers = {
     "Import-Token": "your_import_token_here"
-    }
+}
 ```
 
 该验证方式会修饰其作用的端点，当 `Import-Token` 验证失败时，会返回以下错误信息：
@@ -122,7 +122,7 @@ headers = {
 ```python
 headers = {
     "Developer-Token": "your_developer_token_here",
-    }
+}
 ```
 
 该验证方式会修饰其作用的端点，当 `Developer-Token` 验证失败时，会根据不同的情况返回错误信息：

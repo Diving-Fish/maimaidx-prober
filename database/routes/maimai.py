@@ -373,6 +373,7 @@ async def query_player():
 
 
 @app.route("/query/plate", methods=['POST'])
+@developer_required
 async def query_plate():
     """
     获取某个用户的牌子信息。

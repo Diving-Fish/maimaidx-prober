@@ -41,7 +41,7 @@ chmod +x <文件名>
 PS：不懂就直接看视频教程吧
 </details>
 
-之后，填写`config.json`文件。使用记事本、Notepad++ 或 VS Code 等文本编辑器打开`config.json`，并将刚刚生成的成绩导入 Token 写入对应区域的引号中，类似这样：
+之后，填写`config.json`文件。使用记事本、Notepad++ 或 VS Code 等文本编辑器打开`config.json`，并将 [刚刚生成的成绩导入 Token](/docs/intro.md#完成设置并生成导入-token) 写入对应区域的引号中，类似这样：
 
 ```json
 {"token": "802f48105e7dbdd3c107cae68fd5f0fa4a6966b15795fbc2bb812ffc07aae023e39910fd3d06e2b0998e24154c7bb5f2714c7c4639e6c1b97e612d771832803d"}
