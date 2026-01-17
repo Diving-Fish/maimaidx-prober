@@ -22,3 +22,13 @@ sidebar_position: 3
 > 初次使用需绑定账号，请使用"绑定教程"命令进行绑定。仅需绑定一次后皆可使用相关功能。
 
 <img src={require('/img/milkbot.png').default} width="60%" />
+
+# 通过AWMC BOT进行成绩上传
+
+使用第三方项目 AWMC BOT 通过官方数据源进行成绩上传。
+
+您可以加入 QQ 官方群（1072033605）后，使用"mai绑定水鱼"命令进行更新。
+
+> 初次使用需绑定账号，请根据 Bot 的教程使用相关命令进行绑定。仅需绑定一次后皆可使用相关功能。
+
+<img src={require('/img/awmc-bot.png').default} width="60%" />
