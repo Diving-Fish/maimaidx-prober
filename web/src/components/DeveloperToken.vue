@@ -163,7 +163,7 @@ export default {
   },
   mounted: function () {
     axios
-      .get("https://www.diving-fish.com/api/maimaidxprober/developer_token")
+      .get("/api/maimaidxprober/developer_token")
       .then((response) => {
         this.items = response.data;
       })
@@ -205,7 +205,7 @@ export default {
         if (this.isNewToken) {
           try {
             await axios.post(
-              "https://www.diving-fish.com/api/maimaidxprober/developer_token",
+              "/api/maimaidxprober/developer_token",
               postData
             );
             this.items.push(postData);
@@ -219,7 +219,7 @@ export default {
         else {
           try {
             await axios.put(
-              "https://www.diving-fish.com/api/maimaidxprober/developer_token",
+              "/api/maimaidxprober/developer_token",
               postData
             );
             this.formDialog = false;

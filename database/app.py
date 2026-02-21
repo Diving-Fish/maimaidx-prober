@@ -195,6 +195,7 @@ def login_or_token_required(f):
             try:
                 g.user = await Player.aio_get(Player.import_token == import_token)
                 g.username = g.user.username
+                g.login_type = 'token'
             except Exception:
                 return {"status": "error", "message": "导入token有误"}, 400
         else:
@@ -208,6 +209,7 @@ def login_or_token_required(f):
                 return {"status": "error", "message": "会话过期"}, 403
             g.username = token['username']
             g.user = await Player.aio_get(Player.username == g.username)
+            g.login_type = 'cookie'
         
         return await f(*args, **kwargs)
 

@@ -17,7 +17,7 @@ export default {
         }
     },
     mounted: function() {
-        axios.get('https://www.diving-fish.com/api/maimaidxprober/count_view').then(resp => {
+        axios.get('/api/maimaidxprober/count_view').then(resp => {
             this.raw_views = resp.data.views;
         })
     }

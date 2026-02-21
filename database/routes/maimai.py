@@ -65,6 +65,16 @@ async def agreement():
             g.user.accept_agreement = obj["accept_agreement"]
             await g.user.aio_save()
         return {"message": "success"}
+    
+
+@app.route('/player/validate', methods=['GET'])
+@login_or_token_required
+async def validate():
+    """
+    *需要登录
+    验证当前登录状态是否有效。
+    """
+    return {"message": "ok", "username": g.username, "login_type": g.login_type}
 
 
 @app.route("/player/profile", methods=['GET', 'POST'])

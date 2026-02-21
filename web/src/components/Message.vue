@@ -109,7 +109,7 @@ export default {
       if (!this.$refs.msgNickForm.validate()) return;
       this.vsb = false;
       if (!this.$refs.msgForm.validate()) return;
-      axios.post("https://www.diving-fish.com/api/maimaidxprober/message", {
+      axios.post("/api/maimaidxprober/message", {
           "nickname": this.nickname,
           "text": this.buffer
       }).then(resp => {
@@ -121,7 +121,7 @@ export default {
       this.nickname = "";
     },
     getMessages: function() {
-      axios.get("https://www.diving-fish.com/api/maimaidxprober/message").then((resp) => {
+      axios.get("/api/maimaidxprober/message").then((resp) => {
         this.messages = resp.data;
         this.resize();
       });

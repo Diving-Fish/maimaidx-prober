@@ -48,7 +48,7 @@ export default {
   methods: {
     fetch() {
       axios
-        .get("https://www.diving-fish.com/api/maimaidxprober/player/agreement")
+        .get("/api/maimaidxprober/player/agreement")
         .then((resp) => {
           this.visible = !resp.data.accept_agreement;
         })
@@ -56,7 +56,7 @@ export default {
     },
     agree() {
       axios
-        .post("https://www.diving-fish.com/api/maimaidxprober/player/agreement", {
+        .post("/api/maimaidxprober/player/agreement", {
           accept_agreement: true
         }).then(() => {
           this.$message.success("已同意用户协议");

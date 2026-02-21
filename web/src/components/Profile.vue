@@ -56,7 +56,7 @@
                 </v-tooltip>
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on }">
-                    <v-icon v-on="on" @click="copyToClipboard('https://www.diving-fish.com/api/pageparser/shadowrocket?token=' + import_token)" class="click-icon"> mdi-rocket </v-icon>
+                    <v-icon v-on="on" @click="copyToClipboard('/api/pageparser/shadowrocket?token=' + import_token)" class="click-icon"> mdi-rocket </v-icon>
                   </template>
                   复制 Shadow Rocket 代理模块导入链接
                 </v-tooltip>
@@ -334,7 +334,7 @@ export default {
     submit() {
       if (!this.$refs.profile.validate()) return;
       axios
-        .post("https://www.diving-fish.com/api/maimaidxprober/player/profile", {
+        .post("/api/maimaidxprober/player/profile", {
           username: this.username,
           privacy: this.privacy,
           mask: this.mask,
@@ -379,8 +379,8 @@ export default {
     },
     delete_records() {
       axios.all([
-        axios.delete("https://www.diving-fish.com/api/maimaidxprober/player/delete_records"),
-        axios.delete("https://www.diving-fish.com/api/chunithmprober/player/delete_records")
+        axios.delete("/api/maimaidxprober/player/delete_records"),
+        axios.delete("/api/chunithmprober/player/delete_records")
       ]).then(axios.spread((maimaiResp,chuniResp)=>{
         this.$message.success("已删除舞萌查分器" + maimaiResp.data.message + "条数据");
         this.$message.success("已删除中二节奏查分器" + chuniResp.data.message + "条数据");
@@ -390,7 +390,7 @@ export default {
     change_password() {
       if (!this.$refs.changePasswordForm.validate()) return;
       axios
-        .post("https://www.diving-fish.com/api/maimaidxprober/player/change_password", {
+        .post("/api/maimaidxprober/player/change_password", {
           password: this.changePasswordForm.password
         })
         .then(() => {
@@ -404,7 +404,7 @@ export default {
     },
     fetch() {
       axios
-        .get("https://www.diving-fish.com/api/maimaidxprober/player/profile")
+        .get("/api/maimaidxprober/player/profile")
         .then((resp) => {
           this.login = true;
           this.username = resp.data.username;

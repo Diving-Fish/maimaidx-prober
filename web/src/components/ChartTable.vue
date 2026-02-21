@@ -94,7 +94,7 @@
     >
       <template #item.cover="{ item }">
         <v-img
-          :src="`https://www.diving-fish.com/covers/${getCoverPathById(
+          :src="`/covers/${getCoverPathById(
             item.song_id
           )}`"
           width="72px"

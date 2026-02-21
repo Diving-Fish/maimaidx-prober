@@ -33,7 +33,7 @@
               <div style="text-align: center;">
                 <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">{{ left_music.title }}</span>
               </div>
-              <v-img :src="`https://www.diving-fish.com/covers/${padNumber(left_music.id)}.png`" aspect-ratio="1"></v-img>
+              <v-img :src="`/covers/${padNumber(left_music.id)}.png`" aspect-ratio="1"></v-img>
             </v-col>
             <v-col cols="4" class="text-center" style="display: flex; align-items: center; justify-content: center;">
               <v-btn :disabled="loading" color="primary" @click="vote(1)">
@@ -46,7 +46,7 @@
               <div style="text-align: center;">
                 <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">{{ right_music.title }}</span>
               </div>
-              <v-img :src="`https://www.diving-fish.com/covers/${padNumber(right_music.id)}.png`" aspect-ratio="1"></v-img>
+              <v-img :src="`/covers/${padNumber(right_music.id)}.png`" aspect-ratio="1"></v-img>
             </v-col>
             <v-col cols="4" class="text-center" style="display: flex; align-items: center; justify-content: center;">
               <v-btn :disabled="loading" color="primary" @click="vote(2)">
@@ -77,10 +77,10 @@
           </v-row>
           <v-row>
             <v-col cols="6">
-              <v-img :src="`https://www.diving-fish.com/covers/${padNumber(left_music.id)}.png`" aspect-ratio="1"></v-img>
+              <v-img :src="`/covers/${padNumber(left_music.id)}.png`" aspect-ratio="1"></v-img>
             </v-col>
             <v-col cols="6">
-              <v-img :src="`https://www.diving-fish.com/covers/${padNumber(right_music.id)}.png`" aspect-ratio="1"></v-img>
+              <v-img :src="`/covers/${padNumber(right_music.id)}.png`" aspect-ratio="1"></v-img>
             </v-col>
           </v-row>
           <v-row>
@@ -157,7 +157,7 @@ export default {
       {
         this.remain = 5; 
       }
-      axios.get("https://www.diving-fish.com/api/maimaidxprober/vote_box").then((response) => {
+      axios.get("/api/maimaidxprober/vote_box").then((response) => {
         this.left_music = this.music_data[response.data.left];
         this.right_music = this.music_data[response.data.right];
         this.token = response.data.token;
@@ -166,7 +166,7 @@ export default {
 
     vote: function(val) {
       this.loading = true;
-      axios.post("https://www.diving-fish.com/api/maimaidxprober/vote_box", {
+      axios.post("/api/maimaidxprober/vote_box", {
         token: this.token,
         vote: val
       }).then((response) => {

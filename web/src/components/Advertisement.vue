@@ -25,7 +25,7 @@ export default {
     }
   },
   mounted: function () {
-    axios.get("https://www.diving-fish.com/api/maimaidxprober/advertisements").then((resp) => {
+    axios.get("/api/maimaidxprober/advertisements").then((resp) => {
       this.img_urls = resp.data;
       this.resize();
     });

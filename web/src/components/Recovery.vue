@@ -54,7 +54,7 @@ export default {
   },
   methods: {
     execute: function() {
-      axios.post("https://www.diving-fish.com/api/maimaidxprober/recovery?qq=" + this.bind_qq).then(() => {this.$message.success("邮件已发送")});
+      axios.post("/api/maimaidxprober/recovery?qq=" + this.bind_qq).then(() => {this.$message.success("邮件已发送")});
       this.open = false;
     }
   }

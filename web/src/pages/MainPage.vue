@@ -448,7 +448,7 @@
           <v-progress-circular color="grey" indeterminate></v-progress-circular>
         </v-row>
         <v-card-text>
-          <v-img :src="`https://www.diving-fish.com/covers/${getCoverPathById(coverItem.song_id)}`" contain
+          <v-img :src="`/covers/${getCoverPathById(coverItem.song_id)}`" contain
             :height="coverLoading ? 0 : undefined" @load="coverLoading = false"></v-img>
         </v-card-text>
       </v-card>
@@ -765,7 +765,7 @@ export default {
       if (this.username != "未登录") {
         axios
           .post(
-            "https://www.diving-fish.com/api/maimaidxprober/player/update_record",
+            "/api/maimaidxprober/player/update_record",
             this.currentUpdate
           )
           .then(() => {
@@ -814,7 +814,7 @@ export default {
     register: function () {
       if (!this.$refs.regForm.validate()) return;
       axios
-        .post("https://www.diving-fish.com/api/maimaidxprober/register", {
+        .post("/api/maimaidxprober/register", {
           username: this.registerForm.username,
           password: this.registerForm.password,
           records: this.records,
@@ -834,7 +834,7 @@ export default {
       // console.log(this.records);
       axios
         .post(
-          "https://www.diving-fish.com/api/maimaidxprober/player/update_records",
+          "/api/maimaidxprober/player/update_records",
           this.records.filter((elem) => {
             return elem.block !== true;
           })
@@ -848,7 +848,7 @@ export default {
     },
     sendFeedback: function () {
       axios
-        .post("https://www.diving-fish.com/api/maimaidxprober/feedback", {
+        .post("/api/maimaidxprober/feedback", {
           message: this.feedbackText,
         })
         .then(() => {
@@ -860,10 +860,10 @@ export default {
         });
     },
     fetchChunithmUserData: async function() {
-      this.chuni_latest_version = (await axios.get("https://www.diving-fish.com/api/chunithmprober/latest_version")).data.version;
+      this.chuni_latest_version = (await axios.get("/api/chunithmprober/latest_version")).data.version;
       try {
         this.chuni_records = (await axios.get(
-          DEBUG ? "https://www.diving-fish.com/api/chunithmprober/player/test_data" : "https://www.diving-fish.com/api/chunithmprober/player/records"
+          DEBUG ? "/api/chunithmprober/player/test_data" : "/api/chunithmprober/player/records"
         )).data.records.best;
       } catch (error) {
         this.$message.warning("未获取用户分数");
@@ -876,7 +876,7 @@ export default {
       that.chuniLoading = true;
       that.loading = true;
       this.$message.info("正在获取乐曲信息……");
-      axios.get("https://www.diving-fish.com/api/chunithmprober/music_data")
+      axios.get("/api/chunithmprober/music_data")
         .then((resp) => {
           this.chuni_data = resp.data;
           this.chuni_data_dict = this.chuni_data.reduce((acc, music) => {
@@ -886,7 +886,7 @@ export default {
           this.$message.success("中二节奏乐曲信息获取完成，正在获取用户分数信息……");
           this.fetchChunithmUserData();
         })
-      axios.get("https://www.diving-fish.com/api/maimaidxprober/music_data")
+      axios.get("/api/maimaidxprober/music_data")
         .then((resp) => {
           this.music_data = resp.data;
           this.music_data_dict = this.music_data.reduce((acc, music) => {
@@ -900,10 +900,10 @@ export default {
           this.$message.success("舞萌 DX 乐曲信息获取完成，正在获取用户分数及相对难度信息……");
           Promise.allSettled([
             axios.get(
-              "https://www.diving-fish.com/api/maimaidxprober/chart_stats"
+              "/api/maimaidxprober/chart_stats"
             ),
             axios.get(
-              DEBUG ? "https://www.diving-fish.com/api/maimaidxprober/player/test_data" : "https://www.diving-fish.com/api/maimaidxprober/player/records"
+              DEBUG ? "/api/maimaidxprober/player/test_data" : "/api/maimaidxprober/player/records"
             ),
           ]).then(([resp1, resp2]) => {
             if (resp1.status === "rejected") {
@@ -932,7 +932,7 @@ export default {
     login: function () {
       if (!this.$refs.form.validate()) return;
       axios
-        .post("https://www.diving-fish.com/api/maimaidxprober/login", {
+        .post("/api/maimaidxprober/login", {
           username: this.loginForm.username,
           password: this.loginForm.password,
         })
@@ -945,7 +945,7 @@ export default {
           this.$refs.profile.fetch();
           axios
             .get(
-              "https://www.diving-fish.com/api/maimaidxprober/player/records"
+              "/api/maimaidxprober/player/records"
             )
             .then((resp) => {
               const data = resp.data;
