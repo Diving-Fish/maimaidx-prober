@@ -234,7 +234,9 @@
                 <v-text-field v-model="searchKey" append-icon="mdi-magnify" label="查找乐曲" single-line hide-details
                   class="mb-4"></v-text-field>
               </v-card-title>
-              <v-card-subtitle>底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}</v-card-subtitle>
+              <v-card-subtitle>底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}
+                <span v-if="isMaiFilterActive" class="ml-3" style="color: #ff9800;">筛选乐曲: {{ calcFilteredRa(sdDisplay, 35) }} + {{ calcFilteredRa(dxDisplay, 15) }} = {{ calcFilteredRa(sdDisplay, 35) + calcFilteredRa(dxDisplay, 15) }}</span>
+              </v-card-subtitle>
               <filter-slider ref="filterSlider"></filter-slider>
               <pro-settings v-show="proSetting" ref="proSettings" :music_data="music_data"
                 :music_data_dict="music_data_dict" @setHeaders="setHeaders"></pro-settings>
@@ -329,6 +331,7 @@
               </v-card-title>
               <v-card-subtitle>
                 <span class="mr-2">Rating: {{ chuniB30Rating.toFixed(4) }} + {{ chuniN20Rating.toFixed(4) }} = {{ (chuniB30Rating + chuniN20Rating).toFixed(4) }}</span>
+                <span v-if="isChuniFilterActive" style="color: #ff9800;">筛选乐曲: {{ (calcFilteredRa(chuniB30RecordDisplay, 30) / 50).toFixed(4) }} + {{ (calcFilteredRa(chuniN20RecordDisplay, 20) / 50).toFixed(4) }} = {{ ((calcFilteredRa(chuniB30RecordDisplay, 30) + calcFilteredRa(chuniN20RecordDisplay, 20)) / 50).toFixed(4) }}</span>
               </v-card-subtitle>
               <filter-slider ref="filterSliderChuni"></filter-slider>
               <pro-settings-chuni v-show="proSettingChuni" ref="proSettingsChuni" :music_data="chuni_data"
@@ -701,6 +704,12 @@ export default {
       }
       return ret;
     },
+    isMaiFilterActive: function () {
+      return this.sdDisplay.length !== this.sdData.length || this.dxDisplay.length !== this.dxData.length;
+    },
+    isChuniFilterActive: function () {
+      return this.chuniB30RecordDisplay.length !== this.chuniB30Record.length || this.chuniN20RecordDisplay.length !== this.chuniN20Record.length;
+    },
   },
   created: function () {
     history.replaceState("", "", window.location.pathname);
@@ -731,6 +740,13 @@ export default {
     }
   },
   methods: {
+    calcFilteredRa: function(data, limit) {
+      let ret = 0;
+      for (let i = 0; i < Math.min(data.length, limit); i++) {
+        ret += data[i].ra;
+      }
+      return ret;
+    },
     rawToString: function (text) {
       if (text[text.length - 1] == "p" && text != "ap") {
         return text.substring(0, text.length - 1).toUpperCase() + "+";
