@@ -15,10 +15,10 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://www.diving-fish.com',
+  url: 'https://maimai.diving-fish.com',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/maimaidx/docs/',
+  baseUrl: '/manual/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
@@ -71,7 +71,7 @@ const config: Config = {
         },
         // {to: '/blog', label: 'Blog', position: 'left'},
         {
-          href: 'https://www.diving-fish.com/maimaidx/prober/',
+          href: 'https://maimai.diving-fish.com/',
           label: '查分器',
           position: 'right',
         },

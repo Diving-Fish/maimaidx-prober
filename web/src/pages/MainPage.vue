@@ -9,7 +9,7 @@
       <agreement></agreement>
       <v-divider class="mt-4 mb-4" />
       <p>
-        <v-btn href="/maimaidx/docs" target="_blank" color="primary">使用指南</v-btn>
+        <v-btn href="/manual/" target="_blank" color="primary">使用指南</v-btn>
         <tutorial ref="tutorial" />
       </p>
       <p class="mb-2">点个 Star 吧！</p>
@@ -357,10 +357,14 @@
         </v-card>
       </v-container>
       <div class="mid" :style="$vuetify.breakpoint.mobile ? '' : 'display: flex'">
-        <message @resize="$refs.advertisement.resize()"
-          :style="`flex: 1; ${$vuetify.breakpoint.mobile ? '' : 'min-width: 500px; margin-right: 16px'}`" class="mbe-2">
-        </message>
-        <advertisement ref="advertisement" class="mbe-2"></advertisement>
+        <v-row>
+          <v-col cols="12" md="8">
+            <message></message>
+          </v-col>
+          <v-col cols="12" md="4">
+            <advertisement></advertisement>
+          </v-col>
+        </v-row>
       </div>
       <v-card>
         <v-card-title>更新记录</v-card-title>
