@@ -56,7 +56,7 @@
                 </v-tooltip>
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on }">
-                    <v-icon v-on="on" @click="copyToClipboard('/api/pageparser/shadowrocket?token=' + import_token)" class="click-icon"> mdi-rocket </v-icon>
+                    <v-icon v-on="on" @click="copyToClipboard('https://www.diving-fish.com/api/pageparser/shadowrocket?token=' + import_token)" class="click-icon"> mdi-rocket </v-icon>
                   </template>
                   复制 Shadow Rocket 代理模块导入链接
                 </v-tooltip>
