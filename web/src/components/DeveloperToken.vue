@@ -93,6 +93,7 @@
                   rows="3"
                   :rules="[(v) => !!v || '原因不能为空']"
                   required
+                  placeholder="我正在开发/使用 [XXX 项目]，需要开发者 Token 以获取 [XXX 数据]……"
                 ></v-textarea>
                 <div style="display: flex; align-items: center">
                   <v-file-input
