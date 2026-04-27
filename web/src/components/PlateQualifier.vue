@@ -208,25 +208,26 @@ export default {
       // Just verify master level.
       let res = {};
       const plateTypes = [1, 2, 4, 8];
+      const plateTypesSum = 15;
       const allChartsAchievementPlateType = 16;
       const allDifficultyKeys = ["bas_pq", "adv_pq", "exp_pq", "mst_pq", "rem_pq"];
       for (const ver of this.versions) {
         if (ver === "maimai でらっくす BUDDiES")
           continue;
         const songs = this.filter_version(ver).filter((elem) => elem.title != 'ジングルベル');
-        let d = songs
+        let masterPlateQualifiers = songs
           .map((elem) => {
             return elem.mst_pq;
           });
         if (ver === "ALL FiNALE") {
-          d = d.concat(songs
+          masterPlateQualifiers = masterPlateQualifiers.concat(songs
             .map((elem) => {
               return elem.rem_pq;
             }));
         }
-        res[ver] = plateTypes.reduce((sum, i) => sum + i, 0)
+        res[ver] = plateTypesSum
           + (ver === "ALL FiNALE" ? allChartsAchievementPlateType : 0);
-        for (const v of d) {
+        for (const v of masterPlateQualifiers) {
           for (const i of plateTypes) {
             if ((v & i) === 0 && res[ver] & i) res[ver] -= i;
           }

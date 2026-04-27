@@ -339,7 +339,9 @@ export default {
       if (plate === "霸者") {
         this.plate_upload.version = "ALL FiNALE";
         this.plate_upload.plate_type = 16;
-      } else if (plate.length >= 2) {
+        return;
+      }
+      if (plate.length >= 2) {
         this.plate_upload.version = this.v2n[plate[0]];
         this.plate_upload.plate_type = this.t2n[plate.slice(1)];
       }
