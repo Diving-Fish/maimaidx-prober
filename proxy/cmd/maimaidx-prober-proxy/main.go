@@ -16,12 +16,29 @@ import (
 	"github.com/elazarl/goproxy"
 )
 
-func patchGoproxyCert() {
-	certPath := "cert.crt"
-	privateKeyPath := "key.pem"
-	crt, _ := os.ReadFile(certPath)
-	pem, _ := os.ReadFile(privateKeyPath)
-	goproxy.GoproxyCa, _ = tls.X509KeyPair(crt, pem)
+func patchGoproxyCert() error {
+	cp, err := certPath()
+	if err != nil {
+		return err
+	}
+	kp, err := keyPath()
+	if err != nil {
+		return err
+	}
+	crt, err := os.ReadFile(cp)
+	if err != nil {
+		return fmt.Errorf("读取证书失败 (%s): %w", cp, err)
+	}
+	key, err := os.ReadFile(kp)
+	if err != nil {
+		return fmt.Errorf("读取私钥失败 (%s): %w", kp, err)
+	}
+	pair, err := tls.X509KeyPair(crt, key)
+	if err != nil {
+		return fmt.Errorf("解析证书/私钥失败: %w", err)
+	}
+	goproxy.GoproxyCa = pair
+	return nil
 }
 
 func main() {
@@ -36,8 +53,11 @@ func main() {
 	flagSet.Bool("slice", false, "using more parts to import records")
 	flagSet.Int("timeout", 30, "timeout when connect to servers")
 	flagSet.String("mai-diffs", "", "mai diffs to import")
+	doInstallCert := flagSet.Bool("install-cert", false, "install the local CA into the OS root store and exit")
+	doUninstallCert := flagSet.Bool("uninstall-cert", false, "remove the local CA from the OS root store and exit")
 
 	checkUpdate()
+	initProgress()
 
 	var spm *systemProxyManager
 	commandFatal := func(err error) {
@@ -55,8 +75,44 @@ func main() {
 		commandFatal(fmt.Errorf("加载命令行参数出错，请检查您的参数"))
 	}
 
+	// Subcommands that operate on the local CA. They run before initConfig so
+	// they don't require a populated config.json (only the cert/key files).
+	if *doInstallCert || *doUninstallCert {
+		if err := ensureCertExists(); err != nil {
+			commandFatal(err)
+		}
+		cp, _ := certPath()
+		var cerr error
+		if *doInstallCert {
+			cerr = installCert(cp)
+		} else {
+			cerr = uninstallCert(cp)
+		}
+		if cerr != nil {
+			commandFatal(cerr)
+		}
+		Log(LogLevelInfo, "操作完成")
+		fmt.Printf("请按 Enter 键继续……")
+		bufio.NewReader(os.Stdin).ReadString('\n')
+		return
+	}
+
 	cfg, err := initConfig(*configPath)
 	if err != nil {
+		commandFatal(err)
+	}
+
+	// Make sure the local CA is generated and installed into the OS trust
+	// store BEFORE we ask the user for their token. On Windows this may
+	// trigger a UAC prompt; on macOS a keychain password prompt. Idempotent:
+	// if the cert is already trusted, this is a fast no-op.
+	if err := ensureCertInstalled(); err != nil {
+		commandFatal(fmt.Errorf("证书安装失败：%w", err))
+	}
+
+	// Interactively collect & validate the Import-Token if the config does
+	// not already contain a working one.
+	if err := ensureToken(&cfg, *configPath); err != nil {
 		commandFatal(err)
 	}
 
@@ -99,7 +155,9 @@ func main() {
 		}
 	}()
 
-	patchGoproxyCert()
+	if err := patchGoproxyCert(); err != nil {
+		commandFatal(err)
+	}
 	srv := proxyCtx.makeProxyServer()
 
 	if host, _, err := net.SplitHostPort(cfg.Addr); err == nil && host == "" {

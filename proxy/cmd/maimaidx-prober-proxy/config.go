@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/Diving-Fish/maimaidx-prober/proxy/lib"
 )
 
 type workingMode int
@@ -109,14 +107,6 @@ func getMaiDiffs(MaiDiffs []string) (diffs []int, err error) {
 }
 
 func initConfig(path string) (config, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		// First run
-		lib.GenerateCert()
-		os.WriteFile(path, []byte("{\"token\": \"\"}"), 0644)
-		return config{}, fmt.Errorf("初次使用请填写 %s 文件，并依据教程完成根证书的安装。", path)
-	}
-
 	obj := config{
 		Addr:              ":8033",
 		NetworkTimeout:    30,
@@ -125,10 +115,18 @@ func initConfig(path string) (config, error) {
 		NoEditGlobalProxy: false,
 	}
 
-	err = json.Unmarshal(b, &obj)
+	b, err := os.ReadFile(path)
 	if err != nil {
-		return config{}, fmt.Errorf("配置文件格式有误，无法解析：%w。请检查 %s 文件的内容", err, path)
+		// First run: create an empty stub so subsequent runs find it.
+		// The interactive setup wizard in main() will fill in the token.
+		if werr := os.WriteFile(path, []byte("{\"token\": \"\"}"), 0644); werr != nil {
+			return obj, fmt.Errorf("初始化配置文件失败：%w", werr)
+		}
+		return obj, nil
 	}
 
+	if err := json.Unmarshal(b, &obj); err != nil {
+		return obj, fmt.Errorf("配置文件格式有误，无法解析：%w。请检查 %s 文件的内容", err, path)
+	}
 	return obj, nil
 }

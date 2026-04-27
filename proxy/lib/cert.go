@@ -1,163 +1,117 @@
 package lib
 
 import (
-	"crypto/ecdsa"
-	"crypto/ed25519"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"flag"
-	"log"
+	"fmt"
 	"math/big"
-	"net"
 	"os"
-	"strings"
 	"time"
 )
 
-var (
-	host       = flag.String("host", "*.wahlap.com", "Comma-separated hostnames and IPs to generate a certificate for")
-	validFrom  = flag.String("start-date", "Jan 1 15:04:05 2011", "Creation date formatted as Jan 1 15:04:05 2011")
-	validFor   = flag.Duration("duration", 50*365*24*time.Hour, "Duration that certificate is valid for")
-	isCA       = flag.Bool("ca", true, "whether this cert should be its own Certificate Authority")
-	rsaBits    = flag.Int("rsa-bits", 2048, "Size of RSA key to generate. Ignored if --ecdsa-curve is set")
-	ecdsaCurve = flag.String("ecdsa-curve", "", "ECDSA curve to use to generate a key. Valid values are P224, P256 (recommended), P384, P521")
-	ed25519Key = flag.Bool("ed25519", false, "Generate an Ed25519 key")
-)
-
-func publicKey(priv interface{}) interface{} {
-	switch k := priv.(type) {
-	case *rsa.PrivateKey:
-		return &k.PublicKey
-	case *ecdsa.PrivateKey:
-		return &k.PublicKey
-	case ed25519.PrivateKey:
-		return k.Public().(ed25519.PublicKey)
-	default:
-		return nil
-	}
+// CertOptions configures CA generation.
+type CertOptions struct {
+	CertPath string // where to write the PEM-encoded certificate
+	KeyPath  string // where to write the PEM-encoded PKCS#8 private key
+	// PermittedDNSDomains restricts the issued CA so it can only sign leaf
+	// certificates whose DNS SANs fall under one of these domains. Leaving
+	// it empty disables Name Constraints (NOT recommended).
+	PermittedDNSDomains []string
+	Validity            time.Duration // certificate validity (default 2 years)
+	CommonName          string        // subject common name (default: "maimaidx-prober Local Root CA")
 }
 
-func GenerateCert() {
-	flag.Parse()
-
-	if len(*host) == 0 {
-		log.Fatalf("Missing required --host parameter")
+// GenerateCertTo creates a fresh self-signed CA limited (via Name Constraints)
+// to the configured DNS domains and writes both the certificate and its
+// private key to disk. The private key file is created with mode 0600.
+//
+// The CA is intended to be installed into the OS root store; restricting it
+// with Name Constraints means leakage of the private key cannot be abused to
+// MITM unrelated HTTPS traffic.
+func GenerateCertTo(opts CertOptions) error {
+	if opts.CertPath == "" || opts.KeyPath == "" {
+		return fmt.Errorf("cert/key path required")
+	}
+	if opts.Validity <= 0 {
+		opts.Validity = 2 * 365 * 24 * time.Hour
+	}
+	if opts.CommonName == "" {
+		opts.CommonName = "maimaidx-prober Local Root CA"
+	}
+	if len(opts.PermittedDNSDomains) == 0 {
+		opts.PermittedDNSDomains = []string{"wahlap.com"}
 	}
 
-	var priv interface{}
-	var err error
-	switch *ecdsaCurve {
-	case "":
-		if *ed25519Key {
-			_, priv, err = ed25519.GenerateKey(rand.Reader)
-		} else {
-			priv, err = rsa.GenerateKey(rand.Reader, *rsaBits)
-		}
-	case "P224":
-		priv, err = ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
-	case "P256":
-		priv, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	case "P384":
-		priv, err = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	case "P521":
-		priv, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
-	default:
-		log.Fatalf("Unrecognized elliptic curve: %q", *ecdsaCurve)
-	}
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		log.Fatalf("Failed to generate private key: %v", err)
+		return fmt.Errorf("generate key: %w", err)
 	}
 
-	// ECDSA, ED25519 and RSA subject keys should have the DigitalSignature
-	// KeyUsage bits set in the x509.Certificate template
-	keyUsage := x509.KeyUsageDigitalSignature
-	// Only RSA subject keys should have the KeyEncipherment KeyUsage bits set. In
-	// the context of TLS this KeyUsage is particular to RSA key exchange and
-	// authentication.
-	if _, isRSA := priv.(*rsa.PrivateKey); isRSA {
-		keyUsage |= x509.KeyUsageKeyEncipherment
-	}
-
-	var notBefore time.Time
-	if len(*validFrom) == 0 {
-		notBefore = time.Now()
-	} else {
-		notBefore, err = time.Parse("Jan 2 15:04:05 2006", *validFrom)
-		if err != nil {
-			log.Fatalf("Failed to parse creation date: %v", err)
-		}
-	}
-
-	notAfter := notBefore.Add(*validFor)
-
-	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
-	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	serialLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serial, err := rand.Int(rand.Reader, serialLimit)
 	if err != nil {
-		log.Fatalf("Failed to generate serial number: %v", err)
+		return fmt.Errorf("generate serial: %w", err)
 	}
 
-	template := x509.Certificate{
-		SerialNumber: serialNumber,
+	now := time.Now()
+	tpl := x509.Certificate{
+		SerialNumber: serial,
 		Subject: pkix.Name{
-			Organization: []string{"Maimai DX Prober Proxy"},
+			CommonName:   opts.CommonName,
+			Organization: []string{"maimaidx-prober"},
 		},
-		NotBefore: notBefore,
-		NotAfter:  notAfter,
-
-		KeyUsage:              keyUsage,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true,
+		NotBefore:                   now.Add(-time.Hour),
+		NotAfter:                    now.Add(opts.Validity),
+		KeyUsage:                    x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
+		ExtKeyUsage:                 []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid:       true,
+		IsCA:                        true,
+		MaxPathLenZero:              true,
+		PermittedDNSDomainsCritical: true,
+		PermittedDNSDomains:         opts.PermittedDNSDomains,
 	}
 
-	hosts := strings.Split(*host, ",")
-	for _, h := range hosts {
-		if ip := net.ParseIP(h); ip != nil {
-			template.IPAddresses = append(template.IPAddresses, ip)
-		} else {
-			template.DNSNames = append(template.DNSNames, h)
-		}
-	}
-
-	if *isCA {
-		template.IsCA = true
-		template.KeyUsage |= x509.KeyUsageCertSign
-	}
-
-	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, publicKey(priv), priv)
+	der, err := x509.CreateCertificate(rand.Reader, &tpl, &tpl, &priv.PublicKey, priv)
 	if err != nil {
-		log.Fatalf("Failed to create certificate: %v", err)
+		return fmt.Errorf("create certificate: %w", err)
 	}
 
-	certOut, err := os.Create("cert.crt")
+	certOut, err := os.OpenFile(opts.CertPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		log.Fatalf("Failed to open cert.crt for writing: %v", err)
+		return fmt.Errorf("open cert file: %w", err)
 	}
-	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
-		log.Fatalf("Failed to write data to cert.crt: %v", err)
+	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: der}); err != nil {
+		_ = certOut.Close()
+		return fmt.Errorf("write cert: %w", err)
 	}
 	if err := certOut.Close(); err != nil {
-		log.Fatalf("Error closing cert.crt: %v", err)
+		return err
 	}
-	log.Print("wrote cert.crt\n")
 
-	keyOut, err := os.OpenFile("key.pem", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	keyOut, err := os.OpenFile(opts.KeyPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		log.Fatalf("Failed to open key.pem for writing: %v", err)
-		return
+		return fmt.Errorf("open key file: %w", err)
 	}
-	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
+	keyBytes, err := x509.MarshalPKCS8PrivateKey(priv)
 	if err != nil {
-		log.Fatalf("Unable to marshal private key: %v", err)
+		_ = keyOut.Close()
+		return fmt.Errorf("marshal key: %w", err)
 	}
-	if err := pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: privBytes}); err != nil {
-		log.Fatalf("Failed to write data to key.pem: %v", err)
+	if err := pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes}); err != nil {
+		_ = keyOut.Close()
+		return fmt.Errorf("write key: %w", err)
 	}
-	if err := keyOut.Close(); err != nil {
-		log.Fatalf("Error closing key.pem: %v", err)
-	}
-	log.Print("wrote key.pem\n")
+	return keyOut.Close()
 }
+
+// GenerateCert is the legacy entry point kept for callers that still write to
+// the current working directory. New code should use GenerateCertTo.
+func GenerateCert() {
+	if err := GenerateCertTo(CertOptions{CertPath: "cert.crt", KeyPath: "key.pem"}); err != nil {
+		panic(err)
+	}
+}
+

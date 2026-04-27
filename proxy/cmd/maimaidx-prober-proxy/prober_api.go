@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,6 +20,33 @@ type proberAPIClient struct {
 	mode     workingMode
 	maiDiffs []int
 	slice    bool
+	maiMeta  maimaiProxyMeta
+}
+
+// maimaiProxyMeta mirrors the JSON returned by
+// /api/maimaidxprober/proxy_meta and lists the difficulty / version names
+// that the per-diff fetch loop iterates over. Keeping this on the server
+// means new game versions can be added without re-releasing the proxy.
+type maimaiProxyMeta struct {
+	DiffLabels    []string `json:"diff_labels"`
+	VersionTags   []string `json:"version_tags"`
+	VersionLabels []string `json:"version_labels"`
+}
+
+func fetchMaimaiProxyMeta(cl *http.Client) (maimaiProxyMeta, error) {
+	var meta maimaiProxyMeta
+	resp, err := cl.Get("https://www.diving-fish.com/api/maimaidxprober/proxy_meta")
+	if err != nil {
+		return meta, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return meta, fmt.Errorf("proxy_meta returned status %d", resp.StatusCode)
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&meta); err != nil {
+		return meta, err
+	}
+	return meta, nil
 }
 
 func newProberAPIClient(cfg *config, networkTimeout int) (*proberAPIClient, error) {
@@ -32,16 +60,26 @@ func newProberAPIClient(cfg *config, networkTimeout int) (*proberAPIClient, erro
 
 	Log(LogLevelInfo, "登录成功")
 
+	meta, err := fetchMaimaiProxyMeta(http.DefaultClient)
+	if err != nil {
+		return nil, fmt.Errorf("无法从查分服务器获取 proxy 元数据：%v", err)
+	}
+
 	return &proberAPIClient{
 		cl:       http.Client{Timeout: time.Duration(networkTimeout) * time.Second},
 		token:    cfg.Token,
 		mode:     cfg.getWorkingMode(),
 		maiDiffs: cfg.MaiIntDiffs,
 		slice:    cfg.Slice,
+		maiMeta:  meta,
 	}, nil
 }
 
-func (c *proberAPIClient) commit(data []byte) (err error) {
+// commit uploads the captured Wahlap HTML to the diving-fish maimai
+// update_records pipeline. The backend response includes "updates" /
+// "creates" counters which we surface so the UI can show how many records
+// were touched.
+func (c *proberAPIClient) commit(data []byte) (updates int, creates int, err error) {
 	resp2, err := http.Post("http://www.diving-fish.com:8089/page", "text/plain", bytes.NewReader(data))
 	if err != nil {
 		return
@@ -56,66 +94,133 @@ func (c *proberAPIClient) commit(data []byte) (err error) {
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Import-Token", c.token)
-	_, err = c.cl.Do(req)
+	resp, err := c.cl.Do(req)
 	if err != nil {
 		// 这里有一个已知的后端 bug，可能会导致 status 500，但是数据仍然导入，这里暂时不做处理
-		return nil
+		return 0, 0, nil
 	}
+	updates, creates = parseUpdatesCreates(resp.Body)
+	resp.Body.Close()
 	return
 }
 
-func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, cookies []*http.Cookie) {
-	c.cl.Jar, _ = cookiejar.New(nil)
-	if len(cookies) != 2 {
-		for _, cookie := range req0.Cookies() {
-			if cookie.Name == "userId" {
-				cookie2 := *cookies[0]
-				cookie2.Name = cookie.Name
-				cookie2.Value = cookie.Value
-				cookies = append(cookies, &cookie2)
-			}
-		}
+// parseUpdatesCreates extracts the {"updates": N, "creates": M} fields
+// returned by the prober update_records / update_records_html endpoints.
+// Missing fields are treated as zero so we never fail the import just because
+// the backend changed shape.
+func parseUpdatesCreates(r io.Reader) (updates int, creates int) {
+	var payload struct {
+		Updates int `json:"updates"`
+		Creates int `json:"creates"`
 	}
-	c.cl.Jar.SetCookies(req0.URL, cookies)
+	_ = json.NewDecoder(r).Decode(&payload)
+	return payload.Updates, payload.Creates
+}
 
-	labels := []string{
-		"Basic", "Advanced", "Expert", "Master", "Re: MASTER", "", "", "", "", "", "UTAGE",
+// browserHeaders returns a header set safe to forward to wahlap. It strips
+// hop-by-hop / per-request headers (Cookie is supplied by the cookie jar,
+// Content-Length/Content-Type are recomputed by net/http) but keeps the
+// fingerprinting-relevant ones (User-Agent, Accept*, sec-ch-ua*, sec-fetch-*,
+// upgrade-insecure-requests, etc.) so EdgeOne's WAF doesn't flag us as a
+// bot.
+func browserHeaders(src http.Header) http.Header {
+	h := src.Clone()
+	for _, k := range []string{
+		"Cookie", "Content-Length", "Content-Type",
+		"Host", "Connection", "Proxy-Connection",
+		"Transfer-Encoding", "Te", "Upgrade", "Trailer",
+	} {
+		h.Del(k)
 	}
-	versionTags := []string{
-		"V-0", "V-1", "V-2", "V-3", "V-4", "V-5", "V-6", "V-7", "V-8", "V-9", "V-10", "V-11", "V-12", "V-13", "V-15", "V-17", "V-19",
-	}
-	versionLabels := []string{
-		"maimai", "maimai PLUS", "GreeN", "GreeN PLUS", "ORANGE", "ORANGE PLUS", "PiNK", "PiNK PLUS", "MURASAKi", "MURASAKi PLUS", "MiLK", "MiLK PLUS", "FiNALE", "舞萌DX", "舞萌DX 2021", "舞萌DX 2022", "舞萌DX 2023",
-	}
-	for _, i := range c.maiDiffs {
-		if c.slice {
-			for j, versionTag := range versionTags {
-				Log(LogLevelInfo, "正在导入 %s 版本的 %s 难度……", versionLabels[j], labels[i])
-				for {
-					err := c.fetchDataMaimaiPerDiffAndVersion(i, versionTag)
-					if err == nil {
-						break
-					}
-				}
-			}
-		} else {
-			Log(LogLevelInfo, "正在导入 %s 难度……", labels[i])
-			for {
-				err := c.fetchDataMaimaiPerDiff(i)
-				if err == nil {
-					break
-				}
-			}
-		}
+	return h
+}
+
+// applyHeaders copies every header from src into dst, replacing any existing
+// value. Use this instead of `req.Header = src` so we don't accidentally
+// share the underlying map between concurrent requests.
+func applyHeaders(dst, src http.Header) {
+	for k, vs := range src {
+		dst[k] = append([]string(nil), vs...)
 	}
 }
 
-func (c *proberAPIClient) fetchDataMaimaiPerDiff(diff int) (err error) {
+func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, respCookies []*http.Cookie) {
+	// Seed the jar with everything the browser sent in the home request --
+	// crucially this includes the EdgeOne / TencentEdge challenge cookies
+	// (__tst_status, EO_Bot_Ssid) without which the WAF will keep returning
+	// the JS bot-check page instead of the real HTML.
+	c.cl.Jar, _ = cookiejar.New(nil)
+	if reqCookies := req0.Cookies(); len(reqCookies) > 0 {
+		c.cl.Jar.SetCookies(req0.URL, reqCookies)
+	}
+	if len(respCookies) > 0 {
+		c.cl.Jar.SetCookies(req0.URL, respCookies)
+	}
+	headers := browserHeaders(req0.Header)
+
+	labels := c.maiMeta.DiffLabels
+	versionTags := c.maiMeta.VersionTags
+	versionLabels := c.maiMeta.VersionLabels
+	stepsPerDiff := 1
+	if c.slice {
+		stepsPerDiff = len(versionTags)
+	}
+	total := len(c.maiDiffs) * stepsPerDiff
+	progressHubInstance.Clear()
+	progressHubInstance.Publish(ProgressEvent{Type: "start", Game: "maimai", Total: total})
+	done := 0
+	totalUpdates, totalCreates := 0, 0
+	for _, i := range c.maiDiffs {
+		if c.slice {
+			for j, versionTag := range versionTags {
+				progressHubInstance.Publish(ProgressEvent{
+					Type: "step", Game: "maimai",
+					Stage:   fmt.Sprintf("%s · %s", versionLabels[j], labels[i]),
+					Current: done, Total: total,
+				})
+				Log(LogLevelInfo, "正在导入 %s 版本的 %s 难度……", versionLabels[j], labels[i])
+				for {
+					u, cr, err := c.fetchDataMaimaiPerDiffAndVersion(headers, i, versionTag)
+					if err == nil {
+						totalUpdates += u
+						totalCreates += cr
+						break
+					}
+				}
+				done++
+			}
+		} else {
+			progressHubInstance.Publish(ProgressEvent{
+				Type: "step", Game: "maimai",
+				Stage:   labels[i],
+				Current: done, Total: total,
+			})
+			Log(LogLevelInfo, "正在导入 %s 难度……", labels[i])
+			for {
+				u, cr, err := c.fetchDataMaimaiPerDiff(headers, i)
+				if err == nil {
+					totalUpdates += u
+					totalCreates += cr
+					break
+				}
+			}
+			done++
+		}
+	}
+	if c.mode == workingModeUpdate {
+		Log(LogLevelInfo, "全部难度导入完成，共新增 %d 条、更新 %d 条成绩记录", totalCreates, totalUpdates)
+	}
+	progressHubInstance.Publish(ProgressEvent{Type: "done", Game: "maimai", Current: total, Total: total, Count: totalUpdates + totalCreates})
+}
+
+func (c *proberAPIClient) fetchDataMaimaiPerDiff(headers http.Header, diff int) (updates int, creates int, err error) {
 	req, err := http.NewRequest(http.MethodGet, "https://maimai.wahlap.com/maimai-mobile/record/musicSort/search/?search=A&sort=1&playCheck=on&diff="+strconv.Itoa(diff), nil)
 	if err != nil {
 		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
 		return
 	}
+	applyHeaders(req.Header, headers)
+	req.Header.Set("Referer", "https://maimai.wahlap.com/maimai-mobile/record/")
 	resp, err := c.cl.Do(req)
 	if err != nil {
 		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
@@ -128,53 +233,70 @@ func (c *proberAPIClient) fetchDataMaimaiPerDiff(diff int) (err error) {
 	}
 	switch c.mode {
 	case workingModeUpdate:
-		err = c.commit(respText)
+		updates, creates, err = c.commit(respText)
 		if err != nil {
 			Log(LogLevelWarning, "提交数据到查分服务器失败，正在重试……")
 			return
 		}
-		Log(LogLevelInfo, "导入成功")
+		Log(LogLevelInfo, "导入成功，本难度新增 %d 条、更新 %d 条", creates, updates)
 	case workingModeExport:
 		err = os.WriteFile(fmt.Sprintf("mai-diff%d.html", diff), respText, 0644)
 		if err != nil {
 			Log(LogLevelWarning, "导出到文件失败")
-			return nil
+			return 0, 0, nil
 		}
 		Log(LogLevelInfo, "已导出到文件")
 	}
 	return
 }
 
-func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, cookies []*http.Cookie) {
+func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, respCookies []*http.Cookie) {
 	c.cl.Jar, _ = cookiejar.New(nil)
-	if len(cookies) != 3 {
-		for _, cookie := range req0.Cookies() {
-			if cookie.Name == "userId" || cookie.Name == "friendCodeList" {
-				cookie2 := *cookies[0]
-				cookie2.Name = cookie.Name
-				cookie2.Value = cookie.Value
-				cookies = append(cookies, &cookie2)
-			}
+	if reqCookies := req0.Cookies(); len(reqCookies) > 0 {
+		c.cl.Jar.SetCookies(req0.URL, reqCookies)
+	}
+	if len(respCookies) > 0 {
+		c.cl.Jar.SetCookies(req0.URL, respCookies)
+	}
+	// The chunithm form posts include a `_t` token field; locate it from
+	// whichever cookie source provides it.
+	var token string
+	for _, c := range append(append([]*http.Cookie{}, respCookies...), req0.Cookies()...) {
+		if c.Name == "_t" {
+			token = c.Value
+			break
 		}
 	}
-	c.cl.Jar.SetCookies(req0.URL, cookies)
-	hds := req0.Header.Clone()
-	hds.Del("Cookie")
+	hds := browserHeaders(req0.Header)
 	labels := []string{
 		"Basic 难度", "Advanced 难度", "Expert 难度", "Master 难度", "Ultima 难度", "World's End 难度",
 	}
+	progressHubInstance.Clear()
+	progressHubInstance.Publish(ProgressEvent{Type: "start", Game: "chuni", Total: 6})
+	totalUpdates, totalCreates := 0, 0
 	for i := 0; i < 6; i++ {
+		progressHubInstance.Publish(ProgressEvent{
+			Type: "step", Game: "chuni",
+			Stage:   labels[i],
+			Current: i, Total: 6,
+		})
 		Log(LogLevelInfo, "正在导入 %s……", labels[i])
 		for {
-			err := c.fetchDataChuniPerDiff(hds, cookies, i)
+			u, cr, err := c.fetchDataChuniPerDiff(hds, token, i)
 			if err == nil {
+				totalUpdates += u
+				totalCreates += cr
 				break
 			}
 		}
 	}
+	if c.mode == workingModeUpdate {
+		Log(LogLevelInfo, "全部难度导入完成，共新增 %d 条、更新 %d 条成绩记录", totalCreates, totalUpdates)
+	}
+	progressHubInstance.Publish(ProgressEvent{Type: "done", Game: "chuni", Current: 6, Total: 6, Count: totalUpdates + totalCreates})
 }
 
-func (c *proberAPIClient) fetchDataChuniPerDiff(headers http.Header, cookies []*http.Cookie, diff int) (err error) {
+func (c *proberAPIClient) fetchDataChuniPerDiff(headers http.Header, token string, diff int) (updates int, creates int, err error) {
 	postUrls := []string{
 		"/record/musicGenre/sendBasic",
 		"/record/musicGenre/sendAdvanced",
@@ -193,19 +315,19 @@ func (c *proberAPIClient) fetchDataChuniPerDiff(headers http.Header, cookies []*
 	if diff < 5 {
 		formData := url.Values{
 			"genre": {"99"},
-			"token": {cookies[0].Value},
+			"token": {token},
 		}
-		req, err := http.NewRequest(http.MethodPost, "https://chunithm.wahlap.com/mobile"+postUrls[diff], strings.NewReader(formData.Encode()))
-		if err != nil {
+		req, rerr := http.NewRequest(http.MethodPost, "https://chunithm.wahlap.com/mobile"+postUrls[diff], strings.NewReader(formData.Encode()))
+		if rerr != nil {
 			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
-			return err
+			return 0, 0, rerr
 		}
-		req.Header = headers
+		applyHeaders(req.Header, headers)
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		_, err = c.cl.Do(req)
-		if err != nil {
+		req.Header.Set("Referer", "https://chunithm.wahlap.com/mobile/record/musicGenre/")
+		if _, derr := c.cl.Do(req); derr != nil {
 			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
-			return err
+			return 0, 0, derr
 		}
 	}
 	req, err := http.NewRequest(http.MethodGet, "https://chunithm.wahlap.com/mobile"+urls[diff], nil)
@@ -213,6 +335,8 @@ func (c *proberAPIClient) fetchDataChuniPerDiff(headers http.Header, cookies []*
 		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
 		return
 	}
+	applyHeaders(req.Header, headers)
+	req.Header.Set("Referer", "https://chunithm.wahlap.com/mobile/home/")
 	resp, err := c.cl.Do(req)
 	if err != nil {
 		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
@@ -224,37 +348,41 @@ func (c *proberAPIClient) fetchDataChuniPerDiff(headers http.Header, cookies []*
 		if diff == 6 {
 			url2 += "?recent=1"
 		}
-		req2, err := http.NewRequest(http.MethodPost, url2, resp.Body)
-		if err != nil {
+		req2, rerr := http.NewRequest(http.MethodPost, url2, resp.Body)
+		if rerr != nil {
 			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
-			return err
+			return 0, 0, rerr
 		}
 		req2.Header.Add("Import-Token", c.token)
-		_, err = c.cl.Do(req2)
-		if err != nil {
+		resp2, derr := c.cl.Do(req2)
+		if derr != nil {
 			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
-			return err
+			return 0, 0, derr
 		}
-		Log(LogLevelInfo, "导入成功")
+		updates, creates = parseUpdatesCreates(resp2.Body)
+		resp2.Body.Close()
+		Log(LogLevelInfo, "导入成功，本难度新增 %d 条、更新 %d 条", creates, updates)
 	case workingModeExport:
 		r, _ := io.ReadAll(resp.Body)
 		err = os.WriteFile(fmt.Sprintf("chuni-diff%d.html", diff), r, 0644)
 		if err != nil {
 			Log(LogLevelWarning, "导出到文件失败")
-			return nil
+			return 0, 0, nil
 		}
 		Log(LogLevelInfo, "已导出到文件")
 	}
-	return nil
+	return 0, 0, nil
 }
 
-func (c *proberAPIClient) fetchDataMaimaiPerDiffAndVersion(diff int, version string) (err error) {
+func (c *proberAPIClient) fetchDataMaimaiPerDiffAndVersion(headers http.Header, diff int, version string) (updates int, creates int, err error) {
 	pageUrl := fmt.Sprintf("https://maimai.wahlap.com/maimai-mobile/record/musicSort/search/?search=%s&sort=1&playCheck=on&diff=%d", version, diff)
 	req, err := http.NewRequest(http.MethodGet, pageUrl, nil)
 	if err != nil {
 		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
 		return
 	}
+	applyHeaders(req.Header, headers)
+	req.Header.Set("Referer", "https://maimai.wahlap.com/maimai-mobile/record/")
 	resp, err := c.cl.Do(req)
 	if err != nil {
 		Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
@@ -267,17 +395,17 @@ func (c *proberAPIClient) fetchDataMaimaiPerDiffAndVersion(diff int, version str
 	}
 	switch c.mode {
 	case workingModeUpdate:
-		err = c.commit(respText)
+		updates, creates, err = c.commit(respText)
 		if err != nil {
 			Log(LogLevelWarning, "提交数据到查分服务器失败，正在重试……")
 			return
 		}
-		Log(LogLevelInfo, "导入成功")
+		Log(LogLevelInfo, "导入成功，本版本难度新增 %d 条、更新 %d 条", creates, updates)
 	case workingModeExport:
 		err = os.WriteFile(fmt.Sprintf("mai-diff-%s-%d.html", version, diff), respText, 0644)
 		if err != nil {
 			Log(LogLevelWarning, "导出到文件失败")
-			return nil
+			return 0, 0, nil
 		}
 		Log(LogLevelInfo, "已导出到文件")
 	}

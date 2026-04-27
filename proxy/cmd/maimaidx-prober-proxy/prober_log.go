@@ -1,6 +1,9 @@
 package main
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 type LogLevel int
 
@@ -13,4 +16,12 @@ const (
 func Log(level LogLevel, msg string, argv ...interface{}) {
 	s := []string{"INFO", "WARN", "ERROR"}
 	log.Printf(s[level]+": "+msg+"\n", argv...)
+	if progressHubInstance != nil {
+		levels := []string{"info", "warn", "error"}
+		progressHubInstance.Publish(ProgressEvent{
+			Type:    "log",
+			Level:   levels[level],
+			Message: fmt.Sprintf(msg, argv...),
+		})
+	}
 }
