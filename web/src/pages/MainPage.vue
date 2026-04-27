@@ -752,7 +752,11 @@ export default {
       return ret;
     },
     maiRecordKey: function (record) {
+      // Utage charts use song IDs >= 100000 and are normalized to the Utage difficulty index 5.
       return Number(record.song_id) * 10 + (Number(record.song_id) >= 100000 ? 5 : record.level_index);
+    },
+    chuniRecordKey: function (record) {
+      return +record.mid * 10 + record.level_index;
     },
     rawToString: function (text) {
       if (text[text.length - 1] == "p" && text != "ap") {
@@ -1271,11 +1275,11 @@ export default {
       this.tableMode = target;
     },
     unlockAllChuni: function() {
-      const currentCharts = new Set(this.chuni_records.map(elem => {return +elem.mid * 10 + elem.level_index}));
+      const currentCharts = new Set(this.chuni_records.map(elem => this.chuniRecordKey(elem)));
       let rank = this.chuni_records.length + 1;
       for (const m of this.chuni_data) {
         for (let i = 0; i < m.ds.length; i++) {
-          if (currentCharts.has(+m.id * 10 + i)) continue;
+          if (currentCharts.has(this.chuniRecordKey({ mid: m.id, level_index: i }))) continue;
           if (m.level[i] === "-") continue;
           this.chuni_records.push(
             {
