@@ -1275,11 +1275,11 @@ export default {
       this.tableMode = target;
     },
     unlockAllChuni: function() {
-      const currentCharts = new Set(this.chuni_records.map(elem => this.chuniRecordKey(elem)));
+      const currentRecordKeys = new Set(this.chuni_records.map(elem => this.chuniRecordKey(elem)));
       let rank = this.chuni_records.length + 1;
       for (const m of this.chuni_data) {
         for (let i = 0; i < m.ds.length; i++) {
-          if (currentCharts.has(this.chuniRecordKey({ mid: m.id, level_index: i }))) continue;
+          if (currentRecordKeys.has(this.chuniRecordKey({ mid: m.id, level_index: i }))) continue;
           if (m.level[i] === "-") continue;
           this.chuni_records.push(
             {
