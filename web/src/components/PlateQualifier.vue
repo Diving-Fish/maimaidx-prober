@@ -225,10 +225,10 @@ export default {
         }
         if (ver == "ALL FiNALE") {
           res[ver] += allChartsAchievementPlateType;
-          const allDifficulties = songs.flatMap((elem) => allDifficultyKeys
+          const chartQualifications = songs.flatMap((elem) => allDifficultyKeys
             .map((key) => elem[key])
             .filter((value) => value !== -1));
-          if (allDifficulties.some((v) => (v & allChartsAchievementPlateType) == 0))
+          if (chartQualifications.some((v) => (v & allChartsAchievementPlateType) == 0))
             res[ver] -= allChartsAchievementPlateType;
         }
       }
