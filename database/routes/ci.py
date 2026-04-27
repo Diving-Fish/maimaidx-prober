@@ -3,6 +3,7 @@ from quart import Quart, request, g, make_response
 import json
 import asyncio
 import random
+import time
 from models.base import *
 import string
 from tools.mail import send_mail
@@ -32,8 +33,8 @@ async def run_command(cmd):
     return (stdout.decode(), stderr.decode())
 
 
-find_root = '''location /maimaidx/prober/ {
-        proxy_pass http://localhost:8080/;
+find_root = '''location /manual {
+        alias /var/www/maimaidx/docs;
     }
 '''
 
@@ -100,6 +101,15 @@ async def prod():
     return await make_response("OK", 200)
 
 
+@app.route("/ci/restart_nginx", methods=['POST'])
+@ci_access_required
+async def restart_nginx():
+    stdout, stderr = await run_command("sudo systemctl restart nginx")
+    if stderr != "":
+        return await make_response(stderr, 500)
+    return await make_response(stdout or "OK", 200)
+
+
 @app.route("/ci/tag", methods=['GET', 'DELETE'])
 @ci_access_required
 async def tag():
@@ -120,7 +130,6 @@ async def tag():
             }
             save_status()
             add_nginx_conf(sha, port)
-            await run_command("sudo systemctl restart nginx")
         return await make_response("OK", 200)
     elif request.method == 'DELETE':
         sha = request.args.get("sha", type=str, default="")
@@ -131,7 +140,6 @@ async def tag():
             del ci_status["active_tests"][sha]
             save_status()
             del_nginx_conf(sha, s['port'])
-            await run_command("sudo systemctl restart nginx")
         return await make_response("OK", 200)
 
 
@@ -220,3 +228,29 @@ async def ci_developer_token():
             ))
         await developer.aio_save()
         return {"message": "ok"}, 200
+
+
+@app.route("/ci/generate_reset_link", methods=['GET'])
+@ci_access_required
+async def generate_reset_link():
+    username = request.args.get("username", type=str, default="")
+    if username == "":
+        return {"message": "用户名不能为空"}, 400
+    try:
+        player: Player = await Player.aio_get(Player.username == username)
+    except Exception:
+        return {"message": "用户不存在"}, 404
+    ts = int(time.time())
+    try:
+        email_reset: EmailReset = await EmailReset.aio_get((EmailReset.player == player) & (EmailReset.timeout_stamp > ts))
+        email_reset.timeout_stamp = 86400 + ts
+        await email_reset.aio_save()
+        random_token = email_reset.token
+    except Exception:
+        random_token = ''.join([random.choice(string.ascii_letters + string.digits) for _ in range(128)])
+        await EmailReset.aio_create(player=player, token=random_token, timeout_stamp=86400 + ts)
+    return {
+        "link": f"https://www.diving-fish.com/maimaidx/recovery?token={random_token}",
+        "username": player.username,
+        "expires_in": 86400
+    }
