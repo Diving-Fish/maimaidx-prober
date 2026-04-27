@@ -225,16 +225,10 @@ export default {
           }
         }
         if (ver == "ALL FiNALE") {
-          let hasIncompleteChart = false;
-          for (const elem of songs) {
-            for (const key of allDifficultyKeys) {
-              if (elem[key] !== -1 && (elem[key] & allChartsAchievementPlateType) === 0) {
-                hasIncompleteChart = true;
-                break;
-              }
-            }
-            if (hasIncompleteChart) break;
-          }
+          const hasIncompleteChart = songs.some((elem) => allDifficultyKeys.some((key) =>
+            typeof elem[key] === 'number'
+            && elem[key] !== -1
+            && (elem[key] & allChartsAchievementPlateType) === 0));
           if (hasIncompleteChart)
             res[ver] -= allChartsAchievementPlateType;
         }
