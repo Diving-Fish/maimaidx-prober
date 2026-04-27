@@ -341,7 +341,7 @@ export default {
         this.plate_upload.plate_type = 16;
       } else {
         this.plate_upload.version = this.v2n[plate[0]];
-        this.plate_upload.plate_type = this.t2n[plate.substr(1)];
+        this.plate_upload.plate_type = this.t2n[plate.slice(1)];
       }
     },
     submit() {

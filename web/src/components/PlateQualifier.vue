@@ -197,6 +197,12 @@ export default {
         return elem.basic_info.from == version;
       });
     },
+    is_chart_incomplete: function(chart, difficultyKeys, plateType) {
+      return difficultyKeys.some((key) =>
+        typeof chart[key] === 'number'
+        && chart[key] !== -1
+        && (chart[key] & plateType) === 0);
+    },
     available_plates: function () {
       // a method called by others.
       // Just verify master level.
@@ -226,10 +232,8 @@ export default {
           }
         }
         if (ver == "ALL FiNALE") {
-          const hasIncompleteChart = songs.some((elem) => allDifficultyKeys.some((key) =>
-            typeof elem[key] === 'number'
-            && elem[key] !== -1
-            && (elem[key] & allChartsAchievementPlateType) === 0));
+          const hasIncompleteChart = songs.some((elem) =>
+            this.is_chart_incomplete(elem, allDifficultyKeys, allChartsAchievementPlateType));
           if (hasIncompleteChart)
             res[ver] -= allChartsAchievementPlateType;
         }
