@@ -106,8 +106,9 @@ async def update_records_chuni():
                 del dicts[r.chart_id]
         #print(dicts)
         #print(updates)
-        if len(dicts) > 0:
-            await ChuniRecord.insert_many(dicts.values()).aio_execute()
+        creates = list(dicts.values())
+        if len(creates) > 0:
+            await ChuniRecord.insert_many(creates).aio_execute()
         if len(updates) > 0:
             await ChuniRecord.aio_bulk_update(updates, fields=[
                 ChuniRecord.fc, ChuniRecord.score
@@ -128,9 +129,15 @@ async def update_records_chuni():
             })
         await ChuniRecord.delete().where((ChuniRecord.player == g.user.id) & (ChuniRecord.recent == 1)).aio_execute()
         await ChuniRecord.insert_many(arr).aio_execute()
+        updates = []
+        creates = arr
     
     await compute_ra(g.user)
-    return {"message": "更新成功"}
+    return {
+        "message": "更新成功",
+        "updates": len(updates),
+        "creates": len(creates)
+    }
 
 @app.route("/chuni/player/delete_records", methods=['DELETE'])
 @login_or_token_required

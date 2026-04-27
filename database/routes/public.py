@@ -195,6 +195,17 @@ async def channel_to_qq():
         await player.aio_save()
         return {"message": "success"}
 
+@app.route("/player/import_token", methods=['PUT'])
+@login_required
+async def import_token():
+    """
+    *需要登录
+    生成一个新的导入 Token，并覆盖旧 Token。
+    """
+    return {
+        "token": await g.user.generate_import_token()
+    }
+
 @app.route('/token_available', methods=['GET'])
 async def token_available():
     t = request.args.get('token', type=str, default='')

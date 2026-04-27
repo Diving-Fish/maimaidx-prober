@@ -142,16 +142,29 @@ async def profile():
             }, 400
 
 
-@app.route("/player/import_token", methods=['PUT'])
-@login_required
-async def import_token():
+@app.route("/proxy_meta", methods=['GET'])
+async def proxy_meta():
     """
-    *需要登录
-    生成一个新的导入 Token，并覆盖旧 Token。
+    供本地代理 (maimaidx-prober-proxy) 使用的元数据：难度名称、版本 tag 与
+    版本中文名。集中放在后端，便于跟随游戏新版本迭代而无需重新发布代理。
     """
     return {
-        "token": await g.user.generate_import_token()
+        "diff_labels": [
+            "Basic", "Advanced", "Expert", "Master", "Re: MASTER",
+            "", "", "", "", "", "UTAGE",
+        ],
+        "version_tags": [
+            "V-0", "V-1", "V-2", "V-3", "V-4", "V-5", "V-6", "V-7", "V-8",
+            "V-9", "V-10", "V-11", "V-12", "V-13", "V-15", "V-17", "V-19", "V-21", "V-23",
+        ],
+        "version_labels": [
+            "maimai", "maimai PLUS", "GreeN", "GreeN PLUS", "ORANGE",
+            "ORANGE PLUS", "PiNK", "PiNK PLUS", "MURASAKi", "MURASAKi PLUS",
+            "MiLK", "MiLK PLUS", "FiNALE", "舞萌DX", "舞萌DX 2021",
+            "舞萌DX 2022", "舞萌DX 2023", "舞萌DX 2024", "舞萌DX 2025",
+        ],
     }
+
 
 
 @app.route("/music_data", methods=['GET'])
