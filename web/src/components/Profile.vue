@@ -115,7 +115,7 @@
                   :items="this.current_item"
                   item-text="label"
                   item-value="value"
-                  :hint="(plate_upload.version && plate_upload.plate_type) ? `${v2n[plate_upload.version]}${t2n[plate_upload.plate_type]}` : ''"
+                  :hint="(plate_upload.version && plate_upload.plate_type) ? plate_label(plate_upload.version, plate_upload.plate_type) : ''"
                   persistent-hint
                 ></v-select>
               </v-col>
@@ -294,7 +294,7 @@ export default {
         "maimai でらっくす FESTiVAL",
         "maimai でらっくす FESTiVAL PLUS",
       ],
-      t2n: { 1: "極", 2: "将", 4: "舞舞", 8: "神", "神": 8, "舞舞": 4, "将": 2, "極": 1},
+      t2n: { 1: "極", 2: "将", 4: "舞舞", 8: "神", 16: "霸者", "神": 8, "舞舞": 4, "将": 2, "極": 1, "霸者": 16},
       versions: [],
       changePasswordVisible: false,
       changePasswordForm: {
@@ -321,7 +321,7 @@ export default {
   computed: {
     current_item() {
       let items = [];
-      for (const i of [1, 2, 4, 8]) {
+      for (const i of [1, 2, 4, 8, 16]) {
         if (this.plates_info[this.plate_upload.version] & i) {
           items.push({ value: i, label: this.t2n[i] });
           //console.log(items)
@@ -331,6 +331,21 @@ export default {
     },
   },
   methods: {
+    plate_label(version, plate_type) {
+      if (plate_type === 16) return this.t2n[plate_type];
+      return `${this.v2n[version]}${this.t2n[plate_type]}`;
+    },
+    set_plate_upload(plate) {
+      if (plate === "霸者") {
+        this.plate_upload.version = "ALL FiNALE";
+        this.plate_upload.plate_type = 16;
+        return;
+      }
+      if (plate.length >= 2) {
+        this.plate_upload.version = this.v2n[plate[0]];
+        this.plate_upload.plate_type = this.t2n[plate.slice(1)];
+      }
+    },
     submit() {
       if (!this.$refs.profile.validate()) return;
       axios
@@ -362,8 +377,7 @@ export default {
             }
           }
           if (this.plate) {
-            this.plate_upload.version = this.v2n[this.plate[0]];
-            this.plate_upload.plate_type = this.t2n[this.plate.substr(1)];
+            this.set_plate_upload(this.plate);
           }
         }).catch((err) => {
           this.$message.error(`错误：${err.response.data.message}`)
@@ -423,8 +437,7 @@ export default {
             }
           }
           if (this.plate) {
-            this.plate_upload.version = this.v2n[this.plate[0]];
-            this.plate_upload.plate_type = this.t2n[this.plate.substr(1)];
+            this.set_plate_upload(this.plate);
           }
         })
         .catch(() => {});

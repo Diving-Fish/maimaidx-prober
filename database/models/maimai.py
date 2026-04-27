@@ -106,6 +106,9 @@ SCORE_COEFFICIENT_TABLE = [
     [100.5, 22.4, 'sssp']
 ]
 
+PLATE_TYPE_BAZHE = 16
+
+
 class ScoreCoefficient:
     def __init__(self, achievements):
         for i in range(len(SCORE_COEFFICIENT_TABLE)):
@@ -121,7 +124,7 @@ class ScoreCoefficient:
 
 
 def get_plate_name(version, plate_type):
-    return {
+    version_prefix = {
         "maimai PLUS": "真",
         "maimai GreeN": "超",
         "maimai GreeN PLUS": "檄",
@@ -143,18 +146,25 @@ def get_plate_name(version, plate_type):
         "maimai でらっくす UNiVERSE PLUS": "星",
         "maimai でらっくす FESTiVAL": "祭",
         "maimai でらっくす FESTiVAL PLUS": "祝"
-    }[version]+{
+    }[version]
+    plate_suffix = {
         1: "極",
         2: "将",
         4: "舞舞",
         8: "神",
+        PLATE_TYPE_BAZHE: "霸者",
     }[plate_type]
+    if plate_type == PLATE_TYPE_BAZHE:
+        return plate_suffix
+    return version_prefix + plate_suffix
 
 
 def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
     try:
         if version == "无":
             return True, ""
+        if plate_type == PLATE_TYPE_BAZHE and version != "ALL FiNALE":
+            return False, ""
         plate_name = get_plate_name(version, plate_type)
         if plate_name == "真将":
             return False, ""
