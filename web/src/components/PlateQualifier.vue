@@ -230,10 +230,8 @@ export default {
             allDifficulties.push(...allDifficultyKeys.map((key) => elem[key]));
             if (elem.rem_pq !== -1) allDifficulties.push(elem.rem_pq);
           }
-          for (const v of allDifficulties) {
-            if ((v & allChartsAchievementPlateType) == 0 && res[ver] & allChartsAchievementPlateType)
-              res[ver] -= allChartsAchievementPlateType;
-          }
+          if (allDifficulties.some((v) => (v & allChartsAchievementPlateType) == 0))
+            res[ver] -= allChartsAchievementPlateType;
         }
       }
       res["maimai PLUS"] &= res["maimai"];
