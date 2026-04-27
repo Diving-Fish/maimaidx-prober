@@ -332,14 +332,14 @@ export default {
   },
   methods: {
     plate_label(version, plate_type) {
-      if (plate_type == 16) return this.t2n[plate_type];
+      if (plate_type === 16) return this.t2n[plate_type];
       return `${this.v2n[version]}${this.t2n[plate_type]}`;
     },
     set_plate_upload(plate) {
-      if (plate == "霸者") {
+      if (plate === "霸者") {
         this.plate_upload.version = "ALL FiNALE";
         this.plate_upload.plate_type = 16;
-      } else {
+      } else if (plate.length >= 2) {
         this.plate_upload.version = this.v2n[plate[0]];
         this.plate_upload.plate_type = this.t2n[plate.slice(1)];
       }

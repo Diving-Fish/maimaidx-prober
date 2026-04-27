@@ -218,7 +218,7 @@ export default {
           .map((elem) => {
             return elem.mst_pq;
           });
-        if (ver == "ALL FiNALE") {
+        if (ver === "ALL FiNALE") {
           d = d.concat(songs
             .map((elem) => {
               return elem.rem_pq;
