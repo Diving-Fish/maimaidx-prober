@@ -151,6 +151,7 @@ export default {
       let a = 0;
       if (["fsd", "fsdp"].indexOf(r[0].fs) != -1) a += 4;
       if (["ap", "app"].indexOf(r[0].fc) != -1) a += 8;
+      if (r[0].achievements >= 80) a += 16;
       if (r[0].achievements >= 100) a += 2;
       if (["fc", "fcp", "ap", "app"].indexOf(r[0].fc) != -1) a += 1;
       // (a);
@@ -212,10 +213,20 @@ export default {
               return elem.rem_pq;
             }));
         }
-        res[ver] = 15;
+        res[ver] = ver == "ALL FiNALE" ? 31 : 15;
         for (const v of d) {
           for (const i of [1, 2, 4, 8]) {
             if ((v & i) == 0 && res[ver] & i) res[ver] -= i;
+          }
+        }
+        if (ver == "ALL FiNALE") {
+          const allDifficulties = [];
+          for (const elem of this.filter_version(ver).filter((elem) => elem.title != 'ジングルベル')) {
+            allDifficulties.push(elem.bas_pq, elem.adv_pq, elem.exp_pq, elem.mst_pq);
+            if (elem.rem_pq !== -1) allDifficulties.push(elem.rem_pq);
+          }
+          for (const v of allDifficulties) {
+            if ((v & 16) == 0 && res[ver] & 16) res[ver] -= 16;
           }
         }
       }

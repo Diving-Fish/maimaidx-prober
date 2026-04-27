@@ -148,6 +148,7 @@ def get_plate_name(version, plate_type):
         2: "将",
         4: "舞舞",
         8: "神",
+        16: "霸者",
     }[plate_type]
 
 
@@ -155,6 +156,8 @@ def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
     try:
         if version == "无":
             return True, ""
+        if plate_type == 16 and version != "ALL FiNALE":
+            return False, ""
         plate_name = get_plate_name(version, plate_type)
         if plate_name == "真将":
             return False, ""

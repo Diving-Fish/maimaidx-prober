@@ -294,7 +294,7 @@ export default {
         "maimai でらっくす FESTiVAL",
         "maimai でらっくす FESTiVAL PLUS",
       ],
-      t2n: { 1: "極", 2: "将", 4: "舞舞", 8: "神", "神": 8, "舞舞": 4, "将": 2, "極": 1},
+      t2n: { 1: "極", 2: "将", 4: "舞舞", 8: "神", 16: "霸者", "神": 8, "舞舞": 4, "将": 2, "極": 1, "霸者": 16},
       versions: [],
       changePasswordVisible: false,
       changePasswordForm: {
@@ -321,7 +321,7 @@ export default {
   computed: {
     current_item() {
       let items = [];
-      for (const i of [1, 2, 4, 8]) {
+      for (const i of [1, 2, 4, 8, 16]) {
         if (this.plates_info[this.plate_upload.version] & i) {
           items.push({ value: i, label: this.t2n[i] });
           //console.log(items)
