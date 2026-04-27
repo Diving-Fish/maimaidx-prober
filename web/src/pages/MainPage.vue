@@ -751,6 +751,9 @@ export default {
       }
       return ret;
     },
+    maiRecordKey: function (record) {
+      return Number(record.song_id) * 10 + (Number(record.song_id) >= 100000 ? 5 : record.level_index);
+    },
     rawToString: function (text) {
       if (text[text.length - 1] == "p" && text != "ap") {
         return text.substring(0, text.length - 1).toUpperCase() + "+";
@@ -1053,7 +1056,7 @@ export default {
     mergeOnAllMode: function () {
       this.allModeVisible = false;
       let oldRecords = new Set(
-        this.records.map((r) => +r.song_id * 10 + r.level_index)
+        this.records.map((r) => this.maiRecordKey(r))
       );
       for (const music of this.music_data) {
         //console.log(music);
@@ -1075,9 +1078,10 @@ export default {
             block: true,
           };
           if (
-            !oldRecords.has(Number(record.song_id) * 10 + record.level_index)
+            !oldRecords.has(this.maiRecordKey(record))
           ) {
             this.records.push(record);
+            oldRecords.add(this.maiRecordKey(record));
           }
         }
       }
@@ -1095,10 +1099,10 @@ export default {
     merge: function (records) {
       // console.log(records);
       let oldRecords = Object.fromEntries(
-        this.records.map((r, i) => [+r.song_id * 10 + r.level_index, i])
+        this.records.map((r, i) => [this.maiRecordKey(r), i])
       );
       for (let record of records) {
-        let i = oldRecords[+record.song_id * 10 + record.level_index];
+        let i = oldRecords[this.maiRecordKey(record)];
         if (typeof i != "undefined") {
           Vue.set(this.records, i, record);
         } else {
