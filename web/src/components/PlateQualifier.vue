@@ -202,7 +202,7 @@ export default {
       let res = {};
       const plateTypes = [1, 2, 4, 8];
       const allChartsAchievementPlateType = 16;
-      const allDifficultyKeys = ["bas_pq", "adv_pq", "exp_pq", "mst_pq"];
+      const allDifficultyKeys = ["bas_pq", "adv_pq", "exp_pq", "mst_pq", "rem_pq"];
       for (const ver of this.versions) {
         if (ver == "maimai でらっくす BUDDiES")
           continue;
@@ -225,13 +225,9 @@ export default {
         }
         if (ver == "ALL FiNALE") {
           res[ver] += allChartsAchievementPlateType;
-          const allDifficulties = songs.flatMap((elem) => {
-            const values = allDifficultyKeys
-              .map((key) => elem[key])
-              .filter((value) => value !== -1);
-            if (elem.rem_pq !== -1) values.push(elem.rem_pq);
-            return values;
-          });
+          const allDifficulties = songs.flatMap((elem) => allDifficultyKeys
+            .map((key) => elem[key])
+            .filter((value) => value !== -1));
           if (allDifficulties.some((v) => (v & allChartsAchievementPlateType) == 0))
             res[ver] -= allChartsAchievementPlateType;
         }
