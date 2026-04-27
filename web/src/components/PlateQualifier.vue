@@ -149,11 +149,11 @@ export default {
       let r = this.records_filter(song_id, diff);
       if (r.length == 0) return 0;
       let a = 0;
-      if (r[0].achievements >= 80) a += 16;
-      if (["fc", "fcp", "ap", "app"].indexOf(r[0].fc) != -1) a += 1;
       if (["fsd", "fsdp"].indexOf(r[0].fs) != -1) a += 4;
       if (["ap", "app"].indexOf(r[0].fc) != -1) a += 8;
+      if (r[0].achievements >= 80) a += 16;
       if (r[0].achievements >= 100) a += 2;
+      if (["fc", "fcp", "ap", "app"].indexOf(r[0].fc) != -1) a += 1;
       // (a);
       return a;
     },
@@ -225,13 +225,13 @@ export default {
         }
         if (ver == "ALL FiNALE") {
           res[ver] += allChartsAchievementPlateType;
-          const allDifficulties = [];
-          for (const elem of songs) {
-            allDifficulties.push(...allDifficultyKeys
+          const allDifficulties = songs.flatMap((elem) => {
+            const values = allDifficultyKeys
               .map((key) => elem[key])
-              .filter((value) => value !== -1));
-            if (elem.rem_pq !== -1) allDifficulties.push(elem.rem_pq);
-          }
+              .filter((value) => value !== -1);
+            if (elem.rem_pq !== -1) values.push(elem.rem_pq);
+            return values;
+          });
           if (allDifficulties.some((v) => (v & allChartsAchievementPlateType) == 0))
             res[ver] -= allChartsAchievementPlateType;
         }
