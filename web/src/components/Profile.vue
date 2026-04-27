@@ -115,7 +115,7 @@
                   :items="this.current_item"
                   item-text="label"
                   item-value="value"
-                  :hint="(plate_upload.version && plate_upload.plate_type) ? `${v2n[plate_upload.version]}${t2n[plate_upload.plate_type]}` : ''"
+                  :hint="(plate_upload.version && plate_upload.plate_type) ? plate_label(plate_upload.version, plate_upload.plate_type) : ''"
                   persistent-hint
                 ></v-select>
               </v-col>
@@ -331,6 +331,19 @@ export default {
     },
   },
   methods: {
+    plate_label(version, plate_type) {
+      if (plate_type == 16) return this.t2n[plate_type];
+      return `${this.v2n[version]}${this.t2n[plate_type]}`;
+    },
+    set_plate_upload(plate) {
+      if (plate == "霸者") {
+        this.plate_upload.version = "ALL FiNALE";
+        this.plate_upload.plate_type = 16;
+      } else {
+        this.plate_upload.version = this.v2n[plate[0]];
+        this.plate_upload.plate_type = this.t2n[plate.substr(1)];
+      }
+    },
     submit() {
       if (!this.$refs.profile.validate()) return;
       axios
@@ -362,8 +375,7 @@ export default {
             }
           }
           if (this.plate) {
-            this.plate_upload.version = this.v2n[this.plate[0]];
-            this.plate_upload.plate_type = this.t2n[this.plate.substr(1)];
+            this.set_plate_upload(this.plate);
           }
         }).catch((err) => {
           this.$message.error(`错误：${err.response.data.message}`)
@@ -423,8 +435,7 @@ export default {
             }
           }
           if (this.plate) {
-            this.plate_upload.version = this.v2n[this.plate[0]];
-            this.plate_upload.plate_type = this.t2n[this.plate.substr(1)];
+            this.set_plate_upload(this.plate);
           }
         })
         .catch(() => {});
