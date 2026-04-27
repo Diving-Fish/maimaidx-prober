@@ -217,18 +217,25 @@ export default {
               return elem.rem_pq;
             }));
         }
-        res[ver] = plateTypes.reduce((sum, i) => sum + i, 0);
+        res[ver] = plateTypes.reduce((sum, i) => sum + i, 0)
+          + (ver == "ALL FiNALE" ? allChartsAchievementPlateType : 0);
         for (const v of d) {
           for (const i of plateTypes) {
             if ((v & i) == 0 && res[ver] & i) res[ver] -= i;
           }
         }
         if (ver == "ALL FiNALE") {
-          res[ver] += allChartsAchievementPlateType;
-          const chartQualifications = songs.flatMap((elem) => allDifficultyKeys
-            .map((key) => elem[key])
-            .filter((value) => value !== -1));
-          if (chartQualifications.some((v) => (v & allChartsAchievementPlateType) == 0))
+          let hasIncompleteChart = false;
+          for (const elem of songs) {
+            for (const key of allDifficultyKeys) {
+              if (elem[key] !== -1 && (elem[key] & allChartsAchievementPlateType) == 0) {
+                hasIncompleteChart = true;
+                break;
+              }
+            }
+            if (hasIncompleteChart) break;
+          }
+          if (hasIncompleteChart)
             res[ver] -= allChartsAchievementPlateType;
         }
       }
