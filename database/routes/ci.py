@@ -4,6 +4,7 @@ import json
 import asyncio
 import random
 import time
+import re
 from models.base import *
 import string
 from tools.mail import send_mail
@@ -31,6 +32,15 @@ async def run_command(cmd):
         stderr=asyncio.subprocess.PIPE)
     stdout, stderr = await process.communicate()
     return (stdout.decode(), stderr.decode())
+
+
+async def run_command_with_code(cmd):
+    process = await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+    stdout, stderr = await process.communicate()
+    return (process.returncode, stdout.decode(), stderr.decode())
 
 
 find_root = '''location /manual {
@@ -107,6 +117,19 @@ async def restart_nginx():
     stdout, stderr = await run_command("sudo systemctl restart nginx")
     if stderr != "":
         return await make_response(stderr, 500)
+    return await make_response(stdout or "OK", 200)
+
+
+@app.route("/ci/doc_build", methods=['GET'])
+@ci_access_required
+async def doc_build():
+    sha = request.args.get("sha", type=str, default="")
+    if sha != "" and re.fullmatch(r"[0-9a-f]{40}", sha) is None:
+        return await make_response("Invalid sha", 400)
+    checkout_cmd = f"git fetch origin && git restore --source {sha} -- doc" if sha != "" else "git pull --rebase"
+    code, stdout, stderr = await run_command_with_code(f"cd .. && {checkout_cmd} && cd doc && bash build.sh")
+    if code != 0:
+        return await make_response(stdout + stderr, 500)
     return await make_response(stdout or "OK", 200)
 
 
