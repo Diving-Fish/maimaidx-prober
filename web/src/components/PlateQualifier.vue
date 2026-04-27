@@ -149,10 +149,10 @@ export default {
       let r = this.records_filter(song_id, diff);
       if (r.length == 0) return 0;
       let a = 0;
-      if (["fsd", "fsdp"].indexOf(r[0].fs) != -1) a += 4;
-      if (["ap", "app"].indexOf(r[0].fc) != -1) a += 8;
       if (r[0].achievements >= 80) a += 16;
       if (r[0].achievements >= 100) a += 2;
+      if (["fsd", "fsdp"].indexOf(r[0].fs) != -1) a += 4;
+      if (["ap", "app"].indexOf(r[0].fc) != -1) a += 8;
       if (["fc", "fcp", "ap", "app"].indexOf(r[0].fc) != -1) a += 1;
       // (a);
       return a;
@@ -202,6 +202,7 @@ export default {
       let res = {};
       const plateTypes = [1, 2, 4, 8];
       const allChartsAchievementPlateType = 16;
+      const allDifficultyKeys = ["bas_pq", "adv_pq", "exp_pq", "mst_pq"];
       for (const ver of this.versions) {
         if (ver == "maimai でらっくす BUDDiES")
           continue;
@@ -226,7 +227,7 @@ export default {
           res[ver] += allChartsAchievementPlateType;
           const allDifficulties = [];
           for (const elem of songs) {
-            allDifficulties.push(elem.bas_pq, elem.adv_pq, elem.exp_pq, elem.mst_pq);
+            allDifficulties.push(...allDifficultyKeys.map((key) => elem[key]));
             if (elem.rem_pq !== -1) allDifficulties.push(elem.rem_pq);
           }
           for (const v of allDifficulties) {
