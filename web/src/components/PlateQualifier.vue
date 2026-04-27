@@ -152,8 +152,8 @@ export default {
       const allChartsAchievementPlateType = 16;
       if (["fsd", "fsdp"].indexOf(r[0].fs) != -1) a += 4;
       if (["ap", "app"].indexOf(r[0].fc) != -1) a += 8;
-      if (r[0].achievements >= 80) a += allChartsAchievementPlateType;
       if (r[0].achievements >= 100) a += 2;
+      if (r[0].achievements >= 80) a += allChartsAchievementPlateType;
       if (["fc", "fcp", "ap", "app"].indexOf(r[0].fc) != -1) a += 1;
       // (a);
       return a;
@@ -187,14 +187,14 @@ export default {
       // console.log(this.music_data);
     },
     filter_version: function(version) {
-      if (version == "ALL FiNALE") {
+      if (version === "ALL FiNALE") {
         return this.music_data.filter((elem) => {
           return ["maimai PLUS","maimai GreeN","maimai GreeN PLUS","maimai ORANGE","maimai ORANGE PLUS","maimai PiNK",
           "maimai PiNK PLUS","maimai MURASAKi","maimai MURASAKi PLUS","maimai MiLK","MiLK PLUS","maimai FiNALE"].indexOf(elem.basic_info.from) != -1;
         });
       }
       return this.music_data.filter((elem) => {
-        return elem.basic_info.from == version;
+        return elem.basic_info.from === version;
       });
     },
     is_chart_incomplete: function(chart, difficultyKeys, plateType) {
@@ -211,7 +211,7 @@ export default {
       const allChartsAchievementPlateType = 16;
       const allDifficultyKeys = ["bas_pq", "adv_pq", "exp_pq", "mst_pq", "rem_pq"];
       for (const ver of this.versions) {
-        if (ver == "maimai でらっくす BUDDiES")
+        if (ver === "maimai でらっくす BUDDiES")
           continue;
         const songs = this.filter_version(ver).filter((elem) => elem.title != 'ジングルベル');
         let d = songs
@@ -228,10 +228,10 @@ export default {
           + (ver === "ALL FiNALE" ? allChartsAchievementPlateType : 0);
         for (const v of d) {
           for (const i of plateTypes) {
-            if ((v & i) == 0 && res[ver] & i) res[ver] -= i;
+            if ((v & i) === 0 && res[ver] & i) res[ver] -= i;
           }
         }
-        if (ver == "ALL FiNALE") {
+        if (ver === "ALL FiNALE") {
           const hasIncompleteChart = songs.some((elem) =>
             this.is_chart_incomplete(elem, allDifficultyKeys, allChartsAchievementPlateType));
           if (hasIncompleteChart)
