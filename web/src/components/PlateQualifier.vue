@@ -200,33 +200,38 @@ export default {
       // a method called by others.
       // Just verify master level.
       let res = {};
+      const plateTypes = [1, 2, 4, 8];
+      const allChartsAchievementPlateType = 16;
       for (const ver of this.versions) {
         if (ver == "maimai でらっくす BUDDiES")
           continue;
-        let d = this.filter_version(ver).filter((elem) => elem.title != 'ジングルベル')
+        const songs = this.filter_version(ver).filter((elem) => elem.title != 'ジングルベル');
+        let d = songs
           .map((elem) => {
             return elem.mst_pq;
           });
         if (ver == "ALL FiNALE") {
-          d = d.concat(this.filter_version(ver).filter((elem) => elem.title != 'ジングルベル')
+          d = d.concat(songs
             .map((elem) => {
               return elem.rem_pq;
             }));
         }
-        res[ver] = ver == "ALL FiNALE" ? 31 : 15;
+        res[ver] = plateTypes.reduce((sum, i) => sum + i, 0);
         for (const v of d) {
-          for (const i of [1, 2, 4, 8]) {
+          for (const i of plateTypes) {
             if ((v & i) == 0 && res[ver] & i) res[ver] -= i;
           }
         }
         if (ver == "ALL FiNALE") {
+          res[ver] += allChartsAchievementPlateType;
           const allDifficulties = [];
-          for (const elem of this.filter_version(ver).filter((elem) => elem.title != 'ジングルベル')) {
+          for (const elem of songs) {
             allDifficulties.push(elem.bas_pq, elem.adv_pq, elem.exp_pq, elem.mst_pq);
             if (elem.rem_pq !== -1) allDifficulties.push(elem.rem_pq);
           }
           for (const v of allDifficulties) {
-            if ((v & 16) == 0 && res[ver] & 16) res[ver] -= 16;
+            if ((v & allChartsAchievementPlateType) == 0 && res[ver] & allChartsAchievementPlateType)
+              res[ver] -= allChartsAchievementPlateType;
           }
         }
       }
