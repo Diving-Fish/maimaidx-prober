@@ -753,10 +753,10 @@ export default {
     },
     maiRecordKey: function (record) {
       // Utage charts use song IDs >= 100000 and are normalized to the Utage difficulty index 5.
-      return Number(record.song_id) * 10 + (Number(record.song_id) >= 100000 ? 5 : record.level_index);
+      return Number(record.song_id) * 10 + (Number(record.song_id) >= 100000 ? 5 : Number(record.level_index));
     },
     chuniRecordKey: function (record) {
-      return +record.mid * 10 + record.level_index;
+      return Number(record.mid) * 10 + Number(record.level_index);
     },
     rawToString: function (text) {
       if (text[text.length - 1] == "p" && text != "ap") {
