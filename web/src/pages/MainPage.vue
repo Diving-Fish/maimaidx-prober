@@ -1267,11 +1267,11 @@ export default {
       this.tableMode = target;
     },
     unlockAllChuni: function() {
-      const currentCids = this.chuni_records.map(elem => {return elem.cid});
-      let rank = currentCids.length + 1;
+      const currentCharts = new Set(this.chuni_records.map(elem => {return +elem.mid * 10 + elem.level_index}));
+      let rank = this.chuni_records.length + 1;
       for (const m of this.chuni_data) {
         for (let i = 0; i < m.ds.length; i++) {
-          if (currentCids.indexOf(m.cids[i]) != -1) continue;
+          if (currentCharts.has(+m.id * 10 + i)) continue;
           if (m.level[i] === "-") continue;
           this.chuni_records.push(
             {
@@ -1281,7 +1281,7 @@ export default {
               "title": m.title,
               "level": m.level[i],
               "mid": m.id,
-              "cid": m.cid,
+              "cid": m.cids[i],
               "level_index": i,
               "level_label": ["Basic", "Advanced", "Expert", "Master", "Ultima", "World's End"][i],
               "score": 0,
