@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -144,18 +145,66 @@ func applyHeaders(dst, src http.Header) {
 	}
 }
 
+// seedCookieJar populates a fresh jar with both the cookies the browser
+// already had (parsed from the request's Cookie header) and the ones the
+// server is setting on this response (Set-Cookie). Crucially, cookies parsed
+// from a Cookie header only carry Name/Value -- Path is empty, so cookiejar
+// would default it to the URL's directory (e.g. /maimai-mobile/home/) and
+// then refuse to send them when we later GET /maimai-mobile/record/...
+// We therefore force Path="/" on every request-side cookie so they apply
+// across the whole site, matching what the browser is actually doing.
+func seedCookieJar(u *url.URL, reqCookies, respCookies []*http.Cookie) http.CookieJar {
+	jar, _ := cookiejar.New(nil)
+	// cookiejar derives the storage host from u.Host, but the goproxy URL
+	// often carries a `:443` suffix that breaks domain-matching. Strip the
+	// port so cookies are stored against the bare hostname.
+	jarURL := *u
+	if h, _, err := net.SplitHostPort(jarURL.Host); err == nil {
+		jarURL.Host = h
+	}
+	if len(reqCookies) > 0 {
+		normalized := make([]*http.Cookie, 0, len(reqCookies))
+		for _, c := range reqCookies {
+			copy := *c
+			if copy.Path == "" {
+				copy.Path = "/"
+			}
+			// Leave Domain empty: that's how the browser actually stored
+			// these cookies (no Domain attr in the original Set-Cookie ->
+			// host-only). Setting Domain explicitly would flip HostOnly to
+			// false. cookiejar will fill HostOnly=true / Domain=jarURL.Host
+			// for us when Domain is empty.
+			copy.Domain = ""
+			// MaxAge/Expires are unknown from a request-side Cookie header;
+			// treat them as session cookies (Persistent=false) which matches
+			// what the browser does for cookies set without those attrs.
+			copy.MaxAge = 0
+			copy.Expires = time.Time{}
+			// The Cookie request header doesn't carry HttpOnly either, but
+			// the browser would never have sent a cookie back unless the
+			// origin allowed it -- mark them HttpOnly so the jar's stored
+			// state matches what the browser actually has.
+			copy.HttpOnly = true
+			normalized = append(normalized, &copy)
+		}
+		jar.SetCookies(&jarURL, normalized)
+	}
+	if len(respCookies) > 0 {
+		// Set-Cookie cookies usually carry their own Path/Domain so we can
+		// pass them through unchanged; setting them after the request-side
+		// cookies means any name collision (e.g. _t) is resolved in favour
+		// of the freshest value from the server.
+		jar.SetCookies(&jarURL, respCookies)
+	}
+	return jar
+}
+
 func (c *proberAPIClient) fetchDataMaimai(req0 *http.Request, respCookies []*http.Cookie) {
 	// Seed the jar with everything the browser sent in the home request --
 	// crucially this includes the EdgeOne / TencentEdge challenge cookies
 	// (__tst_status, EO_Bot_Ssid) without which the WAF will keep returning
 	// the JS bot-check page instead of the real HTML.
-	c.cl.Jar, _ = cookiejar.New(nil)
-	if reqCookies := req0.Cookies(); len(reqCookies) > 0 {
-		c.cl.Jar.SetCookies(req0.URL, reqCookies)
-	}
-	if len(respCookies) > 0 {
-		c.cl.Jar.SetCookies(req0.URL, respCookies)
-	}
+	c.cl.Jar = seedCookieJar(req0.URL, req0.Cookies(), respCookies)
 	headers := browserHeaders(req0.Header)
 
 	labels := c.maiMeta.DiffLabels
@@ -251,13 +300,7 @@ func (c *proberAPIClient) fetchDataMaimaiPerDiff(headers http.Header, diff int) 
 }
 
 func (c *proberAPIClient) fetchDataChuni(req0 *http.Request, respCookies []*http.Cookie) {
-	c.cl.Jar, _ = cookiejar.New(nil)
-	if reqCookies := req0.Cookies(); len(reqCookies) > 0 {
-		c.cl.Jar.SetCookies(req0.URL, reqCookies)
-	}
-	if len(respCookies) > 0 {
-		c.cl.Jar.SetCookies(req0.URL, respCookies)
-	}
+	c.cl.Jar = seedCookieJar(req0.URL, req0.Cookies(), respCookies)
 	// The chunithm form posts include a `_t` token field; locate it from
 	// whichever cookie source provides it.
 	var token string
