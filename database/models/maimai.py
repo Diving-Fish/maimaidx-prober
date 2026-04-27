@@ -106,6 +106,9 @@ SCORE_COEFFICIENT_TABLE = [
     [100.5, 22.4, 'sssp']
 ]
 
+PLATE_TYPE_BAZHE = 16
+
+
 class ScoreCoefficient:
     def __init__(self, achievements):
         for i in range(len(SCORE_COEFFICIENT_TABLE)):
@@ -148,7 +151,7 @@ def get_plate_name(version, plate_type):
         2: "将",
         4: "舞舞",
         8: "神",
-        16: "霸者",
+        PLATE_TYPE_BAZHE: "霸者",
     }[plate_type]
 
 
@@ -156,7 +159,7 @@ def verify_plate(player, version, plate_type) -> Tuple[bool, str]:
     try:
         if version == "无":
             return True, ""
-        if plate_type == 16 and version != "ALL FiNALE":
+        if plate_type == PLATE_TYPE_BAZHE and version != "ALL FiNALE":
             return False, ""
         plate_name = get_plate_name(version, plate_type)
         if plate_name == "真将":

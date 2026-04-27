@@ -149,9 +149,10 @@ export default {
       let r = this.records_filter(song_id, diff);
       if (r.length == 0) return 0;
       let a = 0;
+      const allChartsAchievementPlateType = 16;
       if (["fsd", "fsdp"].indexOf(r[0].fs) != -1) a += 4;
       if (["ap", "app"].indexOf(r[0].fc) != -1) a += 8;
-      if (r[0].achievements >= 80) a += 16;
+      if (r[0].achievements >= 80) a += allChartsAchievementPlateType;
       if (r[0].achievements >= 100) a += 2;
       if (["fc", "fcp", "ap", "app"].indexOf(r[0].fc) != -1) a += 1;
       // (a);
@@ -218,7 +219,7 @@ export default {
             }));
         }
         res[ver] = plateTypes.reduce((sum, i) => sum + i, 0)
-          + (ver == "ALL FiNALE" ? allChartsAchievementPlateType : 0);
+          + (ver === "ALL FiNALE" ? allChartsAchievementPlateType : 0);
         for (const v of d) {
           for (const i of plateTypes) {
             if ((v & i) == 0 && res[ver] & i) res[ver] -= i;
