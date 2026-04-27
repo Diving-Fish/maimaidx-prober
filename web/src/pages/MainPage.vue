@@ -751,6 +751,13 @@ export default {
       }
       return ret;
     },
+    maiRecordKey: function (record) {
+      // Utage charts use song IDs >= 100000 and are normalized to the Utage difficulty index 5.
+      return Number(record.song_id) * 10 + (Number(record.song_id) >= 100000 ? 5 : Number(record.level_index));
+    },
+    chuniRecordKey: function (record) {
+      return Number(record.mid) * 10 + Number(record.level_index);
+    },
     rawToString: function (text) {
       if (text[text.length - 1] == "p" && text != "ap") {
         return text.substring(0, text.length - 1).toUpperCase() + "+";
@@ -1053,7 +1060,7 @@ export default {
     mergeOnAllMode: function () {
       this.allModeVisible = false;
       let oldRecords = new Set(
-        this.records.map((r) => +r.song_id * 10 + r.level_index)
+        this.records.map((r) => this.maiRecordKey(r))
       );
       for (const music of this.music_data) {
         //console.log(music);
@@ -1075,9 +1082,10 @@ export default {
             block: true,
           };
           if (
-            !oldRecords.has(Number(record.song_id) * 10 + record.level_index)
+            !oldRecords.has(this.maiRecordKey(record))
           ) {
             this.records.push(record);
+            oldRecords.add(this.maiRecordKey(record));
           }
         }
       }
@@ -1095,10 +1103,10 @@ export default {
     merge: function (records) {
       // console.log(records);
       let oldRecords = Object.fromEntries(
-        this.records.map((r, i) => [+r.song_id * 10 + r.level_index, i])
+        this.records.map((r, i) => [this.maiRecordKey(r), i])
       );
       for (let record of records) {
-        let i = oldRecords[+record.song_id * 10 + record.level_index];
+        let i = oldRecords[this.maiRecordKey(record)];
         if (typeof i != "undefined") {
           Vue.set(this.records, i, record);
         } else {
@@ -1267,11 +1275,11 @@ export default {
       this.tableMode = target;
     },
     unlockAllChuni: function() {
-      const currentCids = this.chuni_records.map(elem => {return elem.cid});
-      let rank = currentCids.length + 1;
+      const currentRecordKeys = new Set(this.chuni_records.map(elem => this.chuniRecordKey(elem)));
+      let rank = this.chuni_records.length + 1;
       for (const m of this.chuni_data) {
         for (let i = 0; i < m.ds.length; i++) {
-          if (currentCids.indexOf(m.cids[i]) != -1) continue;
+          if (currentRecordKeys.has(this.chuniRecordKey({ mid: m.id, level_index: i }))) continue;
           if (m.level[i] === "-") continue;
           this.chuni_records.push(
             {
@@ -1281,7 +1289,7 @@ export default {
               "title": m.title,
               "level": m.level[i],
               "mid": m.id,
-              "cid": m.cid,
+              "cid": m.cids[i],
               "level_index": i,
               "level_label": ["Basic", "Advanced", "Expert", "Master", "Ultima", "World's End"][i],
               "score": 0,
