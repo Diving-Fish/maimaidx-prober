@@ -155,13 +155,13 @@ async def proxy_meta():
         ],
         "version_tags": [
             "V-0", "V-1", "V-2", "V-3", "V-4", "V-5", "V-6", "V-7", "V-8",
-            "V-9", "V-10", "V-11", "V-12", "V-13", "V-15", "V-17", "V-19", "V-21", "V-23",
+            "V-9", "V-10", "V-11", "V-12", "V-13", "V-15", "V-17", "V-19", "V-21", "V-23", "V-25"
         ],
         "version_labels": [
             "maimai", "maimai PLUS", "GreeN", "GreeN PLUS", "ORANGE",
             "ORANGE PLUS", "PiNK", "PiNK PLUS", "MURASAKi", "MURASAKi PLUS",
             "MiLK", "MiLK PLUS", "FiNALE", "舞萌DX", "舞萌DX 2021",
-            "舞萌DX 2022", "舞萌DX 2023", "舞萌DX 2024", "舞萌DX 2025",
+            "舞萌DX 2022", "舞萌DX 2023", "舞萌DX 2024", "舞萌DX 2025", "舞萌DX 2026"
         ],
     }
 
@@ -464,9 +464,12 @@ async def update_records():
         m = get_music_by_title(md_title_type_map, title, _type)
         if m is None or level >= len(m["cids"]):
             continue
+        achievements = record.get("achievements")
+        if achievements is None:
+            continue
         cid = m["cids"][level]
-        dicts[cid] = (min(record["achievements"], max_achievements(m)), std_fc(record.get("fc", "")),
-                        std_fs(record.get("fs", "")), record["dxScore"])
+        dicts[cid] = (min(achievements, max_achievements(m)), std_fc(record.get("fc", "")),
+                        std_fs(record.get("fs", "")), record.get("dxScore") or 0)
     rs = await NewRecord.raw(
         'select * from newrecord where player_id = %s', g.user.id).aio_execute()
     updates = []
@@ -541,9 +544,12 @@ async def update_records_html():
         m = get_music_by_title(md_title_type_map, title, _type)
         if m is None or level >= len(m["cids"]):
             continue
+        achievements = record.get("achievements")
+        if achievements is None:
+            continue
         cid = m["cids"][level]
-        dicts[cid] = (min(record["achievements"], max_achievements(m)), std_fc(record.get("fc", "")),
-                        std_fs(record.get("fs", "")), record["dxScore"])
+        dicts[cid] = (min(achievements, max_achievements(m)), std_fc(record.get("fc", "")),
+                        std_fs(record.get("fs", "")), record.get("dxScore") or 0)
     rs = await NewRecord.raw(
         'select * from newrecord where player_id = %s', g.user.id).aio_execute()
     updates = []
@@ -591,13 +597,19 @@ async def update_record():
     m = get_music_by_title(md_title_type_map, title, _type)
     if m is None:
         return
-    cid = m["cids"][level]
+    try:
+        cid = m["cids"][level]
+    except IndexError:
+        return {"message": f"未找到乐曲 {title} 的难度 {level}"}, 400
     r: NewRecord = await NewRecord.aio_get(
         (NewRecord.player == g.user.id) & (NewRecord.chart == cid))
     assert r
-    r.achievements = min(record['achievements'], max_achievements(m))
-    r.fc = std_fc(record['fc'])
-    r.fs = std_fs(record['fs'])
+    achievements = record.get('achievements')
+    if achievements is None:
+        return {"message": "成绩数据缺失"}, 400
+    r.achievements = min(achievements, max_achievements(m))
+    r.fc = std_fc(record.get('fc') or '')
+    r.fs = std_fs(record.get('fs') or '')
     await r.aio_save()
     await compute_ra(g.user)
     return {
@@ -768,16 +780,25 @@ async def vote_box():
         }
     
 
+_rating_ranking_cache = {"data": None, "ts": 0}
+
 @app.route("/rating_ranking", methods=['GET'])
 async def rating_ranking():
     """
     返回 rating 排行榜（设置隐私的用户不包含在内）。
     """
-    players = await Player.select().where((Player.rating != 0) & (Player.privacy == False)).aio_execute()
-    data = []
-    for player in players:
-        data.append({"username": player.username, "ra": player.rating})
-    resp = await make_response(json.dumps(data, ensure_ascii=False))
+    now = time.time()
+    if _rating_ranking_cache["data"] is not None and now - _rating_ranking_cache["ts"] < 3600:
+        body = _rating_ranking_cache["data"]
+    else:
+        players = await Player.select().where((Player.rating != 0) & (Player.privacy == False)).aio_execute()
+        data = []
+        for player in players:
+            data.append({"username": player.username, "ra": player.rating})
+        body = json.dumps(data, ensure_ascii=False)
+        _rating_ranking_cache["data"] = body
+        _rating_ranking_cache["ts"] = now
+    resp = await make_response(body)
     resp.headers['content-type'] = "application/json; charset=utf-8"
     return resp
 

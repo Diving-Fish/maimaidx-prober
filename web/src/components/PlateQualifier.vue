@@ -133,6 +133,17 @@ export default {
         { text: "Master", value: "mst_pq" }
       ],
       masOnly: true,
+      // 牌子版本 → 计算达成值时使用的实际曲目版本
+      // FiNALE 之前：每个版本各自独立（1 对 1），无需映射
+      // DX ~ BUDDiES：PLUS 版本牌子与无印版本共用达成值（1 对 2）
+      // PRiSM / PRiSM PLUS：各自独立（1 对 1），故不在此表中
+      plateVersionToActual: {
+        "maimai でらっくす PLUS": "maimai でらっくす",
+        "maimai でらっくす Splash PLUS": "maimai でらっくす Splash",
+        "maimai でらっくす UNiVERSE PLUS": "maimai でらっくす UNiVERSE",
+        "maimai でらっくす FESTiVAL PLUS": "maimai でらっくす FESTiVAL",
+        "maimai でらっくす BUDDiES PLUS": "maimai でらっくす BUDDiES",
+      },
     };
   },
   methods: {
@@ -212,7 +223,8 @@ export default {
       const allChartsAchievementPlateType = 16;
       const allDifficultyKeys = ["bas_pq", "adv_pq", "exp_pq", "mst_pq", "rem_pq"];
       for (const ver of this.versions) {
-        if (ver === "maimai でらっくす BUDDiES")
+        // PRiSM PLUS 仍在更新中，暂不开放牌子；PRiSM 已开放
+        if (ver === "maimai でらっくす PRiSM PLUS")
           continue;
         const songs = this.filter_version(ver).filter((elem) => elem.title != 'ジングルベル');
         let masterPlateQualifiers = songs
@@ -242,13 +254,13 @@ export default {
       res["maimai PLUS"] &= res["maimai"];
       if (res["maimai PLUS"] & 2) res["maimai PLUS"] -= 2; // SSS plate not available in maimai PLUS version
       delete res.maimai;
-      let res2 = []
-      for (const key in res) {
-        if (key.startsWith('maimai でらっくす')) {
-          res2[key + ' PLUS'] = res[key];
-        }
+      // 为 DX ~ BUDDiES 的 PLUS 牌子补上与无印共用的达成值（1 对 2）
+      // PRiSM / PRiSM PLUS 不在映射表中，因此各自保持 1 对 1
+      for (const plusVersion in this.plateVersionToActual) {
+        const actualVersion = this.plateVersionToActual[plusVersion];
+        if (actualVersion in res) res[plusVersion] = res[actualVersion];
       }
-      return Object.assign(res2, res);
+      return res;
     },
   },
   watch:{

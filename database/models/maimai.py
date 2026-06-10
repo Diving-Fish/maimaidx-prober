@@ -145,7 +145,10 @@ def get_plate_name(version, plate_type):
         "maimai でらっくす UNiVERSE": "宙",
         "maimai でらっくす UNiVERSE PLUS": "星",
         "maimai でらっくす FESTiVAL": "祭",
-        "maimai でらっくす FESTiVAL PLUS": "祝"
+        "maimai でらっくす FESTiVAL PLUS": "祝",
+        "maimai でらっくす BUDDiES": "双",
+        "maimai でらっくす BUDDiES PLUS": "宴",
+        "maimai でらっくす PRiSM": "鏡",
     }[version]
     plate_suffix = {
         1: "極",

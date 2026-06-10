@@ -726,6 +726,9 @@ class ProberAPIClient:
 | maimai でらっくす UNiVERSE PLUS| 星       |
 | maimai でらっくす FESTiVAL     | 祭       |
 | maimai でらっくす FESTiVAL PLUS| 祝       |
+| maimai でらっくす BUDDiES      | 双       | 
+| maimai でらっくす BUDDiES PLUS | 宴       | 
+| maimai でらっくす PRiSM        | 鏡       |
 
 **您在附加 `version` 参数中的元素时，必须严格按照 `版本名称` 发送请求。**
 
