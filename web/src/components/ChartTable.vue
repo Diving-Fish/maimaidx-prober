@@ -105,7 +105,7 @@
       <template #item.title="{ item }">
         <v-tooltip top :disabled="!music_data_dict[item.song_id]">
           <template v-slot:activator="{ on, attrs }">
-            <span v-bind="attrs" v-on="on">
+            <span v-bind="attrs" v-on="on" style="display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px;">
               <a
                 v-if="item.type == 'DX'"
                 dark
@@ -185,10 +185,12 @@
         </v-tooltip>
       </template>
       <template #item.achievements="{ item }">
-        {{ item.achievements.toFixed(4) }}%
-        <v-chip :color="getRate(item.rate)" outlined class="ml-1">{{
-          item.rate.replace("p", "+").toUpperCase()
-        }}</v-chip>
+        <span style="display: inline-flex; align-items: center; gap: 4px;">
+          {{ item.achievements.toFixed(4) }}%
+          <v-chip :color="getRate(item.rate)" outlined>{{
+            item.rate.replace("p", "+").toUpperCase()
+          }}</v-chip>
+        </span>
       </template>
       <template #item.ra="{ item }">
         <v-tooltip top>
@@ -246,13 +248,12 @@
       <template #item.dxScore_perc="{ item }">
         <v-tooltip top v-if="item.dxScore">
           <template v-slot:activator="{ on, attrs }">
-            <span v-bind="attrs" v-on="on"
+            <span v-bind="attrs" v-on="on" style="display: inline-flex; align-items: center; gap: 4px;"
               >{{ item.dxScore_perc.toFixed(2) }}%
               <v-chip
                 v-if="item.dxScore_perc >= 85"
                 :color="getDXScore(item).color"
                 outlined
-                class="ml-1"
                 >☆{{ getDXScore(item).star }}</v-chip
               ></span
             >

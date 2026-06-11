@@ -135,4 +135,33 @@ export default {
 </script>
 
 <style>
+#tdMessage.v-card {
+  background: rgba(255, 255, 255, 0.5) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  backdrop-filter: blur(20px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 24px !important;
+  box-shadow: 0 18px 50px -18px rgba(31, 41, 72, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+  color: #232a3d;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px 8px 4px;
+}
+
+#tdMessage .v-card__title {
+  font-weight: 700;
+  color: #232a3d;
+}
+
+#tdMessage .v-window.elevation-1 {
+  border-radius: 16px;
+  box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+#tdMessage .v-window .v-card {
+  background: transparent !important;
+}
 </style>

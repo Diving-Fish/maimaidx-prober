@@ -8,7 +8,7 @@
         :fullscreen="$vuetify.breakpoint.mobile"
       >
         <template #activator="{ on, attrs }">
-          <v-btn v-on="on" v-bind="attrs" class="ml-3"> 编辑个人资料 </v-btn>
+          <v-btn v-on="on" v-bind="attrs" class="ml-3 edit-profile-btn"> 编辑个人资料 </v-btn>
         </template>
         <v-card>
           <v-card-title>
@@ -490,6 +490,53 @@ export default {
 .hdr {
   display: flex;
   align-items: center;
+  padding: 8px 8px 8px 18px;
+  border-radius: 18px;
+  font-weight: 600;
+  color: #232a3d;
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 12px 32px -16px rgba(31, 41, 72, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.hdr .v-btn {
+  border-radius: 12px;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+  background: linear-gradient(100deg, #0ea5e9, #34d399) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 20px -8px rgba(14, 165, 233, 0.6) !important;
+}
+
+.edit-profile-btn {
+  animation: editBtnReveal 0.6s cubic-bezier(0.2, 0.75, 0.2, 1) both;
+  background-size: 160% 160% !important;
+  animation: editBtnReveal 0.6s cubic-bezier(0.2, 0.75, 0.2, 1) both,
+    editBtnGradient 6s ease infinite;
+}
+
+@keyframes editBtnReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes editBtnGradient {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 .click-icon {

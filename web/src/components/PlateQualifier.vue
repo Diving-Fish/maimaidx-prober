@@ -226,7 +226,9 @@ export default {
         // PRiSM PLUS 仍在更新中，暂不开放牌子；PRiSM 已开放
         if (ver === "maimai でらっくす PRiSM PLUS")
           continue;
-        const songs = this.filter_version(ver).filter((elem) => elem.title != 'ジングルベル');
+        // 宴谱（id >= 100000）不计入牌子达成
+        const songs = this.filter_version(ver).filter((elem) =>
+          elem.title != 'ジングルベル' && parseInt(elem.id, 10) < 100000);
         let masterPlateQualifiers = songs
           .map((elem) => {
             return elem.mst_pq;
@@ -287,7 +289,9 @@ export default {
       return len;
     },
     filtered: function () {
-      return this.filter_version(this.version);
+      // 宴谱（id >= 100000）不计入牌子查询
+      return this.filter_version(this.version).filter(
+        (elem) => parseInt(elem.id, 10) < 100000);
     },
     total_8: function () {
       let sum = 0;

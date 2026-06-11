@@ -5,7 +5,7 @@
     <template #item.title="{ item }">
       <v-tooltip top :disabled="!music_data_dict[item.mid]">
         <template v-slot:activator="{ on, attrs }">
-          <span v-bind="attrs" v-on="on">
+          <span v-bind="attrs" v-on="on" style="display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px;">
             {{ item.title }}
             <v-chip v-if="item.fc" :color="getFC(item.fc)" dark>{{
                 getName(item.fc)
@@ -40,10 +40,12 @@
       </v-tooltip>
     </template>
     <template #item.score="{ item }">
-      {{ item.score }}
-      <v-chip :color="getRateColor(getRate(item.score))" outlined class="ml-1">{{
-        getRate(item.score).toUpperCase()
-      }}</v-chip>
+      <span style="display: inline-flex; align-items: center; gap: 4px;">
+        {{ item.score }}
+        <v-chip :color="getRateColor(getRate(item.score))" outlined>{{
+          getRate(item.score).toUpperCase()
+        }}</v-chip>
+      </span>
     </template>
     <template #item.ra="{ item }">
       <span

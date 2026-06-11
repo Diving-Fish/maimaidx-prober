@@ -1,39 +1,46 @@
 <template>
   <div id="mainPage">
     <v-container fluid :style="$vuetify.breakpoint.mobile ? 'padding:0px' : ''">
-      <div
+      <div class="hero-bar"
         :style="$vuetify.breakpoint.mobile ? '' : 'display: flex; align-items: flex-end; justify-content: space-between'">
-        <h1>舞萌 DX | 中二节奏查分器</h1>
+        <div class="hero-titles">
+          <h1 class="hero-title">舞萌 DX <span class="hero-sep">/</span> 中二节奏查分器</h1>
+          <p class="hero-tagline">maimai DX &amp; CHUNITHM · Score Tracker</p>
+        </div>
         <profile v-show="username !== '未登录'" :available_plates="available_plates" ref="profile" />
       </div>
       <agreement></agreement>
-      <v-divider class="mt-4 mb-4" />
-      <p>
-        <v-btn href="/manual/" target="_blank" color="primary">使用指南</v-btn>
-        <tutorial ref="tutorial" />
-      </p>
-      <p class="mb-2">点个 Star 吧！</p>
-      <a href="https://github.com/Diving-Fish/maimaidx-prober"><img
-          src="https://img.shields.io/github/stars/Diving-Fish/maimaidx-prober?style=social" /></a>
-      <view-badge class="ml-3" />
-      <a class="ml-3" href="https://space.bilibili.com/10322617"><img
-          src="https://shields.io/badge/bilibili-%E6%B0%B4%E9%B1%BC%E5%96%B5%E5%96%B5%E5%96%B5-00A1D6?logo=bilibili&style=flat"></a>
-      <p class="mt-3">欢迎加入查分器<a href="https://qun.qq.com/qqweb/qunpro/share?_wv=3&_wwv=128&appChannel=share&biz=ka&businessType=5&from=181075&inviteCode=20DoWXWylop&mainSourceId=qr_code&subSourceId=pic4&jumpsource=shorturl#/out">QQ频道</a>！</p>
-      <p>代理工具上线！使用微信客户端导入数据，请查看新版本的使用指南。</p>
-      <p>想要 10 分钟搭建自己的 maimai QQ 机器人？现在就参考开源项目 <a href="https://github.com/Diving-Fish/mai-bot">mai-bot</a> 吧~</p>
-      <p>请开发者打一局 maimai 如何？帮助我们<a href="https://afdian.com/a/divingfish">发发电</a>好不好嘛~</p>
-      <p style="color: #f44336">
-        迁移了数据库以加快网站的响应速度及后续开发。如遇任何无法导入成绩或出错的情况，请及时添加讨论群进行反馈。
-      </p>
-      <div style="
-          display: flex;
-          line-height: 64px;
-          justify-content: center;
-          flex-wrap: wrap;
-        ">
+      <v-divider class="hero-divider mt-4 mb-4" />
+      <div class="console-grid">
+        <div class="glass-card intro-card">
+          <p class="intro-cta">
+            <v-btn class="manual-btn" href="/manual/" target="_blank" color="primary">使用指南</v-btn>
+            <tutorial ref="tutorial" />
+          </p>
+          <p class="mb-2 intro-star">点个 Star 吧！</p>
+          <div class="intro-badges">
+            <a href="https://github.com/Diving-Fish/maimaidx-prober"><img
+                src="https://img.shields.io/github/stars/Diving-Fish/maimaidx-prober?style=social" /></a>
+            <view-badge class="ml-3" />
+            <a class="ml-3" href="https://space.bilibili.com/10322617"><img
+                src="https://shields.io/badge/bilibili-%E6%B0%B4%E9%B1%BC%E5%96%B5%E5%96%B5%E5%96%B5-00A1D6?logo=bilibili&style=flat"></a>
+          </div>
+          <p class="mt-3">欢迎加入查分器<a href="https://qun.qq.com/qqweb/qunpro/share?_wv=3&_wwv=128&appChannel=share&biz=ka&businessType=5&from=181075&inviteCode=20DoWXWylop&mainSourceId=qr_code&subSourceId=pic4&jumpsource=shorturl#/out">QQ频道</a>！</p>
+          <p>代理工具上线！使用微信客户端导入数据，请查看新版本的使用指南。</p>
+          <p>想要 10 分钟搭建自己的 maimai QQ 机器人？现在就参考开源项目 <a href="https://github.com/Diving-Fish/mai-bot">mai-bot</a> 吧~</p>
+          <p>请开发者打一局 maimai 如何？帮助我们<a href="https://afdian.com/a/divingfish">发发电</a>好不好嘛~</p>
+          <p class="intro-notice">
+            迁移了数据库以加快网站的响应速度及后续开发。如遇任何无法导入成绩或出错的情况，请及时添加讨论群进行反馈。
+          </p>
+        </div>
+        <div class="glass-card action-panel">
+          <div class="action-panel-head">
+            <span class="action-dot"></span>快捷操作
+          </div>
         <v-dialog width="500px" :fullscreen="$vuetify.breakpoint.mobile" v-model="loginVisible">
           <template #activator="{ on, attrs }">
-            <v-btn class="mt-3 mr-4" v-if="username == '未登录'" v-bind="attrs" v-on="on" color="primary">登录并同步数据</v-btn>
+            <v-btn class="mt-3 mr-4" v-if="username == '未登录'" v-bind="attrs" v-on="on" color="primary"
+              :loading="loading">登录并同步数据</v-btn>
           </template>
           <v-card>
             <v-card-title>
@@ -160,9 +167,10 @@
             </v-card-actions>
           </v-card>
         </v-dialog>
+        </div>
       </div>
       <v-container id="tableBody" style="margin-top: 2em" px-0 py-0>
-        <v-card>
+        <v-card class="glass-card table-card">
           <v-window v-model="tableMode">
             <v-window-item>
               <v-btn v-if="$vuetify.breakpoint.mobile" plain block class="mt-3" @click="changeTable(1)">
@@ -356,17 +364,15 @@
           </v-window>
         </v-card>
       </v-container>
-      <div class="mid" :style="$vuetify.breakpoint.mobile ? '' : 'display: flex'">
-        <v-row>
-          <v-col cols="12" md="8">
-            <message></message>
-          </v-col>
-          <v-col cols="12" md="4">
-            <advertisement></advertisement>
-          </v-col>
-        </v-row>
+      <div class="mid">
+        <div class="mid-message">
+          <message @resize="$refs.ad && $refs.ad.resize()"></message>
+        </div>
+        <div class="mid-ad">
+          <advertisement ref="ad"></advertisement>
+        </div>
       </div>
-      <v-card>
+      <v-card class="glass-card changelog-card">
         <v-card-title>更新记录</v-card-title>
         <v-card-text>
           2023/08/30
@@ -1306,9 +1312,484 @@ export default {
 </script>
 
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 18px 50px -18px rgba(31, 41, 72, 0.35);
+  --ink: #232a3d;
+  --ink-soft: #4a5468;
+  --accent: #0ea5e9;
+}
+
 #mainPage {
   margin: auto;
   padding: 30px;
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: 'Outfit', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background: linear-gradient(165deg, #eef7f2 0%, #e9f0fb 45%, #fdeef1 100%);
+}
+
+/* Flowing aurora mesh behind everything */
+#mainPage::after {
+  content: "";
+  position: fixed;
+  inset: -25%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 38% at 18% 28%, rgba(52, 211, 153, 0.55), transparent 70%),
+    radial-gradient(42% 42% at 82% 22%, rgba(56, 189, 248, 0.5), transparent 70%),
+    radial-gradient(40% 40% at 72% 80%, rgba(251, 113, 133, 0.45), transparent 70%),
+    radial-gradient(34% 34% at 24% 78%, rgba(251, 191, 36, 0.38), transparent 70%);
+  filter: blur(48px) saturate(1.15);
+  animation: auroraFlow 26s ease-in-out infinite alternate;
+}
+
+@keyframes auroraFlow {
+  0%   { transform: translate3d(-3%, -2%, 0) scale(1); }
+  50%  { transform: translate3d(3%, 2%, 0) scale(1.1); }
+  100% { transform: translate3d(-2%, 3%, 0) scale(1.05); }
+}
+
+#mainPage > .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Hero */
+.hero-bar {
+  padding-top: 6px;
+}
+.hero-title {
+  font-size: clamp(1.8rem, 4.2vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  margin: 0;
+  background: linear-gradient(100deg, #0ea5e9 0%, #34d399 42%, #fb7185 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.hero-sep {
+  -webkit-text-fill-color: #c3cad9;
+  color: #c3cad9;
+  font-weight: 300;
+  padding: 0 4px;
+}
+.hero-tagline {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+.hero-divider.v-divider {
+  border-color: rgba(35, 42, 61, 0.12) !important;
+}
+
+/* Glass cards */
+.glass-card {
+  position: relative;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  backdrop-filter: blur(20px) saturate(1.5);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  color: var(--ink);
+  overflow: hidden;
+  animation: glassRise 0.7s cubic-bezier(0.2, 0.75, 0.2, 1) both;
+}
+.v-card.glass-card {
+  background: var(--glass-bg) !important;
+  border-radius: 24px !important;
+}
+@keyframes glassRise {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Hover sheen */
+.glass-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: skewX(-18deg);
+  pointer-events: none;
+  opacity: 0;
+}
+.glass-card:hover::before {
+  animation: sheen 1.1s ease;
+}
+@keyframes sheen {
+  0%   { left: -60%; opacity: 0; }
+  18%  { opacity: 1; }
+  100% { left: 135%; opacity: 0; }
+}
+
+/* Asymmetric console layout: wide announcements + compact action rail */
+.console-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  gap: 22px;
+  align-items: stretch;
+  margin-top: 4px;
+}
+
+.intro-card {
+  padding: 24px 30px;
+  animation-delay: 0.05s;
+}
+.intro-card p {
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+  font-size: 0.97rem;
+}
+.intro-card a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.intro-card a:hover {
+  text-decoration: underline;
+}
+.intro-cta {
+  margin-bottom: 14px !important;
+}
+.intro-star {
+  font-weight: 700;
+  color: var(--ink) !important;
+}
+.intro-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.intro-badges img {
+  display: block;
+}
+.intro-notice {
+  color: #ef4444 !important;
+  font-weight: 500;
+  margin-bottom: 0 !important;
+}
+.manual-btn.v-btn {
+  background: linear-gradient(100deg, #0ea5e9, #34d399) !important;
+  color: #fff !important;
+  border-radius: 14px;
+  box-shadow: 0 10px 24px -8px rgba(14, 165, 233, 0.65) !important;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+/* Tutorial button next to 使用指南 -> frosted outline style */
+.intro-cta .v-btn:not(.manual-btn) {
+  background: rgba(255, 255, 255, 0.45) !important;
+  color: var(--ink) !important;
+  border: 1px solid rgba(35, 42, 61, 0.14);
+  border-radius: 14px;
+  box-shadow: none !important;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+.intro-cta .v-btn:not(.manual-btn):hover {
+  background: rgba(255, 255, 255, 0.7) !important;
+}
+
+.action-bar.glass-card {
+  margin-top: 18px !important;
+  padding: 4px 18px;
+  animation-delay: 0.12s;
+}
+.action-bar .v-btn {
+  border-radius: 14px;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+/* Vertical quick-action rail */
+.action-panel.glass-card {
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  animation-delay: 0.12s;
+}
+.action-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(35, 42, 61, 0.1);
+}
+.action-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: linear-gradient(120deg, #34d399, #0ea5e9);
+  box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.18);
+  animation: dotPulse 2.4s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.18); }
+  50%      { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0.05); }
+}
+/* Each dialog/component activator stacks full-width */
+.action-panel > .v-dialog,
+.action-panel > .v-dialog__container,
+.action-panel > div,
+.action-panel > span {
+  width: 100%;
+}
+.action-panel .v-btn {
+  width: 100%;
+  margin: 0 0 10px 0 !important;
+  border-radius: 14px;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  justify-content: flex-start;
+  height: 42px !important;
+  font-weight: 600;
+}
+/* Reset buttons living inside dialog overlays back to natural sizing */
+.action-panel .v-dialog__content .v-btn {
+  width: auto;
+  margin: initial !important;
+  justify-content: center;
+}
+
+.changelog-card.glass-card {
+  margin-top: 0;
+  animation-delay: 0.18s;
+}
+.changelog-card .v-card__title {
+  color: var(--ink);
+  font-weight: 700;
+}
+.changelog-card .v-card__text {
+  color: var(--ink-soft);
+  line-height: 1.8;
+}
+
+/* Score table card -> unified glass surface */
+.table-card.glass-card {
+  margin-top: 0;
+  animation-delay: 0.1s;
+  background: rgba(255, 255, 255, 0.7) !important;
+}
+.table-card .v-window,
+.table-card .v-window__container,
+.table-card .v-tabs-items,
+.table-card .v-tab-item {
+  background: transparent !important;
+}
+.table-card .v-card__title {
+  color: var(--ink);
+  font-weight: 700;
+}
+.table-card .v-card__subtitle {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+.table-card .v-tabs-bar {
+  background: transparent !important;
+  border-radius: 14px;
+}
+.table-card .v-tab {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+  color: var(--ink-soft) !important;
+}
+.table-card .v-tab--active {
+  color: var(--accent) !important;
+}
+.table-card .v-tabs-slider {
+  background: linear-gradient(100deg, #0ea5e9, #34d399);
+  border-radius: 3px;
+}
+.table-card .v-data-table {
+  background: transparent !important;
+}
+.table-card .v-data-table__wrapper > table > thead > tr > th {
+  background: rgba(255, 255, 255, 0.45) !important;
+  color: var(--ink) !important;
+  font-weight: 700;
+}
+.table-card .v-data-table__wrapper > table > tbody > tr:hover {
+  background: rgba(14, 165, 233, 0.06) !important;
+}
+.table-card .v-data-footer {
+  border-top: 1px solid rgba(35, 42, 61, 0.08);
+}
+.table-card .v-window-item .v-btn {
+  border-radius: 12px;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+/* Keep chips aligned on the same center line as adjacent cell text */
+.table-card .v-data-table td {
+  vertical-align: middle;
+}
+.table-card .v-data-table td .v-chip {
+  vertical-align: middle;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Bottom row: message + advertisement */
+.mid {
+  margin-top: 24px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: stretch;
+  gap: 22px;
+}
+.mid-message {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.mid-ad {
+  flex: 0 0 auto;
+  display: flex;
+}
+.mid-ad > div {
+  display: flex;
+}
+.mid-ad .v-carousel {
+  height: 100% !important;
+}
+.mid .v-carousel {
+  border-radius: 24px;
+  box-shadow: var(--glass-shadow);
+  border: 1px solid var(--glass-border);
+}
+/* Clip only the slides so the prev/next arrow controls stay clickable */
+.mid .v-carousel .v-window__container {
+  border-radius: 24px;
+  overflow: hidden;
+}
+/* Make slide images fill the carousel height instead of leaving gaps */
+.mid .v-carousel .v-carousel__item,
+.mid .v-carousel .v-window-item {
+  height: 100% !important;
+}
+.mid .v-carousel .v-carousel__item > a,
+.mid .v-carousel .v-window-item > a {
+  display: block;
+  height: 100%;
+}
+.mid .v-carousel .v-carousel__item img,
+.mid .v-carousel .v-window-item img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+.mid .v-carousel .v-window__prev,
+.mid .v-carousel .v-window__next,
+.mid .v-carousel .v-carousel__controls {
+  z-index: 3;
+}
+
+/* Global dialog theming -> frosted glass cards over the aurora.
+   Scope to the TOP-LEVEL dialog card only (direct child of .v-dialog),
+   so nested v-cards (e.g. calculator/plate score cells) keep their own styles. */
+#mainPage .v-dialog > .v-card,
+.v-dialog__content > .v-dialog > .v-card {
+  background: rgba(255, 255, 255, 0.7) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  backdrop-filter: blur(24px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 22px !important;
+  box-shadow: 0 28px 70px -22px rgba(31, 41, 72, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+.v-dialog__content > .v-dialog > .v-card > .v-card__title,
+#mainPage .v-dialog > .v-card > .v-card__title {
+  font-weight: 700;
+  color: var(--ink);
+}
+.v-dialog__content > .v-dialog > .v-card > .v-card__actions .v-btn.v-btn--has-bg,
+.v-dialog__content > .v-dialog > .v-card > .v-card__actions .v-btn:not(.v-btn--icon) {
+  border-radius: 12px;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+/* Move scrolling INSIDE the dialog card so the scrollbar stays within the
+   rounded frame instead of riding the outer .v-dialog edge. */
+.v-dialog__content > .v-dialog {
+  overflow: hidden !important;
+}
+#mainPage .v-dialog > .v-card,
+.v-dialog__content > .v-dialog > .v-card {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+/* Slim, themed scrollbar for the scrollable dialog card */
+.v-dialog > .v-card {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(14, 165, 233, 0.45) transparent;
+}
+.v-dialog > .v-card::-webkit-scrollbar {
+  width: 8px;
+}
+.v-dialog > .v-card::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 14px 0;
+}
+.v-dialog > .v-card::-webkit-scrollbar-thumb {
+  background: rgba(14, 165, 233, 0.4);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.v-dialog > .v-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 165, 233, 0.65);
+  background-clip: content-box;
+}
+
+@media (max-width: 960px) {
+  .console-grid {
+    grid-template-columns: 1fr;
+  }
+  .action-panel.glass-card {
+    position: static;
+  }
+}
+
+@media (max-width: 600px) {
+  #mainPage {
+    padding: 16px;
+  }
+  .intro-card {
+    padding: 18px 18px;
+  }
+  .hero-tagline {
+    letter-spacing: 0.2em;
+  }
+  .mid {
+    flex-direction: column;
+  }
+  .mid-ad {
+    flex: 1 1 auto;
+  }
 }
 
 #tableBody {
