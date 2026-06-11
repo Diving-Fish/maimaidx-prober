@@ -1323,6 +1323,16 @@ export default {
   --accent: #0ea5e9;
 }
 
+/* Dark theme overrides (Vuetify toggles .theme--dark on the app root) */
+.theme--dark {
+  --glass-bg: rgba(30, 38, 56, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.6);
+  --ink: #e8edf6;
+  --ink-soft: #aab4c6;
+  --accent: #38bdf8;
+}
+
 #mainPage {
   margin: auto;
   padding: 30px;
@@ -1331,6 +1341,9 @@ export default {
   overflow-x: hidden;
   font-family: 'Outfit', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   background: linear-gradient(165deg, #eef7f2 0%, #e9f0fb 45%, #fdeef1 100%);
+}
+.theme--dark #mainPage {
+  background: linear-gradient(165deg, #0d1320 0%, #121a2b 45%, #1a1426 100%);
 }
 
 /* Flowing aurora mesh behind everything */
@@ -1347,6 +1360,9 @@ export default {
     radial-gradient(34% 34% at 24% 78%, rgba(251, 191, 36, 0.38), transparent 70%);
   filter: blur(48px) saturate(1.15);
   animation: auroraFlow 26s ease-in-out infinite alternate;
+}
+.theme--dark #mainPage::after {
+  opacity: 0.5;
 }
 
 @keyframes auroraFlow {
@@ -1393,6 +1409,9 @@ export default {
 .hero-divider.v-divider {
   border-color: rgba(35, 42, 61, 0.12) !important;
 }
+.theme--dark .hero-divider.v-divider {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
 
 /* Glass cards */
 .glass-card {
@@ -1406,6 +1425,9 @@ export default {
   color: var(--ink);
   overflow: hidden;
   animation: glassRise 0.7s cubic-bezier(0.2, 0.75, 0.2, 1) both;
+}
+.theme--dark .glass-card {
+  box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .v-card.glass-card {
   background: var(--glass-bg) !important;
@@ -1431,6 +1453,9 @@ export default {
 }
 .glass-card:hover::before {
   animation: sheen 1.1s ease;
+}
+.theme--dark .glass-card::before {
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.12), transparent);
 }
 @keyframes sheen {
   0%   { left: -60%; opacity: 0; }
@@ -1506,6 +1531,10 @@ export default {
   letter-spacing: 0.02em;
   font-weight: 600;
 }
+.theme--dark .intro-cta .v-btn:not(.manual-btn) {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
 .intro-cta .v-btn:not(.manual-btn):hover {
   background: rgba(255, 255, 255, 0.7) !important;
 }
@@ -1539,6 +1568,9 @@ export default {
   margin-bottom: 14px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(35, 42, 61, 0.1);
+}
+.theme--dark .action-panel-head {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 .action-dot {
   width: 9px;
@@ -1595,6 +1627,9 @@ export default {
   animation-delay: 0.1s;
   background: rgba(255, 255, 255, 0.7) !important;
 }
+.theme--dark .table-card.glass-card {
+  background: rgba(22, 28, 42, 0.72) !important;
+}
 .table-card .v-window,
 .table-card .v-window__container,
 .table-card .v-tabs-items,
@@ -1634,11 +1669,20 @@ export default {
   color: var(--ink) !important;
   font-weight: 700;
 }
+.theme--dark .table-card .v-data-table__wrapper > table > thead > tr > th {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
 .table-card .v-data-table__wrapper > table > tbody > tr:hover {
   background: rgba(14, 165, 233, 0.06) !important;
 }
+.theme--dark .table-card .v-data-table__wrapper > table > tbody > tr:hover {
+  background: rgba(56, 189, 248, 0.1) !important;
+}
 .table-card .v-data-footer {
   border-top: 1px solid rgba(35, 42, 61, 0.08);
+}
+.theme--dark .table-card .v-data-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 .table-card .v-window-item .v-btn {
   border-radius: 12px;
@@ -1720,6 +1764,11 @@ export default {
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 22px !important;
   box-shadow: 0 28px 70px -22px rgba(31, 41, 72, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+.theme--dark .v-dialog > .v-card {
+  background: rgba(24, 31, 46, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 28px 70px -22px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 .v-dialog__content > .v-dialog > .v-card > .v-card__title,
 #mainPage .v-dialog > .v-card > .v-card__title {

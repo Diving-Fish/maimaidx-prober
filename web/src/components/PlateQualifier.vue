@@ -157,15 +157,17 @@ export default {
       return ret;
     },
     sum_pq: function (song_id, diff) {
-      let r = this.records_filter(song_id, diff);
-      if (r.length == 0) return 0;
+      const r = this.recordIndex
+        ? this.recordIndex.get(`${song_id}-${diff}`)
+        : this.records_filter(song_id, diff)[0];
+      if (!r) return 0;
       let a = 0;
       const allChartsAchievementPlateType = 16;
-      if (["fsd", "fsdp"].indexOf(r[0].fs) != -1) a += 4;
-      if (["ap", "app"].indexOf(r[0].fc) != -1) a += 8;
-      if (r[0].achievements >= 100) a += 2;
-      if (r[0].achievements >= 80) a += allChartsAchievementPlateType;
-      if (["fc", "fcp", "ap", "app"].indexOf(r[0].fc) != -1) a += 1;
+      if (["fsd", "fsdp"].indexOf(r.fs) != -1) a += 4;
+      if (["ap", "app"].indexOf(r.fc) != -1) a += 8;
+      if (r.achievements >= 100) a += 2;
+      if (r.achievements >= 80) a += allChartsAchievementPlateType;
+      if (["fc", "fcp", "ap", "app"].indexOf(r.fc) != -1) a += 1;
       // (a);
       return a;
     },
@@ -178,6 +180,14 @@ export default {
         )
       );
       this.versions.push('ALL FiNALE');
+      // 一次性把 records 按 song_id + level_index 建索引，
+      // 避免后续每个 (歌曲, 难度) 都全量扫描 this.records（O(n×m) → O(m + n)）。
+      // 非响应式属性，避免 Vue 把大 Map 变成响应式带来的额外开销。
+      this.recordIndex = new Map();
+      for (const rec of this.records) {
+        const key = `${rec.song_id}-${rec.level_index}`;
+        if (!this.recordIndex.has(key)) this.recordIndex.set(key, rec);
+      }
       (async () => {
         const l = ["bas_pq", "adv_pq", "exp_pq", "mst_pq"];
         for (let i = 0; i < 4; i++) {

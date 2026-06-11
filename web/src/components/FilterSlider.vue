@@ -89,14 +89,24 @@ export default {
       ],
     };
   },
+  computed: {
+    // level 字符串 → 在 level_item 中的序号，只建一次。
+    // 用于把 f() 里的「slice + indexOf」降为 O(1) 查表，避免逐条记录新建数组。
+    levelOrder: function () {
+      const map = {};
+      for (let i = 0; i < this.level_item.length; i++) {
+        map[this.level_item[i]] = i;
+      }
+      return map;
+    },
+  },
   methods: {
     f(item) {
-      const allow_levels = this.level_item.slice(this.level[0], this.level[1] + 1);
       if (this.useDs) {
         return item.ds >= this.ds[0] && item.ds <= this.ds[1];
-      } else {
-        return allow_levels.indexOf(item.level) !== -1;
       }
+      const idx = this.levelOrder[item.level];
+      return idx !== undefined && idx >= this.level[0] && idx <= this.level[1];
     },
     end_move_level(param) {
       this.level = param;

@@ -295,6 +295,7 @@ export default {
         "maimai でらっくす FESTiVAL PLUS",
         "maimai でらっくす BUDDiES",
         "maimai でらっくす BUDDiES PLUS",
+        "maimai でらっくす PRiSM",
       ],
       t2n: { 1: "極", 2: "将", 4: "舞舞", 8: "神", 16: "霸者", "神": 8, "舞舞": 4, "将": 2, "極": 1, "霸者": 16},
       versions: [],
@@ -477,6 +478,7 @@ export default {
       ["maimai でらっくす FESTiVAL PLUS", "祝"],
       ["maimai でらっくす BUDDiES", "双"],
       ["maimai でらっくす BUDDiES PLUS", "宴"],
+      ["maimai でらっくす PRiSM", "鏡"],
     ]) {
       this.v2n[elem[1]] = elem[0];
       this.v2n[elem[0]] = elem[1];
@@ -499,6 +501,13 @@ export default {
   backdrop-filter: blur(16px) saturate(1.4);
   border: 1px solid rgba(255, 255, 255, 0.7);
   box-shadow: 0 12px 32px -16px rgba(31, 41, 72, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.theme--dark .hdr {
+  color: #e8edf6;
+  background: rgba(30, 38, 56, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .hdr .v-btn {

@@ -466,8 +466,10 @@ export default {
     this.darkTheme = +localStorage.darkTheme;
   },
   beforeCreate: function () {
-    // detect dark mode
-    localStorage.darkTheme = +window.matchMedia("(prefers-color-scheme: dark)").matches
+    // Respect the user's saved choice; fall back to system preference only when unset.
+    if (localStorage.darkTheme === undefined || localStorage.darkTheme === null || localStorage.darkTheme === "") {
+      localStorage.darkTheme = +window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
     if (+localStorage.darkTheme) {
       document
         .querySelector("body")

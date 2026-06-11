@@ -164,4 +164,19 @@ export default {
 #tdMessage .v-window .v-card {
   background: transparent !important;
 }
+
+/* Dark theme */
+.theme--dark #tdMessage.v-card {
+  background: rgba(30, 38, 56, 0.55) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  color: #e8edf6;
+}
+.theme--dark #tdMessage .v-card__title {
+  color: #e8edf6;
+}
+.theme--dark #tdMessage .v-window.elevation-1 {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
 </style>
