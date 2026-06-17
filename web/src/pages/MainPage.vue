@@ -1842,11 +1842,6 @@ export default {
   }
 }
 
-#tableBody {
-  margin-bottom: 2em;
-  max-width: calc(100vw - 60px);
-}
-
 .difficulty4 {
   color: #ba67f8;
 }
