@@ -1842,6 +1842,10 @@ export default {
   }
 }
 
+#tableBody {
+  max-width: calc(100vw);
+}
+
 .difficulty4 {
   color: #ba67f8;
 }
