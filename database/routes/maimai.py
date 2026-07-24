@@ -370,9 +370,10 @@ async def query_player():
             return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
     if "b50" in obj:
         sd, dx = await get_dx_and_sd_for50(p)
+        await compute_ra(p, sd, dx)
     else:
         sd, dx = await get_dx_and_sd(p)
-    await compute_ra(p)
+        await compute_ra(p)
     nickname = p.nickname
     if nickname == "":
         nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
@@ -429,9 +430,10 @@ async def query_plate():
     }
 
 
-async def compute_ra(player: Player):
+async def compute_ra(player: Player, sd=None, dx=None):
+    if sd is None or dx is None:
+        sd, dx = await get_dx_and_sd_for50(player)
     rating = 0
-    sd, dx = await get_dx_and_sd_for50(player)
     for t in sd:
         rating += int(t.ra)
     for t in dx:
