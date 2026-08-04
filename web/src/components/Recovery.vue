@@ -10,19 +10,19 @@
         class="mt-3 mr-4"
         v-bind="attrs"
         v-on="on"
-        >重置账户</v-btn
+        >忘记密码</v-btn
       >
     </template>
     <v-card>
       <v-card-title>
-        重置账户
+        忘记密码
         <v-spacer />
         <v-btn icon @click="open = false">
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-card-title>
       <v-card-subtitle>
-        该功能仅限绑定 QQ 的账户使用，我们将会往您的 QQ 邮箱发送账户重置的邮件。
+        该功能仅限绑定 QQ 的账户使用，我们将会往您的 QQ 邮箱发送找回邮件。
       </v-card-subtitle>
       <v-card-text>
         <v-text-field

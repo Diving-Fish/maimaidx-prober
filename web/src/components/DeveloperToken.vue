@@ -17,8 +17,7 @@
         </v-card-title>
         <v-card-subtitle style="color: #F44336" class="mt-1">
           此处的 Token 仅供 bot 开发者或者其他需要与查分器相关联的开发者使用！<br>
-          此处的 Token 仅供 bot 开发者或者其他需要与查分器相关联的开发者使用！<br>
-          此处的 Token 仅供 bot 开发者或者其他需要与查分器相关联的开发者使用！<br>
+          Token 审核通过后，将发送邮件到您绑定的<span style="font-weight: 600;">QQ 邮箱</span>，请注意查收。<br>
           如果您需要的是成绩导入 Token，请在【编辑个人资料】中进行操作。
         </v-card-subtitle>
         <v-card-text>
