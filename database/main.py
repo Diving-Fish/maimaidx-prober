@@ -2,6 +2,7 @@ import routes.public
 import routes.maimai
 import routes.chunithm
 import routes.ci
+import routes.oauth_login
 from app import app
 import asyncio
 
