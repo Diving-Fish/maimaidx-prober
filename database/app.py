@@ -164,7 +164,14 @@ def cors(environ):
     environ.headers['Access-Control-Allow-Origin'] = '*'
     environ.headers['Access-Control-Allow-Method'] = '*'
     environ.headers['Access-Control-Allow-Headers'] = 'x-requested-with,content-type,import-token'
-    if getattr(g, "user", None) is not None and request.method != 'OPTIONS':
+    # login_type == 'token' 表示这次请求是拿 Import-Token 认证的。
+    # 不排除它的话，任何持有 import_token 的人调一次只读接口，就能从响应里
+    # 收到一个 30 天有效的 jwt_token 会话 cookie，进而调 @login_required 的
+    # 接口（包括 /player/change_password）——等于 import_token 可以接管账号。
+    # import_token 是用户贴进 Shadowrocket 之类配置里的东西，它只该能传成绩。
+    if (getattr(g, "user", None) is not None
+            and getattr(g, "login_type", None) != 'token'
+            and request.method != 'OPTIONS'):
         environ.set_cookie('jwt_token', username_encode(g.username), max_age=30 * 86400)
     return environ
 
