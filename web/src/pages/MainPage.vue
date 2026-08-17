@@ -37,72 +37,9 @@
           <div class="action-panel-head">
             <span class="action-dot"></span>快捷操作
           </div>
-        <v-dialog width="500px" :fullscreen="$vuetify.breakpoint.mobile" v-model="loginVisible">
-          <template #activator="{ on, attrs }">
-            <v-btn class="mt-3 mr-4" v-if="username == '未登录'" v-bind="attrs" v-on="on" color="primary"
-              :loading="loading">登录并同步数据</v-btn>
-          </template>
-          <v-card>
-            <v-card-title>
-              登录
-              <v-spacer />
-              <v-btn icon @click="loginVisible = false">
-                <v-icon>mdi-close</v-icon>
-              </v-btn>
-            </v-card-title>
-            <v-card-text>
-              <v-form ref="form" v-model="valid" @keydown.enter.native="login">
-                <v-text-field v-model="loginForm.username" label="用户名" autocomplete="username"
-                  :rules="[(u) => !!u || '用户名不能为空']">
-                </v-text-field>
-                <v-text-field v-model="loginForm.password" label="密码" :rules="[(u) => !!u || '密码不能为空']" type="password"
-                  autocomplete="current-password">
-                </v-text-field>
-              </v-form>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer />
-              <v-btn class="mr-4" color="primary" @click="login">登录</v-btn>
-              <v-btn @click="invokeRegister">立即注册</v-btn>
-              <v-dialog width="500" :fullscreen="$vuetify.breakpoint.mobile" v-model="registerVisible">
-                <v-card>
-                  <v-card-title>
-                    注册
-                    <v-spacer />
-                    <v-btn icon @click="registerVisible = false">
-                      <v-icon>mdi-close</v-icon>
-                    </v-btn>
-                  </v-card-title>
-                  <v-card-subtitle>
-                    注册后会自动同步当前已导入的乐曲数据
-                  </v-card-subtitle>
-                  <v-card-text>
-                    <v-form ref="regForm" v-model="valid2" @keydown.enter.native="register">
-                      <v-text-field v-model="registerForm.username" label="用户名" autocomplete="username" :rules="[
-                        (u) => !!u || '用户名不能为空',
-                        (u) => u.length >= 4 || '用户名至少长 4 个字符',
-                      ]">
-                      </v-text-field>
-                      <v-text-field v-model="registerForm.password" label="密码" type="password"
-                        autocomplete="new-password" :rules="[(u) => !!u || '密码不能为空']">
-                      </v-text-field>
-                      <v-text-field v-model="registerForm.passwordConfirm" label="确认密码" type="password"
-                        autocomplete="new-password" :rules="[
-                          (u) => !!u || '密码不能为空',
-                          (u) => registerForm.password == u || '密码不一致',
-                        ]">
-                      </v-text-field>
-                    </v-form>
-                  </v-card-text>
-                  <v-card-actions>
-                    <v-spacer />
-                    <v-btn color="primary" @click="register">注册</v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-dialog>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
+        <v-btn class="mt-3 mr-4" v-if="username == '未登录'" color="primary"
+          :loading="loading" @click="login">登录并同步数据</v-btn>
+        <v-btn class="mt-3 mr-4" v-if="username == '未登录'" @click="register">注册</v-btn>
         <v-dialog v-model="logoutVisible" width="500px" v-if="username !== '未登录'"
           :fullscreen="$vuetify.breakpoint.mobile">
           <template #activator="{ on, attrs }">
@@ -519,15 +456,6 @@ export default {
       tableMode: 0, // mai or chuni
       tab: "",
       chuniTab: "",
-      loginForm: {
-        username: "",
-        password: "",
-      },
-      registerForm: {
-        username: "",
-        password: "",
-        passwordConfirm: "",
-      },
       chart_stats: {},
       currentUpdate: {},
       currentAchievements: 0,
@@ -545,8 +473,6 @@ export default {
       level_label: ["Basic", "Advanced", "Expert", "Master", "Re:MASTER", "Utage"],
       feedbackText: "",
       feedbackVisible: false,
-      loginVisible: false,
-      registerVisible: false,
       dialogVisible: false,
       modifyAchievementVisible: false,
       coverVisible: false,
@@ -558,8 +484,6 @@ export default {
       ws: null,
       loading: false,
       chuniLoading: false,
-      valid: false,
-      valid2: false,
       exportVisible: false,
       exportEncoding: "GBK",
       exportEncodingChuni: "GBK",
@@ -726,8 +650,6 @@ export default {
     this.fetchMusicData();
   },
   watch: {
-    loginVisible: watchVisible("loginVisible", "Login"),
-    // registerVisible: watchVisible("registerVisible", "Register"),
     dialogVisible: watchVisible("dialogVisible", "Import"),
     feedbackVisible: watchVisible("feedbackVisible", "Feedback"),
     exportVisible: watchVisible("exportVisible", "Export"),
@@ -770,10 +692,6 @@ export default {
       } else {
         return text.toUpperCase();
       }
-    },
-    invokeRegister: function () {
-      this.loginVisible = false;
-      this.registerVisible = true;
     },
     coverRow: function (record) {
       this.coverVisible = true;
@@ -843,25 +761,6 @@ export default {
         `已填入 ${item.type == "DX" ? "[DX] " : ""}${item.title} [${item.level_label
         }] 的数据`
       );
-    },
-    register: function () {
-      if (!this.$refs.regForm.validate()) return;
-      axios
-        .post("/api/maimaidxprober/register", {
-          username: this.registerForm.username,
-          password: this.registerForm.password,
-          records: this.records,
-        })
-        .then(() => {
-          this.$message.success("注册成功，数据已同步完成");
-          this.username = this.registerForm.username;
-          this.registerVisible = false;
-          setTimeout("window.location.reload()", 1000);
-        })
-        .catch((err) => {
-          this.$message.error("注册失败！");
-          this.$message.error(err.response.data.message);
-        });
     },
     sync: function () {
       // console.log(this.records);
@@ -963,40 +862,13 @@ export default {
         });
     },
     login: function () {
-      if (!this.$refs.form.validate()) return;
-      axios
-        .post("/api/maimaidxprober/login", {
-          username: this.loginForm.username,
-          password: this.loginForm.password,
-        })
-        .then(() => {
-          this.$message.success("登录成功!");
-          this.$message.success("加载舞萌乐曲数据中……");
-          this.loading = true;
-          this.chuniLoading = true;
-          this.loginVisible = false;
-          this.$refs.profile.fetch();
-          axios
-            .get(
-              "/api/maimaidxprober/player/records"
-            )
-            .then((resp) => {
-              const data = resp.data;
-              this.username = data.username;
-              this.merge(data.records);
-              this.$refs.pq.init();
-              this.loading = false;
-            })
-            .catch(() => {
-              this.$message.error("加载舞萌乐曲数据失败！");
-            });
-          this.$message.success("加载中二乐曲数据中……");
-          this.fetchChunithmUserData();
-        })
-        .catch((err) => {
-          this.$message.error("登录失败！");
-          this.$message.error(err.response.data.message);
-        });
+      // 走后端的 OAuth 流程（BFF）：令牌只在服务端流转，浏览器只拿会话 cookie
+      window.location.href = "/api/maimaidxprober/oauth/login?next=" +
+        encodeURIComponent(window.location.pathname);
+    },
+    register: function () {
+      window.location.href = "/api/maimaidxprober/oauth/login?screen=register&next=" +
+        encodeURIComponent(window.location.pathname);
     },
     computeRecord: function (record) {
       if (this.music_data_dict[record.song_id])
@@ -1260,16 +1132,8 @@ export default {
       a.click();
     },
     logout: function () {
-      const setCookie = function (cname, cvalue, exdays) {
-        var d = new Date();
-        d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
-        var expires = "expires=" + d.toUTCString();
-        document.cookie = cname + "=" + cvalue + "; " + expires + ";path=/";
-      };
-      setCookie("jwt_token", "", -1);
-      this.logoutVisible = false;
-      this.$message.success("已登出");
-      setTimeout("window.location.reload()", 1000);
+      // 后端清 cookie 并顺带结束 IdP 的 SSO 会话，否则再点登录会一声不响登回来
+      window.location.href = "/api/maimaidxprober/oauth/logout";
     },
     available_plates: function () {
       return this.$refs.pq.available_plates();
