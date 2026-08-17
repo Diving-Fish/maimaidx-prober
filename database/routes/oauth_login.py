@@ -35,6 +35,15 @@ CLIENT_SECRET = _idp.get("client_secret") or ""
 REDIRECT_URI = _idp.get("redirect_uri") or ""
 HOME = _idp.get("home") or "/"
 
+#: 允许承载回调的站点。查分器同时挂在 maimai 和 www 两个域名下，CI 出的
+#: 测试页（/maimaidx/prober-test/<sha>/）走的是 www——回调地址如果写死成
+#: maimai，测试页登录完会跳到另一个域名，cookie 也落在那边，等于登不上。
+#: 这里按请求的 Host 选回调地址，但只认下面列出来的域名：redirect_uri 在
+#: IdP 侧是逐字符匹配的，凭 Host 头拼一个没注册过的地址只会被拒，
+#: 而白名单保证我们连拼都不会去拼一个陌生域名。
+CALLBACK_PATH = "/api/maimaidxprober/oauth/callback"
+REDIRECT_HOSTS = _idp.get("redirect_hosts") or []
+
 #: state 的存活时间。用户从点「登录」到输完密码跳回来，10 分钟足够，
 #: 再长就只是给攻击者多留一个可用的 state
 STATE_TTL = 600
@@ -84,6 +93,22 @@ def _safe_next(target: str) -> str:
     return target
 
 
+def _redirect_uri() -> str:
+    """本次请求该用哪个回调地址。不在白名单里的 Host 一律回落到配置值。"""
+    host = (request.host or "").split(":")[0]
+    if host in REDIRECT_HOSTS:
+        return f"https://{host}{CALLBACK_PATH}"
+    return REDIRECT_URI
+
+
+def _site_root() -> str:
+    host = (request.host or "").split(":")[0]
+    if host in REDIRECT_HOSTS:
+        return f"https://{host}/"
+    parsed = urlparse(REDIRECT_URI)
+    return f"{parsed.scheme}://{parsed.netloc}/"
+
+
 @app.route("/oauth/login", methods=["GET"])
 async def oauth_login():
     if not enabled():
@@ -91,9 +116,12 @@ async def oauth_login():
 
     verifier, challenge = _pkce()
     state = secrets.token_urlsafe(32)
+    redirect_uri = _redirect_uri()
     await redis.set(
         STATE_PREFIX + state,
-        json.dumps({"v": verifier, "next": _safe_next(request.args.get("next", ""))}),
+        # 回调地址一并存下来：换令牌时必须原样回传，两次不一致 IdP 会拒
+        json.dumps({"v": verifier, "r": redirect_uri,
+                    "next": _safe_next(request.args.get("next", ""))}),
         ex=STATE_TTL,
     )
 
@@ -101,7 +129,7 @@ async def oauth_login():
     params = {
         "response_type": "code",
         "client_id": CLIENT_ID,
-        "redirect_uri": REDIRECT_URI,
+        "redirect_uri": redirect_uri,
         "scope": "openid profile",
         "state": state,
         "nonce": secrets.token_urlsafe(16),
@@ -152,7 +180,7 @@ async def oauth_callback():
         resp = await client.post(doc["token_endpoint"], data={
             "grant_type": "authorization_code",
             "code": code,
-            "redirect_uri": REDIRECT_URI,
+            "redirect_uri": saved.get("r") or REDIRECT_URI,
             "client_id": CLIENT_ID,
             "client_secret": CLIENT_SECRET,
             "code_verifier": saved["v"],
@@ -207,13 +235,8 @@ async def oauth_logout():
             # 没留 id_token，用 client_id 指明身份（OIDC RP-Initiated Logout
             # 允许），落点仍要在 IdP 侧注册过才会跳
             "client_id": CLIENT_ID,
-            "post_logout_redirect_uri": _absolute_home(),
+            "post_logout_redirect_uri": _site_root(),
         })
     resp = await make_response(redirect(target))
     resp.set_cookie("jwt_token", "", expires=0)
     return resp
-
-
-def _absolute_home():
-    parsed = urlparse(REDIRECT_URI)
-    return f"{parsed.scheme}://{parsed.netloc}/"
