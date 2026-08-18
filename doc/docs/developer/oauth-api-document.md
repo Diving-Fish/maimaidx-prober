@@ -443,6 +443,7 @@ https://www.diving-fish.com/api/{游戏数据类别}/{端点路径}
 | `maimaidxprober` | `/player/update_record` | POST | `prober.records.write` | —— |
 | `maimaidxprober` | `/player/delete_records` | DELETE | `prober.records.write` | —— |
 | `chunithmprober` | [`/player/records`](#94-获取用户的-chunithm-成绩数据) | GET | `chunithm.records.read` | `/dev/player/records` |
+| `chunithmprober` | `/player/update_records` | POST | `chunithm.records.write` | —— |
 | `chunithmprober` | `/player/update_records_html` | POST | `chunithm.records.write` | —— |
 | `chunithmprober` | `/player/delete_records` | DELETE | `chunithm.records.write` | —— |
 
@@ -468,7 +469,7 @@ https://www.diving-fish.com/api/{游戏数据类别}/{端点路径}
 ```
 
 :::tip
-完整成绩信息的数据量较大。若您只需要用于绘制 b50 的简略成绩信息，请使用无需验证的 [`/query/player`](./zh-api-document.md#317-获取用户的简略成绩信息) 端点。
+完整成绩信息的数据量较大。若您只需要用于绘制 b50 的简略成绩信息，请使用无需验证的 [`/query/player`](./zh-api-document.md#317-获取用户的简略成绩信息) 端点；若您只需要其中一部分成绩，可以用查询参数在服务端过滤，详见 [服务端过滤](./zh-api-document.md#服务端过滤)。
 :::
 
 ### 9.2 获取用户的单曲成绩信息
@@ -503,13 +504,17 @@ https://www.diving-fish.com/api/{游戏数据类别}/{端点路径}
 {"verlist": []}
 ```
 
+:::tip
+本端点的功能已并入 `/player/records` 的过滤参数：`GET /player/records?plate=真` 按牌子筛选，`?version=...` 按版本筛选，且返回结构与其他成绩端点一致。详见 [服务端过滤](./zh-api-document.md#服务端过滤)。
+:::
+
 ### 9.4 获取用户的 CHUNITHM 成绩数据
 
 | **游戏数据类别** | **端点路径** | **请求方法** | **所需 scope** |
 |-----|-----|-----|-----|
 | `chunithmprober` | `/player/records` | GET | `chunithm.records.read` |
 
-即 `https://www.diving-fish.com/api/chunithmprober/player/records` 。无需任何参数，响应结构与 [查分器 API 文档 3.2.3](./zh-api-document.md#323-获取用户的完整成绩数据) 中 `/dev/player/records` 的响应完全一致：
+即 `https://www.diving-fish.com/api/chunithmprober/player/records` 。无需任何参数，也可以用查询参数在服务端过滤，详见 [查分器 API 文档 3.2.3 的服务端过滤](./zh-api-document.md#服务端过滤-1)。响应结构与 [查分器 API 文档 3.2.3](./zh-api-document.md#323-获取用户的完整成绩数据) 中 `/dev/player/records` 的响应完全一致：
 
 ```json
 {

@@ -59,6 +59,7 @@ https://www.diving-fish.com/api/maimaidxprober/player/profile
 | `chunithmprober` | [`/player/records`](#323-获取用户的完整成绩数据) | 登录验证 / Import-Token / Bearer | 获取用户的成绩数据（best 部分） |
 | `chunithmprober` | [`/player/test_data`](#324-获取用于测试的成绩数据) | 无需验证 | 获取用于测试与联调的成绩数据 |
 | `chunithmprober` | [`/query/player`](#327-查询用户的简略成绩信息) | 无需验证 | 获取用户的简略成绩信息（b30+n20） |
+| `chunithmprober` | [`/player/update_records`](#328-更新用户的-chunithm-成绩数据) | 登录验证 / Import-Token / Bearer | 通过标准成绩格式导入成绩 |
 | `chunithmprober` | [`/player/update_records_html`](#325-通过-html-格式的数据更新chunithm-成绩) | 登录验证 / Import-Token / Bearer | 通过 HTML 源码导入成绩 |
 | `chunithmprober` | [`/player/delete_records`](#326-删除用户的-chunithm-成绩数据) | 登录验证 / Import-Token / Bearer | 删除用户的 CHUNITHM 成绩数据 |
 | `chunithmprober` | [`/dev/player/records`](#323-获取用户的完整成绩数据) | Developer-Token **（已废弃）** | 获取指定用户的成绩数据 |
@@ -680,6 +681,41 @@ class ProberAPIClient:
 
 随后您可以根据自身需求决定对数据的保存和处理方法。如果您希望获得一份**完整的用户成绩参考数据**用于测试及开发，可以对 `/player/test_data` 端点发送 GET 请求，服务器即会返回一份完整的参考数据。此端点不设验证要求，这意味着您可以直接通过浏览器访问该 URL 查看此参考数据：[https://www.diving-fish.com/api/maimaidxprober/player/test_data](https://www.diving-fish.com/api/maimaidxprober/player/test_data)
 
+##### 服务端过滤
+
+`/player/records` 支持用查询参数在服务端过滤，只返回符合条件的成绩。不带任何过滤参数时行为与过去完全一致，返回全部成绩。
+
+可过滤的字段如下：
+
+| **类型** | **字段** |
+|-----|-----|
+| 数值 | `song_id`（别名 `id` / `music_id`）、`level_index`（别名 `difficulty`）、`ds`、`bpm`、`achievements`、`dxScore`（别名 `dx_score`）、`ra` |
+| 字符串 | `title`、`artist`、`genre`、`charter`、`version`、`release_date`、`type`、`level`、`level_label`、`rate`、`fc`、`fs` |
+| 布尔 | `is_new` |
+| 牌子 | `plate` |
+
+语法：
+
+- **数值字段**支持严格相等与区间。`ds=14` 表示定数恰好为 14 ；`ds=13..14` 为闭区间；`ds=14..` 只有下界；`ds=..13.9` 只有上界。
+- **字符串字段**为完全匹配，忽略大小写。`fc=`（空值）匹配非 FC 的成绩。
+- **布尔字段**接受 `1` / `0` / `true` / `false`。
+- **`plate`** 按牌子圈定曲目范围，代号与全名都可以：`plate=真`、`plate=鏡極`、`plate=舞舞舞`、`plate=霸者`。其中 `真` 包含 maimai 与 maimai PLUS 两个版本，`舞` 与 `霸者` 包含旧框（maimai 无印 ~ maimai FiNALE）的全部版本。**它只圈定曲目范围，不判断是否达成牌子条件**，语义与 [`/query/plate`](#318-按版本获取用户的成绩信息) 一致。
+- **多值**用逗号分隔或重复参数，两者等价：`fc=fc,fcp` 与 `fc=fc&fc=fcp` 相同。值本身含逗号时（曲名、曲师、谱师）请使用重复参数形式。
+- 不同字段之间取**交集**，同一字段的多个值取**并集**。
+
+例如，查询 Master 难度、定数 13.5 及以上、已经 FC 或 AP 的成绩：
+
+```plaintext
+GET /player/records?level_index=3&ds=13.5..&fc=fc,fcp,ap,app
+```
+
+注意事项：
+
+- 值中的特殊字符需要按 URL 规则百分号编码，尤其是 `+`（应写作 `%2B`，如 `level=13%2B`）与空格（`%20`）。
+- 服务器认不出的查询参数会被**忽略**，因此参数名写错不会报错，只会得到未经过滤的结果。实际生效的条件会在返回体的 `filters` 字段中回显，建议据此自查；未使用任何过滤参数时不会出现该字段。
+- 认得的字段值解析失败会返回 400，形如 `{"message": "参数 ds 的值 \"abc\" 不是数字"}`。
+- 对开启了「掩码」的用户，过滤基于**掩码后**的成绩值进行，与返回体中的数值保持一致。
+
 #### 3.1.6 获取用户的单曲成绩信息
 
 | **端点路径** | **权限要求** |  **请求方法** |
@@ -749,6 +785,10 @@ class ProberAPIClient:
 
 :::warning
 `/query/plate` 已废弃。第三方应用请改用 `/player/plate` 并携带 Bearer 令牌，所需 scope 为 `prober.records.read` ，详见 [迁移指南](./oauth-migration.md)。
+:::
+
+:::tip
+本端点的功能已并入 [获取用户的完整成绩信息](#315-获取用户的完整成绩信息)：`GET /player/records?plate=真` 按牌子筛选，`?version=maimai&version=maimai%20PLUS` 按版本筛选，且返回结构与其他成绩端点一致（`records` 数组，而非 `verlist`）。新接入建议直接使用过滤参数。
 :::
 
 对于 `/query/plate` 端点，访问成功与否还取决于用户是否同意用户协议或设置隐私。
@@ -1166,6 +1206,23 @@ https://www.diving-fish.com/api/chunithmprober/{端点路径}
 | `records.best[].title`         | `string`   | 歌曲标题                                               |
 | `records.r10`             | `array`    | 中二节奏 2026 版本后为空数组                   |
 
+##### 服务端过滤
+
+`/player/records` 支持用查询参数在服务端过滤，只返回符合条件的成绩。语法与 maimai 的 [服务端过滤](#服务端过滤) 完全一致（数值字段支持 `a..b` 区间与严格相等，字符串字段完全匹配且忽略大小写，多值用逗号或重复参数，字段间取交集），可过滤的字段如下：
+
+| **类型** | **字段** |
+|-----|-----|
+| 数值 | `song_id`（别名 `id` / `mid` / `music_id`）、`cid`、`level_index`（别名 `difficulty`）、`ds`、`bpm`、`combo`、`score`、`ra` |
+| 字符串 | `title`、`artist`、`genre`、`charter`、`version`、`level`、`level_label`、`fc` |
+
+例如，查询 Master 难度、定数 14 及以上、已经 FC 或 AJ 的成绩：
+
+```plaintext
+GET /player/records?level_index=3&ds=14..&fc=fullcombo,alljustice
+```
+
+实际生效的条件会在返回体的 `filters` 字段中回显；认不出的查询参数会被忽略，认得的字段值解析失败则返回 400。
+
 #### 3.2.4 获取用于测试的成绩数据
 
 | 端点路径 | 权限要求 | 请求方法 |
@@ -1190,6 +1247,10 @@ https://www.diving-fish.com/api/chunithmprober/{端点路径}
 
 - 解析失败将返回 400，形如 `{"message": "<解析错误信息>"}`。
 - 分数会被截断到不超过 1,010,000。
+
+:::tip
+如果您手上已经是结构化的成绩数据而非官方页面 HTML ，请改用 [更新用户的 CHUNITHM 成绩数据](#328-更新用户的-chunithm-成绩数据)。
+:::
 
 #### 3.2.6 删除用户的 CHUNITHM 成绩数据
 
@@ -1227,6 +1288,57 @@ https://www.diving-fish.com/api/chunithmprober/{端点路径}
 - 用户设置隐私且以用户名查询、会话不匹配或过期：403，`{"status":"error","message":"已设置隐私"}` 或 `{"status":"error","message":"会话过期"}`
 
 成绩条目结构同 [3.2.3 获取用户的完整成绩数据](#323-获取用户的完整成绩数据)。
+
+#### 3.2.8 更新用户的 CHUNITHM 成绩数据
+
+| 端点路径 | 权限要求 | 请求方法 |
+|-----|-----|-----|
+| `/player/update_records` | 登录验证 / Import-Token / [Bearer](#25-bearer-令牌验证要求) `chunithm.records.write` | POST |
+
+以标准成绩格式上传 CHUNITHM 成绩，无需再经过官方页面 HTML 。请求体为 JSON 数组，其中每个元素的结构与 [3.2.3 获取用户的完整成绩数据](#323-获取用户的完整成绩数据) 中 `records.best[]` 的条目一致：
+
+```json
+[
+    {"cid": 2034, "score": 1009000, "fc": "alljustice"},
+    {"mid": 1234, "level_index": 3, "score": 995000, "fc": "fullcombo"},
+    {"title": "Titania", "level_index": 3, "score": 980000, "fc": ""}
+]
+```
+
+也可以直接把 `/player/records` 的整个返回体原样发回，服务器会从中取出 `records.best` ，便于「导出后再导入」这类用法。
+
+谱面定位方式，按以下顺序尝试：
+
+1. `cid`：谱面的唯一标识符，最稳妥，不受同名曲目影响。
+2. `mid`（别名 `music_id` / `id`）搭配 `level_index`。
+3. `title` 搭配 `level_index`。`level_index` 大于等于 5 时按世界末日谱查找曲目。
+
+字段说明：
+
+| **字段** | **类型** | **必填** | **说明** |
+|-----|-----|-----|-----|
+| `cid` | `number` | 见上 | 谱面唯一标识符 |
+| `mid` | `number` | 见上 | 歌曲唯一标识符 |
+| `title` | `string` | 见上 | 歌曲标题 |
+| `level_index` | `number` | 见上 | 难度索引，0 到 5 对应 Basic 到 World's End |
+| `score` | `number` | 是 | 成绩，会被夹到 0 ~ 1010000 |
+| `fc` | `string` | 否 | `fullcombo` / `alljustice` / `fullchain` / `fullchain2` ，也接受 `fc` 与 `aj` 两种简写；认不出的值按空处理 |
+
+查询参数：
+
+- `recent`：0 或 1，默认 0。为 1 时写入的是 recent 成绩，会先清空该用户原有的 recent 记录再整体写入，语义与 [3.2.5](#325-通过-html-格式的数据更新chunithm-成绩) 的同名参数一致。
+
+响应：
+
+```json
+{"message": "更新成功", "updates": 12, "creates": 3}
+```
+
+注意事项：
+
+- 定位不到谱面、缺少 `score` 或结构不合法的条目会被**静默跳过**，不影响其余条目写入。可以对比 `updates` 与 `creates` 之和与您上传的条目数来发现被跳过的记录。
+- 请求体既不是数组、也不是可识别的成绩返回体时，返回 400 `{"message": "导入数据格式有误"}`。
+- 上传完成后服务器会重新计算该用户的 rating 。
 
 
 ### 3.3 public

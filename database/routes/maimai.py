@@ -18,6 +18,7 @@ from tools.analysis_template import return_template
 import random
 from access.redis import redis
 from tools.maidle import Maidle, maidle_data as maidle_cache, songs_id_map as maidle_map
+import tools.record_filter as record_filter
 
 
 cs_cache = {}
@@ -76,9 +77,14 @@ def music_ids_of(obj: Dict) -> List[str]:
 
 
 async def records_of(player: Player, music_ids: List[str] = None):
+    # artist / genre / bpm / version / release_date / charter 只为 /player/records
+    # 的服务端过滤而取，同一个 join 里顺手带出来，不多一次查询
     sql = ('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, '
            'chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, '
-           'music.id as `id`, music.is_new as is_new, music.title as title '
+           'music.id as `id`, music.is_new as is_new, music.title as title, '
+           'music.artist as artist, music.genre as genre, music.bpm as bpm, '
+           'music.version as `version`, music.release_date as release_date, '
+           'chart.charter as charter '
            'from newrecord, chart, music where player_id = %s')
     args = [player.id]
     if music_ids is not None:
@@ -86,6 +92,72 @@ async def records_of(player: Player, music_ids: List[str] = None):
         args += music_ids
     sql += ' and chart_id = chart.id and chart.music_id = music.id'
     return await NewRecord.raw(sql, *args).aio_execute()
+
+
+# /player/records 支持的过滤字段。类型决定语法：数值可写区间，字符串可写多值。
+RECORD_FILTER_SPEC = {
+    "title": record_filter.STR,
+    "artist": record_filter.STR,
+    "genre": record_filter.STR,
+    "charter": record_filter.STR,
+    "version": record_filter.STR,
+    "release_date": record_filter.STR,
+    "type": record_filter.STR,
+    "level": record_filter.STR,
+    "level_label": record_filter.STR,
+    "rate": record_filter.STR,
+    "fc": record_filter.STR,
+    "fs": record_filter.STR,
+    "song_id": record_filter.NUM,
+    "level_index": record_filter.NUM,
+    "ds": record_filter.NUM,
+    "bpm": record_filter.NUM,
+    "achievements": record_filter.NUM,
+    "dxScore": record_filter.NUM,
+    "ra": record_filter.NUM,
+    "is_new": record_filter.BOOL,
+}
+
+RECORD_FILTER_ALIASES = {
+    "id": "song_id",
+    "music_id": "song_id",
+    "dx_score": "dxScore",
+    "difficulty": "level_index",
+}
+
+
+def record_filter_view(record, elem: Dict) -> Dict:
+    """一条成绩可供过滤的字段视图。
+
+    以 record_json 的输出为底，再补上 music / chart 里没进返回体但可以拿来
+    筛选的列。用 elem 而不是原始行，是为了让 mask 用户只能按模糊后的值过滤。
+    """
+    view = dict(elem)
+    view["artist"] = record.artist
+    view["genre"] = record.genre
+    view["bpm"] = record.bpm
+    view["version"] = record.version
+    view["release_date"] = record.release_date
+    view["charter"] = record.charter
+    view["is_new"] = record.is_new
+    return view
+
+
+def build_record_filter(args):
+    """解析 /player/records 的过滤参数，plate 会被翻成一组 version 条件。"""
+    matchers, echo = record_filter.build(args, RECORD_FILTER_SPEC, RECORD_FILTER_ALIASES)
+    plates = record_filter.raw_values(args, "plate")
+    if plates:
+        versions = []
+        for plate in plates:
+            vs = plate_versions(plate)
+            if vs is None:
+                raise record_filter.FilterError(f'参数 plate 的值 "{plate}" 不是已知的牌子')
+            versions += vs
+        # plate 与显式 version 是两个独立条件，各自成一条 matcher 取交集
+        matchers.append(record_filter.str_matcher("version", versions))
+        echo["plate"] = plates
+    return matchers, echo
 
 
 @app.route("/player/agreement", methods=['GET', 'POST'])
@@ -228,14 +300,37 @@ async def get_records():
     """
     *需要登录
     获取用户的成绩信息。
+
+    可以用查询参数在服务端过滤，不带任何参数时行为与过去一致（返回全部成绩）。
+
+    - 数值字段（`song_id` `level_index` `ds` `bpm` `achievements` `dxScore` `ra`）
+      支持严格相等与区间：`ds=14`、`ds=13..14`、`ds=14..`、`ds=..13.9`，
+      逗号分隔可以并列多个条件，如 `ds=13..13.9,14.5`。
+    - 字符串字段（`title` `artist` `genre` `charter` `version` `release_date`
+      `type` `level` `level_label` `rate` `fc` `fs`）完全匹配且忽略大小写，
+      多值用逗号或重复参数，如 `fc=fc,fcp`。值本身含逗号时请用重复参数。
+    - 布尔字段 `is_new` 收 `1/0/true/false`。
+    - `plate` 按牌子筛版本，代号或全名都收：`plate=真`、`plate=舞舞舞`、
+      `plate=霸者`。它只圈定曲目范围，不判断是否达成——这与 `/query/plate`
+      的语义一致，那个接口的功能已并入本接口。
+
+    不同字段之间取交集，同一字段的多个值取并集。认不出的查询参数会被忽略，
+    实际生效的条件在返回体的 `filters` 里回显。
     """
+    try:
+        matchers, echo = build_record_filter(request.args)
+    except record_filter.FilterError as e:
+        return {"message": str(e)}, 400
     r = await records_of(g.user)
     await compute_ra(g.user)
+    masked = masked_for(g.user)
     records = []
     for record in r:
-        elem = record_json(record, masked_for(g.user))
+        elem = record_json(record, masked)
+        if matchers and not record_filter.match(record_filter_view(record, elem), matchers):
+            continue
         records.append(elem)
-    return {
+    resp = {
         "username": g.username,
         "rating": g.user.rating,
         "additional_rating": g.user.additional_rating,
@@ -243,6 +338,9 @@ async def get_records():
         "plate": g.user.plate,
         "records": records
     }
+    if echo:
+        resp["filters"] = echo
+    return resp
 
 
 @app.route("/player/record", methods=['POST'])
@@ -274,6 +372,9 @@ async def get_plate():
     获取用户的牌子信息。请求体为 JSON，参数需包含 `version`。
 
     这是 /query/plate 的 OAuth 版本：查谁由令牌决定，不接受 qq / username。
+
+    已被 /player/records 的 plate / version 过滤取代，保留仅为兼容既有调用方。
+    新接入请用 `GET /player/records?plate=真`，返回体与其他成绩接口一致。
     """
     obj = await request.json
     vl = await getplatelist(g.user, obj["version"])
@@ -465,6 +566,9 @@ async def query_plate():
     """
     获取某个用户的牌子信息。
     请求体为 JSON，参数需包含 `username` 或 `qq` 中的一项和 `version`。
+
+    已废弃：功能并入 `GET /player/records?plate=...`（或 `?version=...`），
+    Developer-Token 停止签发后本接口会随 /dev/* 一并下线。
     """
     obj = await request.json
     try:
