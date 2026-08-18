@@ -123,7 +123,9 @@
             <v-checkbox v-model="privacy" label="禁止其他人查询我的成绩" />
             <v-checkbox v-model="mask" label="对非网页查询的成绩使用掩码" />
           </v-form>
-          <developer-token />
+          <div class="pl-6 mb-4">
+            <span style="opacity: 0.7;">需要查分器中的玩家数据用于其他应用程序开发？请点击<a href="https://auth.diving-fish.com/console">这里</a>~</span>
+          </div>
           <v-card-actions class="pb-4">
             <v-dialog
               v-model="changePasswordVisible"
@@ -216,11 +218,7 @@
 <script>
 import axios from "axios";
 import watchVisible from '../plugins/watchVisible';
-import DeveloperToken from '../components/DeveloperToken.vue';
 export default {
-  components: {
-    DeveloperToken,
-  },
   props: {
     available_plates: Function,
   },
@@ -303,8 +301,7 @@ export default {
       changePasswordForm: {
         password: "",
         passwordConfirm: "",
-      },
-      developerTokenVisible: false,
+      }
     };
   },
   watch: {

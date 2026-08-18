@@ -123,33 +123,81 @@ class ScoreCoefficient:
         return int(self.c * ds * min(100.5, self.a) / 100)
 
 
+# 版本 -> 牌子代号。get_plate_name 与 /player/records 的 plate 过滤共用这张表。
+VERSION_PREFIX = {
+    "maimai PLUS": "真",
+    "maimai GreeN": "超",
+    "maimai GreeN PLUS": "檄",
+    "maimai ORANGE": "橙",
+    "maimai ORANGE PLUS": "暁",
+    "maimai PiNK": "桃",
+    "maimai PiNK PLUS": "櫻",
+    "maimai MURASAKi": "紫",
+    "maimai MURASAKi PLUS": "菫",
+    "maimai MiLK": "白",
+    "MiLK PLUS": "雪",
+    "maimai FiNALE": "輝",
+    "ALL FiNALE": "舞",
+    "maimai でらっくす": "熊",
+    "maimai でらっくす PLUS": "華",
+    "maimai でらっくす Splash": "爽",
+    "maimai でらっくす Splash PLUS": "煌",
+    "maimai でらっくす UNiVERSE": "宙",
+    "maimai でらっくす UNiVERSE PLUS": "星",
+    "maimai でらっくす FESTiVAL": "祭",
+    "maimai でらっくす FESTiVAL PLUS": "祝",
+    "maimai でらっくす BUDDiES": "双",
+    "maimai でらっくす BUDDiES PLUS": "宴",
+    "maimai でらっくす PRiSM": "鏡",
+}
+
+# 旧框（maimai 无印 ~ FiNALE）。舞 / 霸者 两块牌子要求打通这一整段。
+OLD_VERSIONS = [
+    "maimai", "maimai PLUS", "maimai GreeN", "maimai GreeN PLUS",
+    "maimai ORANGE", "maimai ORANGE PLUS", "maimai PiNK", "maimai PiNK PLUS",
+    "maimai MURASAKi", "maimai MURASAKi PLUS", "maimai MiLK", "MiLK PLUS",
+    "maimai FiNALE", "ALL FiNALE",
+]
+
+PLATE_SUFFIXES = ("霸者", "舞舞", "極", "将", "神")
+
+
+def _build_plate_to_versions():
+    """牌子代号 -> 该牌子涵盖的版本名列表。
+
+    两处和「一个代号对应一个版本」的直觉不一样：
+    - 真：旧框有 13 个版本却只有 12 块版本牌子，maimai 无印并入真。
+    - 舞 / 霸者：要求整个旧框，不是某一个版本。
+    """
+    m = {prefix: [version] for version, prefix in VERSION_PREFIX.items()}
+    m["真"] = ["maimai", "maimai PLUS"]
+    m["舞"] = list(OLD_VERSIONS)
+    m["霸者"] = list(OLD_VERSIONS)
+    return m
+
+
+PLATE_TO_VERSIONS = _build_plate_to_versions()
+
+
+def plate_versions(plate: str) -> Optional[List[str]]:
+    """把牌子名解析成版本名列表，认不出返回 None。
+
+    代号和全名都收：真、真将、鏡極、舞舞舞、霸者。后缀只决定达成条件，
+    不影响曲目范围，所以这里剥掉。
+    """
+    plate = (plate or "").strip()
+    if plate in PLATE_TO_VERSIONS:
+        return list(PLATE_TO_VERSIONS[plate])
+    for suffix in PLATE_SUFFIXES:
+        if plate.endswith(suffix):
+            prefix = plate[:-len(suffix)]
+            if prefix in PLATE_TO_VERSIONS:
+                return list(PLATE_TO_VERSIONS[prefix])
+    return None
+
+
 def get_plate_name(version, plate_type):
-    version_prefix = {
-        "maimai PLUS": "真",
-        "maimai GreeN": "超",
-        "maimai GreeN PLUS": "檄",
-        "maimai ORANGE": "橙",
-        "maimai ORANGE PLUS": "暁",
-        "maimai PiNK": "桃",
-        "maimai PiNK PLUS": "櫻",
-        "maimai MURASAKi": "紫",
-        "maimai MURASAKi PLUS": "菫",
-        "maimai MiLK": "白",
-        "MiLK PLUS": "雪",
-        "maimai FiNALE": "輝",
-        "ALL FiNALE": "舞",
-        "maimai でらっくす": "熊",
-        "maimai でらっくす PLUS": "華",
-        "maimai でらっくす Splash": "爽",
-        "maimai でらっくす Splash PLUS": "煌",
-        "maimai でらっくす UNiVERSE": "宙",
-        "maimai でらっくす UNiVERSE PLUS": "星",
-        "maimai でらっくす FESTiVAL": "祭",
-        "maimai でらっくす FESTiVAL PLUS": "祝",
-        "maimai でらっくす BUDDiES": "双",
-        "maimai でらっくす BUDDiES PLUS": "宴",
-        "maimai でらっくす PRiSM": "鏡",
-    }[version]
+    version_prefix = VERSION_PREFIX[version]
     plate_suffix = {
         1: "極",
         2: "将",

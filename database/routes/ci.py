@@ -172,15 +172,19 @@ async def ci_developer_token():
     if request.method == 'GET':
         token = request.args.get("developer", type=str, default="")
         if token == "":
+            pending_only = request.args.get("pending", type=int, default=0)
             res = []
             # return all entries of developer token
             for developer in await NewDeveloper.select().aio_execute():
-                player: Player = await Player.aio_get(Player.id == developer.player_id)
                 available = 0
                 if developer.available:
                     available = 2
                 elif developer.confirm_token != '':
                     available = 1
+                # when pending_only is set, only return tokens waiting for review (available = 0)
+                if pending_only and not (available == 0 and developer.level > 0):
+                    continue
+                player: Player = await Player.aio_get(Player.id == developer.player_id)
                 res.append({
                     'username': player.username,
                     'token': developer.token,
