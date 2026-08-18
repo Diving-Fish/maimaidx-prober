@@ -8,7 +8,7 @@ https://www.diving-fish.com/api/maimaidxprober/*
 import asyncio
 import time
 from collections import defaultdict
-from app import app, developer_required, login_required, login_or_token_required, md5, is_developer, chart_stat_updated
+from app import app, developer_required, login_required, login_or_token_required, oauth_or_login_required, md5, is_developer, chart_stat_updated
 from quart import Quart, request, g, make_response
 from tools._jwt import *
 from models.maimai import *
@@ -47,6 +47,45 @@ def is_new(r: Dict):
     if t in md_title_type_map:
         return md_title_type_map[t]["is_new"]
     return False
+
+
+def masked_for(player: Player) -> bool:
+    """这次请求该不该按 player.mask 打码。
+
+    用户本人（cookie / import_token）看自己的数据不打码，第三方应用代看则要。
+    否则从 /dev/player/records 迁到 OAuth 的 bot 会突然拿到比以前更多的东西
+    ——那和「这是一次权限收紧」的说法正好相反。
+    """
+    if getattr(g, "login_type", None) != 'oauth':
+        return False
+    return bool(player.mask)
+
+
+def music_ids_of(obj: Dict) -> List[str]:
+    """请求体里的 music_id，可以是单个值也可以是列表。"""
+    music_ids = []
+    if isinstance(obj.get('music_id'), (str, int)):
+        music_ids.append(str(obj['music_id']))
+    else:
+        try:
+            for elem in obj['music_id']:
+                music_ids.append(str(elem))
+        except Exception:
+            pass
+    return list(filter(lambda elem: elem in md_map, music_ids))
+
+
+async def records_of(player: Player, music_ids: List[str] = None):
+    sql = ('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, '
+           'chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, '
+           'music.id as `id`, music.is_new as is_new, music.title as title '
+           'from newrecord, chart, music where player_id = %s')
+    args = [player.id]
+    if music_ids is not None:
+        sql += f' and music.id in ({",".join(["%s"] * len(music_ids))})'
+        args += music_ids
+    sql += ' and chart_id = chart.id and chart.music_id = music.id'
+    return await NewRecord.raw(sql, *args).aio_execute()
 
 
 @app.route("/player/agreement", methods=['GET', 'POST'])
@@ -184,17 +223,17 @@ async def get_music_data():
 
 
 @app.route("/player/records", methods=['GET'])
-@login_or_token_required
+@oauth_or_login_required("prober.records.read")
 async def get_records():
     """
     *需要登录
     获取用户的成绩信息。
     """
-    r = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', g.user.id).aio_execute()
+    r = await records_of(g.user)
     await compute_ra(g.user)
     records = []
     for record in r:
-        elem = record_json(record, False)
+        elem = record_json(record, masked_for(g.user))
         records.append(elem)
     return {
         "username": g.username,
@@ -203,6 +242,43 @@ async def get_records():
         "nickname": g.user.nickname,
         "plate": g.user.plate,
         "records": records
+    }
+
+
+@app.route("/player/record", methods=['POST'])
+@oauth_or_login_required("prober.records.read")
+async def get_record():
+    """
+    *需要登录
+    获取用户的单曲成绩信息。
+    请求体为 JSON，参数需包含 `music_id` (可以为单个值或列表）。
+
+    这是 /dev/player/record 的 OAuth 版本：查谁由令牌决定，不接受 qq / username。
+    """
+    obj = await request.json
+    music_ids = music_ids_of(obj)
+    if not music_ids:
+        return {}
+    r = await records_of(g.user, music_ids)
+    records = defaultdict(lambda: [])
+    for record in r:
+        records[record.id].append(record_json(record, masked_for(g.user)))
+    return records
+
+
+@app.route("/player/plate", methods=['POST'])
+@oauth_or_login_required("prober.records.read")
+async def get_plate():
+    """
+    *需要登录
+    获取用户的牌子信息。请求体为 JSON，参数需包含 `version`。
+
+    这是 /query/plate 的 OAuth 版本：查谁由令牌决定，不接受 qq / username。
+    """
+    obj = await request.json
+    vl = await getplatelist(g.user, obj["version"])
+    return {
+        "verlist": [platerecord_json(c, masked_for(g.user)) for c in vl]
     }
 
 
@@ -246,7 +322,7 @@ async def dev_get_records():
         return {"message": "no such user"}, 400
     if player.privacy or not player.accept_agreement:
         return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
-    r = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id).aio_execute()
+    r = await records_of(player)
     await compute_ra(player)
     records = []
     for record in r:
@@ -281,21 +357,9 @@ async def dev_get_record():
         
     if p.privacy or not p.accept_agreement:
         return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
-    music_ids = []
-    if isinstance(obj['music_id'], str):
-        music_ids.append(obj['music_id'])
-    else:
-        try:
-            for elem in obj['music_id']:
-                music_ids.append(str(elem))
-        except Exception:
-            pass
+    music_ids = music_ids_of(obj)
 
-    music_ids = list(filter(lambda elem: elem in md_map, music_ids))
-
-    query_str = f'({",".join(["%s"] * len(music_ids))})'
-    
-    r = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and music.id in ' + query_str + ' and chart_id = chart.id and chart.music_id = music.id', p.id, *music_ids).aio_execute()
+    r = await records_of(p, music_ids)
     records = defaultdict(lambda: [])
     for record in r:
         elem = record_json(record, p.mask)
@@ -443,7 +507,7 @@ async def compute_ra(player: Player):
 
 
 @app.route("/player/update_records", methods=['POST'])
-@login_or_token_required
+@oauth_or_login_required("prober.records.write")
 async def update_records():
     """
     *需要登录
@@ -503,29 +567,33 @@ async def update_records():
 
 
 @app.route("/player/update_records_html", methods=['POST'])
-@login_or_token_required
+@oauth_or_login_required("prober.records.write")
 async def update_records_html():
     """
     *需要登录
     通过 html 格式的数据更新您的舞萌 DX 查分器数据。
     """
-    try:
-        token = decode(request.cookies['jwt_token'])
-        if token == {}:
-            return {"status": "error", "message": "尚未登录"}, 403
-        if token['exp'] < ts():
-            return {"status": "error", "message": "会话过期"}, 403
-    except KeyError:
-        username = request.headers.get("username", default="")
-        password = request.headers.get("password", default="")
+    # 装饰器已经认过身份了，这一段是给「拿用户名密码头调这个接口」的老客户端
+    # （page-parser、代理规则）留的第二条路。Bearer 认证的请求必须绕开它：
+    # 它带的是令牌而不是 cookie，走进去只会因为「没有 cookie」被判未登录。
+    if getattr(g, "login_type", None) != 'oauth':
         try:
-            if username != "":
-                g.user: Player = await Player.aio_get(Player.username == username)
-                g.username = username
-                if md5(password + g.user.salt) != g.user.password:
-                    raise Exception()
-        except Exception:
-            return {"status": "error", "message": "尚未登录或密码错误"}, 403
+            token = decode(request.cookies['jwt_token'])
+            if token == {}:
+                return {"status": "error", "message": "尚未登录"}, 403
+            if token['exp'] < ts():
+                return {"status": "error", "message": "会话过期"}, 403
+        except KeyError:
+            username = request.headers.get("username", default="")
+            password = request.headers.get("password", default="")
+            try:
+                if username != "":
+                    g.user: Player = await Player.aio_get(Player.username == username)
+                    g.username = username
+                    if md5(password + g.user.salt) != g.user.password:
+                        raise Exception()
+            except Exception:
+                return {"status": "error", "message": "尚未登录或密码错误"}, 403
 
     raw_data = await request.get_data()
     dicts = {}
@@ -584,7 +652,7 @@ async def update_records_html():
 
 
 @app.route("/player/update_record", methods=['POST'])
-@login_or_token_required
+@oauth_or_login_required("prober.records.write")
 async def update_record():
     """
     *需要登录
@@ -618,7 +686,7 @@ async def update_record():
 
 
 @app.route("/player/delete_records", methods=['DELETE'])
-@login_or_token_required
+@oauth_or_login_required("prober.records.write")
 async def delete_records():
     """
     *需要登录

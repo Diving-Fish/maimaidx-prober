@@ -10,7 +10,7 @@ import time
 from audioop import reverse
 from collections import defaultdict
 from math import floor
-from app import app, developer_required, login_required, login_or_token_required, md5
+from app import app, developer_required, login_required, login_or_token_required, oauth_or_login_required, md5
 from quart import Quart, request, g, make_response
 from models.maimai import NewRecord
 from tools._jwt import *
@@ -52,7 +52,7 @@ async def get_music_data_chuni():
 
 
 @app.route("/chuni/player/update_records_html", methods=['POST'])
-@login_or_token_required
+@oauth_or_login_required("chunithm.records.write")
 async def update_records_chuni():
     """
     *需要登录
@@ -140,7 +140,7 @@ async def update_records_chuni():
     }
 
 @app.route("/chuni/player/delete_records", methods=['DELETE'])
-@login_or_token_required
+@oauth_or_login_required("chunithm.records.write")
 async def delete_records_chuni():
     """
     *需要登录
@@ -235,7 +235,7 @@ async def _latest_version():
     
 
 @app.route("/chuni/player/records")
-@login_or_token_required
+@oauth_or_login_required("chunithm.records.read")
 async def player_records_chuni():
     """
     *需要登录

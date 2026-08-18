@@ -6,6 +6,12 @@ toc_max_heading_level: 5
 
 # 查分器 API 文档
 
+:::warning
+`Developer-Token` 已停止签发，其对应的 `/dev/*` 、 `/query/plate` 、 `/channel_to_qq` 端点已进入废弃状态，将在过渡期结束后停止服务。第三方应用请改用水鱼账号 OAuth 授权，详见 [从 Developer-Token 迁移到水鱼账号 OAuth](./oauth-migration.md)。
+
+新接入的开发者请直接参考 [水鱼账号 OAuth 快速开始](./oauth-quickstart.md) 与 [OAuth 接口文档](./oauth-api-document.md)。
+:::
+
 ## 1. API端点
 
 所有向 diving-fish 数据库发起的请求应当被发送到以下 URL ：
@@ -33,27 +39,29 @@ https://www.diving-fish.com/api/maimaidxprober/player/profile
 | `maimaidxprober` | [`/player/profile`](#312-获取--更新用户资料) | 登录验证 | 获取 / 更新用户资料 |
 | `maimaidxprober` | [`/player/import_token`](#313-生成一个新的-import-token-并覆盖旧-token) | 登录验证 | 生成一个新的 `Import-Token` ，并覆盖旧 Token |
 | `maimaidxprober` | [`/music_data`](#314-获取-maimai-的歌曲数据) | 无需验证 | 获取 maimai 的歌曲数据 |
-| `maimaidxprober` | [`/player/records`](#315-获取用户的完整成绩信息) | 登录验证 / Import-Token | 获取用户的完整成绩信息 |
+| `maimaidxprober` | [`/player/records`](#315-获取用户的完整成绩信息) | 登录验证 / Import-Token / Bearer | 获取用户的完整成绩信息 |
 | `maimaidxprober` | [`/player/test_data`](#315-获取用户的完整成绩信息) | 无需验证 | 获取用于测试的完整成绩信息 |
-| `maimaidxprober` | [`/dev/player/records`](#315-获取用户的完整成绩信息) | Developer-Token | 获取用户的完整成绩信息 |
-| `maimaidxprober` | [`/dev/player/record`](#316-获取用户的单曲成绩信息) | Developer-Token | 获取用户的单曲成绩信息 |
+| `maimaidxprober` | [`/dev/player/records`](#315-获取用户的完整成绩信息) | Developer-Token **（已废弃）** | 获取用户的完整成绩信息 |
+| `maimaidxprober` | [`/dev/player/record`](#316-获取用户的单曲成绩信息) | Developer-Token **（已废弃）** | 获取用户的单曲成绩信息 |
+| `maimaidxprober` | [`/player/record`](#316-获取用户的单曲成绩信息) | Bearer | 获取用户的单曲成绩信息 |
 | `maimaidxprober` | [`/query/player`](#317-获取用户的简略成绩信息) | 无需验证 | 获取用户的简略成绩信息 |
-| `maimaidxprober` | [`/query_plate`](#318-按版本获取用户的成绩信息) | Developer-Token | 按版本获取用户的成绩信息 |
+| `maimaidxprober` | [`/query/plate`](#318-按版本获取用户的成绩信息) | Developer-Token **（已废弃）** | 按版本获取用户的成绩信息 |
+| `maimaidxprober` | [`/player/plate`](#318-按版本获取用户的成绩信息) | Bearer | 按版本获取用户的成绩信息 |
 | `maimaidxprober` | [`*/covers`](#319-按-id-获取歌曲的封面图片) | 无需验证 | 按 ID 获取歌曲的封面图片 |
 | `maimaidxprober` | [`/rating_ranking`](#3110-获取公开的-用户-rating-完整数据) | 无需验证 | 获取公开的 用户-rating 完整数据 |
-| `maimaidxprober` | [`/player/update_records`](#3111-更新用户的成绩信息) | 登录验证 / Import-Token | 更新用户的成绩信息 |
+| `maimaidxprober` | [`/player/update_records`](#3111-更新用户的成绩信息) | 登录验证 / Import-Token / Bearer | 更新用户的成绩信息 |
 | `maimaidxprober` | [`/player/update_records_html`](#3112-通过-html-格式的数据更新用户的成绩信息) | 登录验证 |  通过 html 格式的数据更新用户的成绩信息 |
-| `maimaidxprober` | [`/player/update_record`](#3113-更新用户的单曲成绩) | 登录验证 / Import-Token | 更新用户的单曲成绩 |
-| `maimaidxprober` | [`/player/delete_records`](#3114-清除用户的所有-maimai-成绩信息) | 登录验证 / Import-Token | 清除用户的所有 maimai 成绩信息 |
+| `maimaidxprober` | [`/player/update_record`](#3113-更新用户的单曲成绩) | 登录验证 / Import-Token / Bearer | 更新用户的单曲成绩 |
+| `maimaidxprober` | [`/player/delete_records`](#3114-清除用户的所有-maimai-成绩信息) | 登录验证 / Import-Token / Bearer | 清除用户的所有 maimai 成绩信息 |
 | `maimaidxprober` | [`/chart_stats`](#3115-返回谱面的拟合难度等数据) | 无需验证 | 返回谱面的拟合难度等数据 |
 | `chunithmprober` | [`/music_data`](#321-获取-chunithm-的歌曲数据) | 无需验证 | 获取 CHUNITHM 的歌曲数据 |
 | `chunithmprober` | [`/latest_version`](#322-获取当前新歌版本标识) | 无需验证 | 获取当前版本作为“新曲”的版本标识 |
-| `chunithmprober` | [`/player/records`](#323-获取用户的完整成绩数据) | 登录验证 / Import-Token | 获取用户的成绩数据（best 部分） |
+| `chunithmprober` | [`/player/records`](#323-获取用户的完整成绩数据) | 登录验证 / Import-Token / Bearer | 获取用户的成绩数据（best 部分） |
 | `chunithmprober` | [`/player/test_data`](#324-获取用于测试的成绩数据) | 无需验证 | 获取用于测试与联调的成绩数据 |
 | `chunithmprober` | [`/query/player`](#327-查询用户的简略成绩信息) | 无需验证 | 获取用户的简略成绩信息（b30+n20） |
-| `chunithmprober` | [`/player/update_records_html`](#325-通过-html-格式的数据更新chunithm-成绩) | 登录验证 / Import-Token | 通过 HTML 源码导入成绩 |
-| `chunithmprober` | [`/player/delete_records`](#326-删除用户的-chunithm-成绩数据) | 登录验证 / Import-Token | 删除用户的 CHUNITHM 成绩数据 |
-| `chunithmprober` | [`/dev/player/records`](#323-获取用户的完整成绩数据) | Developer-Token | 获取指定用户的成绩数据 |
+| `chunithmprober` | [`/player/update_records_html`](#325-通过-html-格式的数据更新chunithm-成绩) | 登录验证 / Import-Token / Bearer | 通过 HTML 源码导入成绩 |
+| `chunithmprober` | [`/player/delete_records`](#326-删除用户的-chunithm-成绩数据) | 登录验证 / Import-Token / Bearer | 删除用户的 CHUNITHM 成绩数据 |
+| `chunithmprober` | [`/dev/player/records`](#323-获取用户的完整成绩数据) | Developer-Token **（已废弃）** | 获取指定用户的成绩数据 |
 | `public` | [`/login`](#24-登录验证) | 登录验证 | 使用 diving-fish 账号登录 |
 | `public` | [`/count_view`](#332-获取查分器主页的views次数) | 无需验证 | 获取查分器主页的views次数 |
 | `public` | [`/alive_check`](#333-验证服务器状态) | 无需验证 | 验证服务器状态 |
@@ -106,9 +114,17 @@ headers = {
 
 此类验证方式提供了额外的用户成绩获取的方法，当您缺少 `Developer-Token` 或有其他需要时，可以要求用户生成 `Import-Token` 并提供给您。
 
-### 2.3 Developer-Token验证要求
+### 2.3 Developer-Token验证要求（已废弃）
 
-部分端点访问要求 `Developer-Token` ，需要在查分器官网 [https://www.diving-fish.com/maimaidx/prober/](https://www.diving-fish.com/maimaidx/prober/) 申请获得。您可以在登录个人账号后在 `编辑个人资料` - `需要查分器中的玩家数据用于其他应用程序开发？请点击这里~` 中找到相关界面。
+:::danger
+**该验证方式已废弃，且已停止签发新的 `Developer-Token` 。**
+
+已签发的 Token 在过渡期内继续可用，过渡期结束后将停止服务，届时会通过您登记的联系方式另行通知。请参考 [从 Developer-Token 迁移到水鱼账号 OAuth](./oauth-migration.md) 完成迁移，其替代方式为 [2.5 Bearer 令牌验证要求](#25-bearer-令牌验证要求)。
+
+存量的调用关系已被补齐为授权记录：过去 90 天内您通过 `Developer-Token` 实际查询过的用户，不需要重新授权。
+:::
+
+部分端点访问要求 `Developer-Token` 。此前需要在查分器官网 [https://www.diving-fish.com/maimaidx/prober/](https://www.diving-fish.com/maimaidx/prober/) 申请获得，入口位于登录个人账号后的 `编辑个人资料` - `需要查分器中的玩家数据用于其他应用程序开发？请点击这里~` 。该入口现已改为指向水鱼账号的 [开发者控制台](https://auth.diving-fish.com/console)。
 
 通过该验证方式，您可以获取如下信息：
 
@@ -143,9 +159,9 @@ headers = {
 
 ### 2.4 登录验证
 
-使用 diving-fish 用户名和密码进行登录会提供给操作者极高程度的权限，包括获取和修改几乎所有个人信息和成绩。如果您的项目功能围绕查分开展， `Developer-Token` 已经为您提供了实现现行所有主流查分工具通用功能的途径。
+使用 diving-fish 用户名和密码进行登录会提供给操作者极高程度的权限，包括获取和修改几乎所有个人信息和成绩。如果您的项目功能围绕查分开展， [Bearer 令牌](#25-bearer-令牌验证要求) 已经为您提供了实现现行所有主流查分工具通用功能的途径。
 
-如果您只是需要开发一个查询用户b50和简略信息的工具，无需任何验证方式即可满足您的需求；如果您需要获取用户完整的乐曲成绩，请向水鱼申请 `Developer-Token` ；如果您确实有相关需求，且希望将该验证设计到 bot 中，请务必提示用户关于提供用户名和密码的安全性问题，并且着重**提醒用户不要在公共群聊和频道里提供用户名和密码**；如果一定要存储密码，请务必**避免明文存储**。一切数据泄露所带来的风险与后果需要您自行承担。
+如果您只是需要开发一个查询用户b50和简略信息的工具，无需任何验证方式即可满足您的需求；如果您需要获取用户完整的乐曲成绩，请在 [开发者控制台](https://auth.diving-fish.com/console) 登记应用并改用 [Bearer 令牌](#25-bearer-令牌验证要求)；如果您确实有相关需求，且希望将该验证设计到 bot 中，请务必提示用户关于提供用户名和密码的安全性问题，并且着重**提醒用户不要在公共群聊和频道里提供用户名和密码**；如果一定要存储密码，请务必**避免明文存储**。一切数据泄露所带来的风险与后果需要您自行承担。
 
 请在确保您已经完整了解并理解以上信息的前提下继续进行阅读。
 
@@ -244,6 +260,43 @@ print(response)
 登录成功
 {'accept_agreement': True}
 ```
+
+---
+
+### 2.5 Bearer 令牌验证要求
+
+该验证方式面向第三方应用，是 [Developer-Token](#23-developer-token验证要求已废弃) 的替代方案，也是目前唯一开放申请的第三方数据访问方式。
+
+与 `Developer-Token` 最本质的区别在于：**查询对象由令牌本身决定，请求中不再接受 `qq` 与 `username` 参数**。每一位用户都需要主动授权您的应用，并可以随时撤销。
+
+要使用该验证方式，您需要：
+
+1. 用您的水鱼账号在 [开发者控制台](https://auth.diving-fish.com/console) 登记一个应用，取得 `client_id` 与 `client_secret` ；
+2. 引导用户完成一次授权；
+3. 向水鱼账号授权服务器换取一张代表该用户的 access token 。
+
+完整流程与示例代码见 [水鱼账号 OAuth 快速开始](./oauth-quickstart.md)。
+
+取得令牌后，在 `headers` 中添加 `Authorization` 信息进行验证，例如：
+
+```python
+headers = {
+    "Authorization": "Bearer your_access_token_here",
+}
+```
+
+访问某个端点时，令牌中还必须包含该端点所要求的 scope 。各端点所需的 scope 见 [OAuth 接口文档第 9 节](./oauth-api-document.md#9-查分器端点)。
+
+该验证方式会修饰其作用的端点，验证失败时会根据不同情况返回错误信息：
+
+| **状态码** | **响应体** | **含义** |
+|-----|-----|-----|
+| `401` | `{"status": "error", "message": "<验签失败的原因>"}` | 令牌无效或已过期，请重新换取 |
+| `403` | `{"status": "error", "message": "access token 缺少权限：..."}` | 令牌中缺少该端点所需的 scope |
+| `403` | `{"status": "error", "message": "该用户未同意用户协议"}` | 该用户未同意查分器的用户协议 |
+| `429` | `{"status": "error", "message": "已超出今日请求上限"}` | 已超出调用配额 |
+
+调用配额按自然日（UTC）计算，详见 [OAuth 接口文档第 10 节](./oauth-api-document.md#10-配额与限流)。
 
 ---
 
@@ -523,14 +576,20 @@ class ProberAPIClient:
 
 | **端点路径** | **权限要求** |  **请求方法** |
 |-----|-----|-----|
-| `/player/records` | [登录验证](#24-登录验证) / [Import-Token](#22-import-token验证要求) | GET |
-| `/dev/player/records` | [Developer-Token](#23-developer-token验证要求) | GET |
+| `/player/records` | [登录验证](#24-登录验证) / [Import-Token](#22-import-token验证要求) / [Bearer](#25-bearer-令牌验证要求) | GET |
+| `/dev/player/records` | [Developer-Token](#23-developer-token验证要求已废弃) | GET |
 
 根据您采用的验证方式选择对应的端点。
+
+:::warning
+`/dev/player/records` 已废弃。第三方应用请改用 `/player/records` 并携带 Bearer 令牌，所需 scope 为 `prober.records.read` ，详见 [迁移指南](./oauth-migration.md)。
+:::
 
 需要注意的是，获取完整成绩信息数据量较大，**如果您只是需要用于绘制b50等功能的简略成绩信息**，请参考 [获取用户的简略成绩信息](#317-获取用户的简略成绩信息)
 
 对于 `/player/records` 端点，您需要正确附加所需的验证信息。验证信息本身已经包含了对应用户的凭证，因此服务器会直接返回该用户的完整成绩信息。
+
+对于 `/player/records` 端点携带 Bearer 令牌的情形，请注意**请求中不需要、也不接受 `qq` 与 `username` 参数**，查询对象由令牌决定。
 
 对于 `/dev/player/records` 端点，您除了要附加您的 `Developer-Token` 验证信息外，还需要在 URL 查询参数中附加指定用户的 `username` 或 `qq` 参数，如：
 
@@ -625,12 +684,19 @@ class ProberAPIClient:
 
 | **端点路径** | **权限要求** |  **请求方法** |
 |-----|-----|-----|
-| `/dev/player/record` | [Developer-Token](#23-developer-token验证要求) | POST |
+| `/player/record` | [Bearer](#25-bearer-令牌验证要求) | POST |
+| `/dev/player/record` | [Developer-Token](#23-developer-token验证要求已废弃) | POST |
+
+:::warning
+`/dev/player/record` 已废弃。第三方应用请改用 `/player/record` 并携带 Bearer 令牌，所需 scope 为 `prober.records.read` ，详见 [迁移指南](./oauth-migration.md)。
+:::
 
 附加了 `Developer-Token` 并成功验证之后，您可以获取用户的单曲成绩信息，需要向端点发送 POST 请求，且还需要在请求体中以 JSON 格式附带以下参数：
 
 - `username` 或 `qq`
 - `music_id` （可以为单个值或列表）
+
+对于 `/player/record` 端点，请求体中只需附带 `music_id` ，**不需要也不接受 `username` 与 `qq`** ，查询对象由令牌决定。
 
 如果所请求的用户参数对应用户不存在，服务器会返回以下错误信息：
 
@@ -678,13 +744,18 @@ class ProberAPIClient:
 
 | **端点路径** | **权限要求** |  **请求方法** |
 |-----|-----|-----|
-| `/query/plate` | 无需验证 | POST |
+| `/player/plate` | [Bearer](#25-bearer-令牌验证要求) | POST |
+| `/query/plate` | [Developer-Token](#23-developer-token验证要求已废弃) | POST |
 
-此方法不设验证要求，访问成功与否取决于用户是否同意用户协议或设置隐私。
+:::warning
+`/query/plate` 已废弃。第三方应用请改用 `/player/plate` 并携带 Bearer 令牌，所需 scope 为 `prober.records.read` ，详见 [迁移指南](./oauth-migration.md)。
+:::
+
+对于 `/query/plate` 端点，访问成功与否还取决于用户是否同意用户协议或设置隐私。
 
 要按版本获取用户的成绩信息，需要向端点发送 POST 请求，且还需要以 JSON 格式在请求体中附带以下参数：
 
-- `username` 或 `qq`
+- `username` 或 `qq` （**仅 `/query/plate` 需要**。 `/player/plate` 的查询对象由令牌决定，不接受这两个参数）
 - `version` （**必须为列表，即使只有一个元素**）
 
 如果所请求的用户参数对应用户不存在，服务器会返回以下错误信息：
@@ -796,7 +867,7 @@ https://www.diving-fish.com/api/maimaidxprober/rating_ranking
 
 | **端点路径** | **权限要求** |  **请求方法** |
 |-----|-----|-----|
-| `/player/update_records` | [登录验证](#24-登录验证) / [Import-Token](#22-import-token验证要求) | POST |
+| `/player/update_records` | [登录验证](#24-登录验证) / [Import-Token](#22-import-token验证要求) / [Bearer](#25-bearer-令牌验证要求) `prober.records.write` | POST |
 
 附加了验证信息并成功验证之后，您可以更新用户的成绩信息。
 
@@ -849,7 +920,7 @@ https://www.diving-fish.com/api/maimaidxprober/rating_ranking
 
 | **端点路径** | **权限要求** |  **请求方法** |
 |-----|-----|-----|
-| `/player/update_records_html` | [登录验证](#24-登录验证) | POST |
+| `/player/update_records_html` | [登录验证](#24-登录验证) / [Bearer](#25-bearer-令牌验证要求) `prober.records.write` | POST |
 
 附加了登录验证信息并成功登录之后，您可以通过 html 格式的数据更新用户的成绩信息。
 
@@ -859,7 +930,7 @@ https://www.diving-fish.com/api/maimaidxprober/rating_ranking
 
 | **端点路径** | **权限要求** |  **请求方法** |
 |-----|-----|-----|
-| `/player/update_record` | [登录验证](#24-登录验证) / [Import-Token](#22-import-token验证要求) | POST |
+| `/player/update_record` | [登录验证](#24-登录验证) / [Import-Token](#22-import-token验证要求) / [Bearer](#25-bearer-令牌验证要求) `prober.records.write` | POST |
 
 附加了验证信息并成功验证之后，您可以更新用户的单曲成绩。
 
@@ -871,7 +942,7 @@ https://www.diving-fish.com/api/maimaidxprober/rating_ranking
 
 | **端点路径** | **权限要求** |  **请求方法** |
 |-----|-----|-----|
-| `/player/delete_records` | [登录验证](#24-登录验证) / [Import-Token](#22-import-token验证要求) | DELETE |
+| `/player/delete_records` | [登录验证](#24-登录验证) / [Import-Token](#22-import-token验证要求) / [Bearer](#25-bearer-令牌验证要求) `prober.records.write` | DELETE |
 
 附加了验证信息并成功验证之后，您可以清除用户的所有 maimai 成绩信息。此时需要向端点发送 DELETE 请求。
 
@@ -1042,10 +1113,14 @@ https://www.diving-fish.com/api/chunithmprober/{端点路径}
 
 | 端点路径 | 权限要求 | 请求方法 |
 |-----|-----|-----|
-| `/player/records` | 登录验证 / Import-Token | GET |
-| `/dev/player/records` | Developer-Token | GET |
+| `/player/records` | 登录验证 / Import-Token / [Bearer](#25-bearer-令牌验证要求) | GET |
+| `/dev/player/records` | [Developer-Token](#23-developer-token验证要求已废弃) | GET |
 
 根据您采用的验证方式选择对应的端点。
+
+:::warning
+`/dev/player/records` 已废弃。第三方应用请改用 `/player/records` 并携带 Bearer 令牌，所需 scope 为 `chunithm.records.read` ，详见 [迁移指南](./oauth-migration.md)。
+:::
 
 需要注意的是，获取完整成绩信息数据量较大，**如果您只是需要用于绘制b50等功能的简略成绩信息**，请参考 [获取用户的简略成绩信息](#327-查询用户的简略成绩信息)
 
@@ -1103,7 +1178,7 @@ https://www.diving-fish.com/api/chunithmprober/{端点路径}
 
 | 端点路径 | 权限要求 | 请求方法 |
 |-----|-----|-----|
-| `/player/update_records_html` | 登录验证 / Import-Token | POST |
+| `/player/update_records_html` | 登录验证 / Import-Token / [Bearer](#25-bearer-令牌验证要求) `chunithm.records.write` | POST |
 
 将 CHUNITHM 官方页面的 HTML 源码作为请求体上传，由服务器解析并导入成绩。
 
@@ -1120,7 +1195,7 @@ https://www.diving-fish.com/api/chunithmprober/{端点路径}
 
 | 端点路径 | 权限要求 | 请求方法 |
 |-----|-----|-----|
-| `/player/delete_records` | 登录验证 / Import-Token | DELETE |
+| `/player/delete_records` | 登录验证 / Import-Token / [Bearer](#25-bearer-令牌验证要求) `chunithm.records.write` | DELETE |
 
 删除当前用户的全部 CHUNITHM 成绩（包括 best 与 recent）。返回删除条数：
 

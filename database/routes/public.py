@@ -217,9 +217,30 @@ async def token_available():
     except Exception:
         return {"message": "non-exist"}, 404
 
+#: 新的开发者接入入口。申请的不再是「一个能查全库的 token」，而是一个应用：
+#: 填名称、描述、需要的权限，用户逐个授权，可随时撤销。
+#: 指向控制台而不是文档站——这条消息是「你刚才想申请的东西在哪」的回答，
+#: 落到能直接动手的那一页才有用。接入说明见 doc/docs/developer/oauth-quickstart.md
+APPLICATION_DOC_URL = "https://auth.diving-fish.com/console"
+
+
 @app.route('/developer_token', methods=['GET', 'POST', 'PUT'])
 @login_required
 async def developer_token():
+    # **停止签发新的开发者 token。** GET 保留——存量开发者要能继续看到
+    # 自己手上那些 token 的状态和额度，把它一起关掉只会让人一头雾水；
+    # 而 POST/PUT（申请、改额度）指向新的应用申请入口。
+    #
+    # 为什么必须停：一个 developer token 能按 QQ 号读全库任意用户的成绩，
+    # 用户从未对某个 bot 做过授权，也无从撤销。新模型下第三方拿到的是
+    # 「某个用户授权我读他的成绩」，范围只减不增。
+    if request.method in ('POST', 'PUT'):
+        return {
+            "message": "开发者 token 已停止申请，请改为申请「应用」："
+                       f"{APPLICATION_DOC_URL}",
+            "migration": APPLICATION_DOC_URL,
+        }, 410
+
     if request.method == 'GET': # get all tokens of this account
         res = []
         for developer in await NewDeveloper.select().where(NewDeveloper.player == g.user).aio_execute():
