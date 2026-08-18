@@ -496,11 +496,14 @@ async def query_plate():
 async def compute_ra(player: Player):
     rating = 0
     sd, dx = await get_dx_and_sd_for50(player)
-    for t in sd:
-        rating += int(t.ra)
     for t in dx:
         rating += int(t.ra)
+    player.maimai_new_rating = rating
+    for t in sd:
+        rating += int(t.ra)
     player.rating = rating
+    player.maimai_legacy_count = len(sd)
+    player.maimai_new_count = len(dx)
     player.access_time = time.time()
     await player.aio_save()
     return rating

@@ -218,9 +218,10 @@ async def get_b50(player: Player):
 async def compute_ra(player: Player):
     old30, new20 = await get_b50(player)
     total = 0.0
-    for record in old30:
-        total += single_ra(record)
     for record in new20:
+        total += single_ra(record)
+    player.chuni_new_rating = total / 50
+    for record in old30:
         total += single_ra(record)
     rating = total / 50
     player.chuni_rating = rating
