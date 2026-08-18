@@ -699,7 +699,7 @@ class ProberAPIClient:
 - **数值字段**支持严格相等与区间。`ds=14` 表示定数恰好为 14 ；`ds=13..14` 为闭区间；`ds=14..` 只有下界；`ds=..13.9` 只有上界。
 - **字符串字段**为完全匹配，忽略大小写。`fc=`（空值）匹配非 FC 的成绩。
 - **布尔字段**接受 `1` / `0` / `true` / `false`。
-- **`plate`** 按牌子圈定曲目范围，代号与全名都可以：`plate=真`、`plate=鏡極`、`plate=舞舞舞`、`plate=霸者`。其中 `真` 包含 maimai 与 maimai PLUS 两个版本，`舞` 与 `霸者` 包含旧框（maimai 无印 ~ maimai FiNALE）的全部版本。**它只圈定曲目范围，不判断是否达成牌子条件**，语义与 [`/query/plate`](#318-按版本获取用户的成绩信息) 一致。
+- **`plate`** 按牌子圈定曲目范围，代号与全名都可以：`plate=真`、`plate=鏡極`、`plate=舞舞舞`、`plate=霸者`。牌子全名的后缀（`極` / `将` / `舞舞` / `神` / `霸者`）只决定达成条件、不影响曲目范围，会被直接忽略，因此 `plate=鏡` 与 `plate=鏡極`、`plate=鏡将` 等价。代号与版本的对应关系见下方的 [牌子代号与版本对照](#牌子代号与版本对照)。**它只圈定曲目范围，不判断是否达成牌子条件**，语义与 [`/query/plate`](#318-按版本获取用户的成绩信息) 一致。
 - **多值**用逗号分隔或重复参数，两者等价：`fc=fc,fcp` 与 `fc=fc&fc=fcp` 相同。值本身含逗号时（曲名、曲师、谱师）请使用重复参数形式。
 - 不同字段之间取**交集**，同一字段的多个值取**并集**。
 
@@ -713,8 +713,43 @@ GET /player/records?level_index=3&ds=13.5..&fc=fc,fcp,ap,app
 
 - 值中的特殊字符需要按 URL 规则百分号编码，尤其是 `+`（应写作 `%2B`，如 `level=13%2B`）与空格（`%20`）。
 - 服务器认不出的查询参数会被**忽略**，因此参数名写错不会报错，只会得到未经过滤的结果。实际生效的条件会在返回体的 `filters` 字段中回显，建议据此自查；未使用任何过滤参数时不会出现该字段。
-- 认得的字段值解析失败会返回 400，形如 `{"message": "参数 ds 的值 \"abc\" 不是数字"}`。
+- 认得的字段值解析失败会返回 400，形如 `{"message": "参数 ds 的值 \"abc\" 不是数字"}`；`plate` 的值不是已知牌子时同样返回 400 ，形如 `{"message": "参数 plate 的值 \"不存在的牌子\" 不是已知的牌子"}`。
 - 对开启了「掩码」的用户，过滤基于**掩码后**的成绩值进行，与返回体中的数值保持一致。
+
+###### 牌子代号与版本对照
+
+`plate` 的取值会被翻译成一组 `version` 条件，两者的对应关系如下（`version` 即歌曲数据中 `basic_info.from` 的值）：
+
+| **牌子代号** | **对应版本** |
+|-----|-----|
+| `真` | maimai 、maimai PLUS |
+| `超` | maimai GreeN |
+| `檄` | maimai GreeN PLUS |
+| `橙` | maimai ORANGE |
+| `暁` | maimai ORANGE PLUS |
+| `桃` | maimai PiNK |
+| `櫻` | maimai PiNK PLUS |
+| `紫` | maimai MURASAKi |
+| `菫` | maimai MURASAKi PLUS |
+| `白` | maimai MiLK |
+| `雪` | MiLK PLUS |
+| `輝` | maimai FiNALE |
+| `舞` 、`霸者` | 旧框全部版本：maimai 、maimai PLUS 、maimai GreeN 、maimai GreeN PLUS 、maimai ORANGE 、maimai ORANGE PLUS 、maimai PiNK 、maimai PiNK PLUS 、maimai MURASAKi 、maimai MURASAKi PLUS 、maimai MiLK 、MiLK PLUS 、maimai FiNALE 、ALL FiNALE |
+| `熊` | maimai でらっくす |
+| `華` | maimai でらっくす PLUS |
+| `爽` | maimai でらっくす Splash |
+| `煌` | maimai でらっくす Splash PLUS |
+| `宙` | maimai でらっくす UNiVERSE |
+| `星` | maimai でらっくす UNiVERSE PLUS |
+| `祭` | maimai でらっくす FESTiVAL |
+| `祝` | maimai でらっくす FESTiVAL PLUS |
+| `双` | maimai でらっくす BUDDiES |
+| `宴` | maimai でらっくす BUDDiES PLUS |
+| `鏡` | maimai でらっくす PRiSM |
+
+两处与「一个代号对应一个版本」的直觉不同：旧框有 13 个版本却只有 12 块版本牌子，`真` 同时包含 maimai 无印与 maimai PLUS ；`舞` 与 `霸者` 要求打通整个旧框，因此涵盖旧框全部版本。
+
+需要按单个版本筛选时也可以直接用 `version` 参数，例如 `?version=maimai%20でらっくす%20PRiSM` ，其效果与 `?plate=鏡` 相同。
 
 #### 3.1.6 获取用户的单曲成绩信息
 
@@ -1215,11 +1250,15 @@ https://www.diving-fish.com/api/chunithmprober/{端点路径}
 | 数值 | `song_id`（别名 `id` / `mid` / `music_id`）、`cid`、`level_index`（别名 `difficulty`）、`ds`、`bpm`、`combo`、`score`、`ra` |
 | 字符串 | `title`、`artist`、`genre`、`charter`、`version`、`level`、`level_label`、`fc` |
 
+其中 `artist`、`genre`、`bpm`、`version`（即歌曲数据中的 `basic_info.from`）、`charter`、`combo` 只能用于过滤，不会出现在返回体中。CHUNITHM 没有 maimai 的 `plate` 与 `is_new` 参数。
+
 例如，查询 Master 难度、定数 14 及以上、已经 FC 或 AJ 的成绩：
 
 ```plaintext
 GET /player/records?level_index=3&ds=14..&fc=fullcombo,alljustice
 ```
+
+`fc=`（空值）匹配非 FC 的成绩，例如 `?fc=` 可以筛出尚未 FC 的谱面。
 
 实际生效的条件会在返回体的 `filters` 字段中回显；认不出的查询参数会被忽略，认得的字段值解析失败则返回 400。
 
@@ -1322,7 +1361,7 @@ GET /player/records?level_index=3&ds=14..&fc=fullcombo,alljustice
 | `title` | `string` | 见上 | 歌曲标题 |
 | `level_index` | `number` | 见上 | 难度索引，0 到 5 对应 Basic 到 World's End |
 | `score` | `number` | 是 | 成绩，会被夹到 0 ~ 1010000 |
-| `fc` | `string` | 否 | `fullcombo` / `alljustice` / `fullchain` / `fullchain2` ，也接受 `fc` 与 `aj` 两种简写；认不出的值按空处理 |
+| `fc` | `string` | 否 | `fullcombo` / `alljustice` / `fullchain` / `fullchain2` ，另接受 `fc` 、`aj` 、`full combo` 、`all justice` 几种写法，大小写不敏感；认不出的值按空（非 FC）处理 |
 
 查询参数：
 
@@ -1337,7 +1376,9 @@ GET /player/records?level_index=3&ds=14..&fc=fullcombo,alljustice
 注意事项：
 
 - 定位不到谱面、缺少 `score` 或结构不合法的条目会被**静默跳过**，不影响其余条目写入。可以对比 `updates` 与 `creates` 之和与您上传的条目数来发现被跳过的记录。
-- 请求体既不是数组、也不是可识别的成绩返回体时，返回 400 `{"message": "导入数据格式有误"}`。
+- 同一谱面在同一次请求中出现多次时，以**最后一条**为准。
+- 请求体既不是数组、也不是可识别的成绩返回体时，返回 400 `{"message": "导入数据格式有误"}`。可识别的成绩返回体指 `{"records": {"best": [...]}}` 与 `{"best": [...]}` 两种结构。
+- 空数组是合法请求，返回 `{"message": "更新成功", "updates": 0, "creates": 0}` ，不会改动任何成绩——带 `?recent=1` 时也**不会**清空原有的 recent 记录。若要清空成绩请使用 [3.2.6 删除用户的 CHUNITHM 成绩数据](#326-删除用户的-chunithm-成绩数据)。
 - 上传完成后服务器会重新计算该用户的 rating 。
 
 
