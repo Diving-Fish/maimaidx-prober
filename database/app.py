@@ -1,5 +1,6 @@
 from ast import arg
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from email.utils import formatdate
 from functools import wraps
 import hashlib
 from quart import *
@@ -51,6 +52,31 @@ oauth_rs.init(
     _idp_conf.get("issuer") or "",
     _idp_conf.get("resource") or "https://www.diving-fish.com/api/maimaidxprober",
 )
+
+#: 开发者 token 的全局日落时刻：2026-10-01 00:00 (UTC+8)。到这一刻为止
+#: developer_required 的接口照常工作，之后一律 410。
+#:
+#: 写成带时区的字面量而不是 datetime(2026, 10, 1)：对外公告的是北京时间的
+#: 10 月 1 日零点，这台机器现在恰好是 CST，但服务器时区是运维配置，不该由它
+#: 决定几百个第三方服务在哪一秒停摆。
+DEVELOPER_TOKEN_SUNSET_TS = int(
+    datetime(2026, 10, 1, tzinfo=timezone(timedelta(hours=8))).timestamp())
+
+#: 新的开发者接入入口。申请的不再是「一个能查全库的 token」，而是一个应用：
+#: 填名称、描述、需要的权限，用户逐个授权，可随时撤销。
+#: 指向控制台而不是文档站——这条消息是「你刚才想申请的东西在哪」的回答，
+#: 落到能直接动手的那一页才有用。
+APPLICATION_DOC_URL = "https://auth.diving-fish.com/console"
+
+#: 迁移说明。和上面那条的分工：控制台回答「去哪申请」，这份文档回答
+#: 「我原来的调用怎么改」——被日落挡下来的人要的是后者。
+MIGRATION_DOC_URL = "https://maimai.diving-fish.com/manual/docs/developer/oauth-migration"
+
+
+def developer_token_sunset_ts(dev) -> int:
+    """这个 token 什么时候停。0 表示没单独续期，按全局日落算。"""
+    return getattr(dev, 'sunset_ts', 0) or DEVELOPER_TOKEN_SUNSET_TS
+
 
 # NEW: helper to parse mysql url
 def _parse_mysql_url(url: str):
@@ -421,6 +447,26 @@ async def is_developer(token):
             return False, {"status": "error", "msg": "开发者token有误"}, 400
     if not dev.available:
         return False, {"status": "error", "msg": "开发者token被禁用，请联系水鱼重新登记信息"}, 400
+
+    # **日落。** 到点之后一律拒绝，不看等级也不看配额——留一个「还能读全库、
+    # 只是今天额度没用完」的口子，等于日落没发生。两张表都走这里，老的
+    # Developer 和新的 NewDeveloper 同一天停。
+    #
+    # 410 而不是 403：403 是「你没权限」，客户端库通常会重试或提示用户重新
+    # 登记；410 是「这个东西已经不在了」，正好是这里发生的事，对方的日志里
+    # 也能和「token 被禁用」一眼区分开。
+    sunset_ts = developer_token_sunset_ts(dev)
+    if ts() >= sunset_ts:
+        sunset_text = datetime.fromtimestamp(
+            sunset_ts, timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M (UTC+8)')
+        return False, {
+            "status": "error",
+            "msg": f"开发者 token 已于 {sunset_text} 停止服务，请改用水鱼账号 OAuth："
+                   f"{APPLICATION_DOC_URL}（迁移说明：{MIGRATION_DOC_URL}）",
+            "sunset": sunset_ts,
+            "migration": MIGRATION_DOC_URL,
+        }, 410
+
     return True, dev, 200
 
 
@@ -443,7 +489,17 @@ def developer_required(f):
                 request_args[key] = request.args.get(key)
             request_body = str(await request.body, encoding='utf-8')
             await NewDeveloperLog.aio_create(developer=res[1], function=f.__name__, remote_addr=remote_addr, timestamp=time.time_ns(), request_args=request_args, request_body=request_body)
-        return await f(*args, **kwargs)
+
+        # RFC 8594 的日落声明。挂在**成功**响应上是有意的：需要看到它的正是
+        # 那批还在正常调用、没读过公告也没回过邮件的接入方，日落之后这段不再
+        # 执行，他们收到的是 410。邮件可能发给了一个早就没人看的地址，
+        # 但这几个头一定会到达真正在跑的那台机器上。
+        resp = await make_response(await f(*args, **kwargs))
+        sunset_ts = developer_token_sunset_ts(res[1])
+        resp.headers['Sunset'] = formatdate(sunset_ts, usegmt=True)
+        resp.headers['Deprecation'] = 'true'
+        resp.headers['Link'] = f'<{MIGRATION_DOC_URL}>; rel="sunset"; type="text/html"'
+        return resp
 
     return func
 

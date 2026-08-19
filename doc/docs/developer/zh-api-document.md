@@ -7,7 +7,7 @@ toc_max_heading_level: 5
 # 查分器 API 文档
 
 :::warning
-`Developer-Token` 已停止签发，其对应的 `/dev/*` 、 `/query/plate` 、 `/channel_to_qq` 端点已进入废弃状态，将在过渡期结束后停止服务。第三方应用请改用水鱼账号 OAuth 授权，详见 [从 Developer-Token 迁移到水鱼账号 OAuth](./oauth-migration.md)。
+`Developer-Token` 已停止签发，其对应的 `/dev/*` 、 `/query/plate` 、 `/channel_to_qq` 端点已进入废弃状态，并将于 **2026 年 10 月 1 日 00:00（UTC+8）** 停止服务。第三方应用请改用水鱼账号 OAuth 授权，详见 [从 Developer-Token 迁移到水鱼账号 OAuth](./oauth-migration.md)。
 
 新接入的开发者请直接参考 [水鱼账号 OAuth 快速开始](./oauth-quickstart.md) 与 [OAuth 接口文档](./oauth-api-document.md)。
 :::
@@ -120,7 +120,7 @@ headers = {
 :::danger
 **该验证方式已废弃，且已停止签发新的 `Developer-Token` 。**
 
-已签发的 Token 在过渡期内继续可用，过渡期结束后将停止服务，届时会通过您登记的联系方式另行通知。请参考 [从 Developer-Token 迁移到水鱼账号 OAuth](./oauth-migration.md) 完成迁移，其替代方式为 [2.5 Bearer 令牌验证要求](#25-bearer-令牌验证要求)。
+已签发的 Token 将于 **2026 年 10 月 1 日 00:00（UTC+8）** 停止服务，届时一律返回 `410 Gone` ；在此之前继续可用。请参考 [从 Developer-Token 迁移到水鱼账号 OAuth](./oauth-migration.md) 完成迁移，其替代方式为 [2.5 Bearer 令牌验证要求](#25-bearer-令牌验证要求)。
 
 存量的调用关系已被补齐为授权记录：过去 90 天内您通过 `Developer-Token` 实际查询过的用户，不需要重新授权。
 :::
@@ -366,7 +366,7 @@ https://www.diving-fish.com/api/maimaidxprober/player/profile
 | `mask` | `bool` | 用户是否对非网页查询的成绩使用掩码 |
 | `nickname` | `str` | 用户设置的昵称 |
 | `plate` | `str` | 用户的牌子信息 |
-| `privacy` | `bool` | 用户是否同意其他人查询自己成绩 |
+| `privacy` | `bool` | 为 `true` 时禁止公开接口使用该用户的成绩；不影响该用户已授权的应用通过 OAuth 读取 |
 | `qq_channel_uid` | `str` | 用户绑定的频道 ID |
 | `user_general_data` |-----| 暂无实际作用 |
 | `username` | `str` | 用户账号的用户名 **（不可修改）** |

@@ -7,7 +7,7 @@ toc_max_heading_level: 4
 # 从 Developer-Token 迁移到水鱼账号 OAuth
 
 :::warning
-`Developer-Token` 已停止签发，其对应的 `/dev/player/records` 、 `/dev/player/record` 、 `/query/plate` 、 `/channel_to_qq` 端点已进入废弃状态。请在过渡期内完成本文所述的迁移。过渡期的截止时间将通过您登记的联系方式另行通知。
+`Developer-Token` 已停止签发，其对应的 `/dev/player/records` 、 `/dev/player/record` 、 `/query/plate` 、 `/channel_to_qq` 端点已进入废弃状态，并将于 **2026 年 10 月 1 日 00:00（UTC+8）** 停止服务，届时一律返回 `410 Gone` 。请在该日期之前完成本文所述的迁移。
 :::
 
 ## 1. 变更概述
@@ -98,7 +98,14 @@ GET https://www.diving-fish.com/api/maimaidxprober/dev/player/records?qq=123456
 Developer-Token: your_developer_token_here
 ```
 
-新的调用方式分为两步。第一步，用应用凭据与用户标识换取一张代表该用户的 access token ：
+新的调用方式分为两步。第一步，用应用凭据与用户标识换取一张代表该用户的 access token 。用户标识写作 `ref:` 加上一段摘要，摘要由您原本就在使用的那个标识算出：
+
+```python
+import hashlib
+
+# external_id 就是您原来写在 ?qq= 里的那个值
+subject = "ref:" + hashlib.sha256(f"{CLIENT_ID}:{external_id}".encode()).hexdigest()
+```
 
 ```plaintext
 POST https://auth.diving-fish.com/oauth/token
@@ -107,9 +114,11 @@ Content-Type: application/x-www-form-urlencoded
 grant_type=urn:diving-fish:params:oauth:grant-type:on-behalf-of
 &client_id=your_client_id
 &client_secret=your_client_secret
-&subject=qq:123456
+&subject=ref:9a1b2c3d...
 &scope=prober.records.read
 ```
+
+您的存量用户在迁移时已经按这个公式建好了映射，**不需要重新授权**，但摘要必须与迁移时算出的完全一致，务必先读 [5.1 节](#51-ref您自己生成的映射)。
 
 第二步，携带该令牌请求对应的新端点：
 
@@ -128,16 +137,6 @@ Authorization: Bearer eyJ0eXAiOiJhdCtqd3QiLCJhbGciOiJSUzI1NiIsImtpZCI6...
 
 `/dev/*` 系列端点的替代端点见第 4 节的对照表。**新端点一律不接受 `qq` 与 `username` 参数**——查询对象由令牌决定，这正是新旧两套体系最本质的区别。
 
-### 3.5 逐步改用 ref 形式的用户标识
-
-上面第 3.3 步使用的 `subject=qq:123456` 是为本次迁移开放的过渡写法，它与 `subject=username:your_username` 一并只在过渡期内可用，且仅对迁移过来的应用开放。长期方案是使用您自己的用户标识的摘要：
-
-```plaintext
-subject=ref:<sha256("<client_id>:<您自己的用户标识>")>
-```
-
-两种写法的对比与选择依据见第 5 节。请在过渡期结束前完成切换。
-
 ## 4. 端点对照表
 
 | **游戏数据类别** | **已废弃的端点** | **替代端点** | **所需 scope** |
@@ -152,42 +151,30 @@ subject=ref:<sha256("<client_id>:<您自己的用户标识>")>
 
 替代端点的请求体、响应结构与被替代的端点保持一致，仅去掉了 `qq` 与 `username` 参数。 `/channel_to_qq` 在实际使用中没有任何调用记录，因此不提供替代方案。
 
-## 5. 两种用户标识路径
+## 5. 用户标识 subject
 
-「您的服务如何告诉授权服务器要代哪个用户操作」有两条路径，请根据自身情况选择。
+### 5.0 它到底是什么
 
-### 5.1 过渡期路径：直接使用 QQ 号或用户名
+换票时您要回答一个问题：**这张票代表谁？**
 
-适用于**迁移过来的应用**，且您原本就是按 QQ 号或查分器用户名来定位用户的。这条路径不需要改动您现有的用户标识存储，只需把参数从业务请求挪到换票请求里。
+难点在于，您和查分器对同一个人的称呼不一样。您的 bot 认识的是「QQ 号 123456」，查分器认识的是「用户名 someone」，两边谁也不知道对方在说谁。`subject` 参数就是用来搭这座桥的，桥有两种搭法：
 
-| **原有参数** | **换票时的 subject** |
-|-----|-----|
-| `?qq=123456` | `subject=qq:123456` |
-| `?username=your_username` | `subject=username:your_username` |
+**第一种，您自己搭 —— 这就是 `ref`。** 您把自己那边的用户标识算成一段摘要，当作一个只有您和查分器知道的暗号。用户点击同意授权的那一刻，这个暗号就和他的查分器账号对上了号，记在查分器这边。此后您报暗号，查分器就知道是哪个账号。您那边不需要保存任何新东西，因为暗号是随时能从您原有的标识算出来的。
 
-```plaintext
-POST https://auth.diving-fish.com/oauth/token
+**第二种，用查分器现成的 —— 这就是 `username` 和 `sub`。** 它们本来就是查分器账号自带的标识，映射关系一直都在，不需要您建立。您直接报「用户名 someone」或「用户 ID 12345」，查分器立刻知道是谁。
 
-grant_type=urn:diving-fish:params:oauth:grant-type:on-behalf-of
-&client_id=your_client_id
-&client_secret=your_client_secret
-&subject=username:your_username
-&scope=prober.records.read
-```
+两种搭法都不会让您读到授权范围以外的数据：桥只负责指人，指到之后仍要检查这个人有没有授权过您的应用，没有就是 `consent_required` 。
 
-:::warning
-这两种写法只在过渡期内可用，且仅对迁移过来的应用开放。新登记的应用无法使用。过渡期结束后，服务器将返回：
+| **写法** | **映射关系由谁维护** | **可用性** |
+|-----|-----|-----|
+| `ref:<摘要>` | 您自己生成，用户授权时建立 | 长期，推荐 |
+| `username:<用户名>` | 查分器预留 | 长期 |
+| `sub:<用户 ID>` | 查分器预留 | 长期 |
+| `qq:<QQ 号>` | 查分器预留 | **2026 年 10 月 1 日 00:00（UTC+8）停止工作** |
 
-```json
-{"error": "invalid_request", "error_description": "'subject=qq:' is retired for this client; use ref: or sub:"}
-```
-:::
+### 5.1 ref：您自己生成的映射
 
-请注意，`qq:` 的取值同时会匹配用户绑定的 QQ 号与频道 ID ，这与 `Developer-Token` 时代 `qq` 参数的行为一致。
-
-### 5.2 长期路径：使用 ref 摘要
-
-适用于所有应用，也是新登记应用唯一可用的方式。您把自己那一侧的用户标识（QQ 号、频道 ID 、您自己的用户 ID 均可）与 `client_id` 拼接后取 sha256 ，得到一个只对您的应用有意义的摘要：
+适用于所有应用，也是推荐写法。把您那一侧的用户标识（QQ 号、频道 ID 、您自己的用户 ID 均可）与 `client_id` 拼接后取 sha256 ：
 
 ```python
 import hashlib
@@ -196,18 +183,77 @@ def subject_ref(client_id: str, external_id: str) -> str:
     return hashlib.sha256(f"{client_id}:{external_id}".encode()).hexdigest()
 ```
 
-在引导用户绑定时把这个摘要作为 `subject_ref` 参数一并提交，用户点击同意的那一刻，摘要与其查分器账号的映射即告建立，此后即可用 `subject=ref:<摘要>` 换票。具体流程见 [快速开始](./oauth-quickstart.md#4-方式二设备码绑定--换票)。
+新用户的映射在设备码绑定时建立：发起绑定时把摘要作为 `subject_ref` 参数一并提交，用户点击同意，映射即告建立，此后用 `subject=ref:<摘要>` 换票。具体流程见 [快速开始](./oauth-quickstart.md#4-方式二设备码绑定--换票)。
 
-选择这条路径的理由：
+#### 存量用户的映射已经建好了，但摘要必须算得分毫不差
 
-- QQ 号与频道 ID 共用同一个字段，且用户可以随时改绑或解绑，不适合长期作为定位依据；
-- 查分器用户名虽然不可修改，但它是全站通用的公开标识，不同应用之间可以据此串联出同一个用户；
+:::danger
+**这是本次迁移最容易出错的一步。**
+
+您的存量用户在迁移时已经按上面这个公式建好了映射，他们**不需要重新授权**。但摘要是等值查找，只要有一个字节不同就查不到人，服务器会返回 `consent_required` ——和「这个用户没授权过您」是同一个响应，您无法从错误信息中看出是算错了还是真的没授权。
+
+因此请确认三件事：
+
+1. **算法与拼接方式完全一致**：`sha256("<client_id>:<external_id>")` ，中间是一个半角冒号，取小写十六进制，共 64 位。不要加盐、不要换成别的哈希、不要 base64 。
+2. **`external_id` 用的是当年那个值**：迁移时取的是您调用 `/dev/*` 时在 `qq` 或 `username` 参数中**实际传入的原值**。当年传的是 QQ 号就用 QQ 号，传的是频道 ID 就用频道 ID （它当年混在 `qq` 参数里传入，同样按原值建立），传的是用户名就用用户名。**换成您自己的内部用户 ID 会算出另一个摘要，映射不存在，这些用户就得重新授权一次。**
+3. **`client_id` 用的是这个应用自己的**：摘要里混入了 `client_id` ，用错应用的凭据算出来的摘要同样对不上。
+
+建议先验证再全量切换：任取一个您近期查询过的用户，用其标识算出摘要换一次票。成功即说明映射命中；若返回 `consent_required` ，先检查上面三条，再考虑该用户是否属于未被补齐的三种情形（见 2.1 节）。
+:::
+
+选择这条写法的理由：
+
 - 摘要中混入了 `client_id` ，因此同一个用户在不同应用中的标识互不相同，任一应用的数据泄露都不会暴露该用户在其他应用中的身份；
-- 用户在您的服务中未必以 QQ 号出现，这条路径允许您使用自己的用户体系。
+- 用户在您的服务中未必以 QQ 号出现，这条写法允许您使用自己的用户体系；
+- 它不依赖查分器账号上任何可变的字段，用户改绑 QQ 、改换绑定方式都不影响已建立的映射。
 
-### 5.3 补充路径：使用水鱼用户 ID
+### 5.2 username：查分器预留的用户名
 
-设备码绑定完成后，若您通过轮询取回了令牌，响应中会额外包含一个 `sub` 字段，即该用户的水鱼用户 ID 。愿意自行保存映射关系的应用可以用 `subject=sub:12345` 换票。该写法长期可用。
+**所有应用均可使用，长期有效，无需申请。**
+
+```plaintext
+subject=username:your_username
+```
+
+取值为查分器用户名，映射关系由查分器维护，您不需要事先建立任何东西。
+
+它解决的是 `ref` 覆盖不到的场景：**用户名由第三方在查询时临时给出**。例如群聊中一位用户要求您的 bot 查询另一位用户的成绩，而后者的标识您在绑定阶段从未记录过，因此算不出可命中的摘要。
+
+这种写法不会让您读到授权范围以外的数据。解析出用户之后仍需通过该用户对您的应用的授权检查，未授权者一律返回 `consent_required` ，且与用户不存在的情形无法区分。因此您能够查到的始终是自己的已授权用户集合。
+
+:::info
+被查询的用户是否愿意以这种方式被他人查询，属于您的产品设计范畴。用户授权您的应用，即意味着同意由您的应用使用其成绩数据；若用户不希望如此，正确的做法是不授权，或随时在账号设置中撤销。
+:::
+
+### 5.3 sub：查分器预留的用户 ID
+
+**所有应用均可使用，长期有效。**
+
+```plaintext
+subject=sub:12345
+```
+
+设备码绑定完成后，若您通过轮询取回了令牌，响应中会额外包含一个 `sub` 字段，即该用户的水鱼用户 ID 。愿意自行保存这份对应关系的应用可以用它换票。
+
+### 5.4 qq：过渡期写法，10 月 1 日停止工作
+
+```plaintext
+subject=qq:123456
+```
+
+仅对迁移过来的应用开放，新登记的应用无法使用。取值同时匹配用户绑定的 QQ 号与频道 ID ，与 `Developer-Token` 时代 `qq` 参数的行为一致。
+
+:::warning
+该写法**将于 2026 年 10 月 1 日 00:00（UTC+8）停止工作**，与 `Developer-Token` 同时。届时服务器将返回：
+
+```json
+{"error": "invalid_request", "error_description": "'subject=qq:' is retired for this client; use ref: or sub:"}
+```
+
+请在该日期之前改用 5.1 的 `ref:` ：您手上已经有这个 QQ 号，按公式算出摘要即可，用户不需要做任何事。
+:::
+
+保留期限止于此日的原因：QQ 号与频道 ID 共用同一个字段，用户可以随时改绑或解绑，改绑之后同一个取值指向的将是另一个账号；而它并不提供 `ref` 之外的任何能力。
 
 ## 6. 行为差异
 

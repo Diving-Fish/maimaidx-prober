@@ -145,6 +145,15 @@ class NewDeveloper(BaseModel):
     bind_qq = CharField()
     confirm_token = CharField()
     comment = CharField()
+    #: 这个 token 停止工作的秒级时间戳。0 表示按全局日落时间
+    #: （app.DEVELOPER_TOKEN_SUNSET_TS）。
+    #:
+    #: 为什么是一列而不是一个写死的日期：总会有一两家接入方在最后一刻才
+    #: 发现自己没改完，给单个 token 续三天，比把全局日期整体往后推要好得多
+    #: ——后者等于让所有已经改完的人白改。available 不能替代它：置 false 是
+    #: 「这个 token 出事了，现在就断」，日落是「到那天为止都正常」，二者
+    #: 在到期之前对调用方的表现完全不同。
+    sunset_ts = BigIntegerField(default=0)
 
 
 class Developer(BaseModel):
@@ -152,6 +161,9 @@ class Developer(BaseModel):
     token = CharField()
     reason = TextField()
     available = BooleanField()
+    #: 同 NewDeveloper.sunset_ts。老表同样要能单独续期：这批 token 年头最久，
+    #: 联系方式最不全，最可能出现「人找不到、服务还在跑」的情况
+    sunset_ts = BigIntegerField(default=0)
 
 
 class DeveloperLog(BaseModel):

@@ -2,7 +2,8 @@ import asyncio
 import random
 import string
 import json
-from app import app, login_required, mail_config, md5, developer_required
+from app import (app, login_required, mail_config, md5, developer_required,
+                 APPLICATION_DOC_URL, MIGRATION_DOC_URL, developer_token_sunset_ts)
 from quart import Quart, request, g, make_response
 from tools._jwt import *
 from models.maimai import *
@@ -217,12 +218,6 @@ async def token_available():
     except Exception:
         return {"message": "non-exist"}, 404
 
-#: 新的开发者接入入口。申请的不再是「一个能查全库的 token」，而是一个应用：
-#: 填名称、描述、需要的权限，用户逐个授权，可随时撤销。
-#: 指向控制台而不是文档站——这条消息是「你刚才想申请的东西在哪」的回答，
-#: 落到能直接动手的那一页才有用。接入说明见 doc/docs/developer/oauth-quickstart.md
-APPLICATION_DOC_URL = "https://auth.diving-fish.com/console"
-
 
 @app.route('/developer_token', methods=['GET', 'POST', 'PUT'])
 @login_required
@@ -250,7 +245,12 @@ async def developer_token():
                 # 'pic': json.loads(developer.pic),
                 'level': developer.level,
                 'available': developer.available,
-                'comment': developer.comment
+                'comment': developer.comment,
+                # 这个 token 哪天停。GET 之所以留着就是为了让存量开发者看到
+                # 自己手上 token 的状态，日落时间是眼下最要紧的那一项；
+                # 单独续期过的人在这里能看到自己那个日期，不是全局的
+                'sunset': developer_token_sunset_ts(developer),
+                'migration': MIGRATION_DOC_URL,
             })
         return res
     elif request.method == 'POST': # create a new token for this account
