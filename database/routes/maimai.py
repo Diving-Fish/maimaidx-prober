@@ -8,7 +8,8 @@ https://www.diving-fish.com/api/maimaidxprober/*
 import asyncio
 import time
 from collections import defaultdict
-from app import app, developer_required, login_required, login_or_token_required, oauth_or_login_required, md5, is_developer, chart_stat_updated
+from app import app, developer_required, login_required, login_or_token_required, oauth_or_login_required, md5, is_developer, chart_stat_updated, scheduler, job_lock
+from apscheduler.triggers.cron import CronTrigger
 from quart import Quart, request, g, make_response
 from tools._jwt import *
 from models.maimai import *
@@ -840,27 +841,75 @@ async def get_hot_music_data():
     return hot_music
 
 
+HOT_MUSIC_CACHE_KEY = "maimaidxprober_hot_music"
+
+
+async def get_cached_hot_music():
+    """读取缓存里的热门歌曲权重表，没有就返回空。
+
+    刻意不在这里回源计算：get_hot_music_data() 那条聚合要扫一亿多行 newrecord，
+    单次约 43 秒。放在请求路径上，缓存一空就会有多个请求各自发起一次全表聚合，
+    把 MySQL 打满。缓存由 refresh_hot_music_job() 每天凌晨刷新，这里只管读。
+    """
+    cached = await redis.get(HOT_MUSIC_CACHE_KEY)
+    if cached is None:
+        return {}
+    return json.loads(cached)
+
+
+async def refresh_hot_music_job():
+    """每日重算热门歌曲权重表并写入缓存。
+
+    多个 worker 各有一个 scheduler，用 job_lock 保证同一时刻只算一次。
+    写入不带 TTL：宁可用一份旧数据，也不要因为某天任务失败就让缓存过期变空。
+    """
+    async with job_lock("job:hot_music:lock") as acquired:
+        if not acquired:
+            app.logger.info("跳过热门歌曲刷新：另一个 worker 正在跑。")
+            return
+        try:
+            data = await get_hot_music_data()
+            if not data:
+                app.logger.warning("热门歌曲刷新算出空结果，保留旧缓存。")
+                return
+            await redis.set(HOT_MUSIC_CACHE_KEY, json.dumps(data))
+            app.logger.info("热门歌曲缓存已刷新，共 %s 首。", len(data))
+        except Exception as e:
+            app.logger.exception(f"刷新热门歌曲缓存失败：{e}")
+
+
+@app.before_serving
+async def schedule_hot_music_refresh():
+    # 04:00 而不是 03:00：错开 fixed-inner-level.sql，别让两个重任务叠在一起
+    scheduler.add_job(
+        refresh_hot_music_job,
+        trigger=CronTrigger(hour=4, minute=0),
+        id="hot_music_daily_4am",
+        replace_existing=True,
+    )
+    # 缓存是永久 key，正常只有首次部署或 Redis 被清过才会缺。
+    # 补算放后台，不阻塞启动；抢不到锁的 worker 会自己退出。
+    if await redis.get(HOT_MUSIC_CACHE_KEY) is None:
+        asyncio.ensure_future(refresh_hot_music_job())
+
+
 @app.route("/hot_music", methods=['GET'])
 async def hot_music():
     """
     返回热门歌曲数据。
     """
-    # check redis cache
-    hot_music = await redis.get("maimaidxprober_hot_music")
-    if hot_music is not None:
-        return json.loads(hot_music)
-    hot_music = await get_hot_music_data()
-    await redis.set("maimaidxprober_hot_music", json.dumps(hot_music), ex=86400)
-    return hot_music
+    return await get_cached_hot_music()
 
 
-async def get_random_hot(value):
-    hot = await hot_music()
+def pick_random_hot(hot, value):
+    """按权重从 hot 里抽一首。value 取 [0, 1) 的随机数。"""
+    key = None
     for key, val in hot.items():
         if value < val:
             return key
         value -= val
-    return 0
+    # 权重和因浮点误差略小于 1 时会走到这里，退化成取最后一首
+    return key
 
 
 async def up_vote(music_id):
@@ -904,10 +953,19 @@ async def vote_box():
     返回投票箱数据。
     """
     if request.method == 'GET':
-        left = await get_random_hot(random.random())
-        right = left
-        while right == left:
-            right = await get_random_hot(random.random())
+        hot = await get_cached_hot_music()
+        if len(hot) < 2:
+            # 缓存还没生成（首次部署 / Redis 被清空），等每日任务补上
+            return {"message": "投票箱暂时不可用，请稍后再试"}, 503
+        left = pick_random_hot(hot, random.random())
+        # 抽到重复就重试，但要有次数上限：万一权重极度集中，
+        # 无上限的 while 会把整个 worker 的事件循环占死
+        for _ in range(20):
+            right = pick_random_hot(hot, random.random())
+            if right != left:
+                break
+        else:
+            return {"message": "投票箱暂时不可用，请稍后再试"}, 503
         token = md5(str(time.time()))
         await redis.set("maimaidxprober_vote_box_" + token, json.dumps({"left": left, "right": right}), ex=120)
         return {

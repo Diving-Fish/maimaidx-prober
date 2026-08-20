@@ -17,6 +17,7 @@ from access.redis import redis
 import os
 import socket
 from uuid import uuid4
+from contextlib import asynccontextmanager
 
 
 def md5(v: str):
@@ -133,41 +134,50 @@ def _execute_fixed_inner_level_sql():
         chart_stat_updated = True
         conn.close()
 
+@asynccontextmanager
+async def job_lock(lock_key: str, lock_ttl: int = 3600):
+    """定时任务的跨 worker 互斥锁。
+
+    每个 hypercorn worker 都跑着自己的 scheduler，同一个任务到点会被触发
+    4 次。用 Redis 抢锁保证只有一个真正执行，其余直接跳过。
+
+    以 `async with job_lock(key) as acquired:` 使用，没抢到锁时 acquired 为 False。
+    """
+    lock_token = f"{socket.gethostname()}:{os.getpid()}:{uuid4().hex}"
+    acquired = bool(await redis.set(lock_key, lock_token, nx=True, ex=lock_ttl))
+    try:
+        yield acquired
+    finally:
+        if acquired:
+            # 只删自己持有的那把锁，避免任务超时后误删接手者的锁
+            try:
+                lua = """
+                if redis.call('GET', KEYS[1]) == ARGV[1] then
+                    return redis.call('DEL', KEYS[1])
+                else
+                    return 0
+                end
+                """
+                await redis.eval(lua, 1, lock_key, lock_token)
+            except Exception:
+                # 删不掉就等 TTL 到期，不影响正确性
+                pass
+
+
 # NEW: async job wrapper for scheduler
 async def run_fixed_inner_level_job():
     """
     Execute the fixed-inner-level.sql once across multiple instances using a Redis lock.
     """
-    lock_key = "job:fixed_inner_level:lock"
-    # Give the job ample time (1 hour) to finish before the lock expires.
-    lock_ttl = 3600
-
-    # Acquire a distributed lock so only one instance proceeds
-    lock_token = f"{socket.gethostname()}:{os.getpid()}:{uuid4().hex}"
-    try:
-        acquired = await redis.set(lock_key, lock_token, nx=True, ex=lock_ttl)
+    async with job_lock("job:fixed_inner_level:lock") as acquired:
         if not acquired:
             app.logger.info("Skip fixed-inner-level job: another instance holds the lock.")
             return
-
-        await asyncio.to_thread(_execute_fixed_inner_level_sql)
-        app.logger.info("fixed-inner-level.sql executed successfully at 03:00 by this instance.")
-    except Exception as e:
-        app.logger.exception(f"Error executing fixed-inner-level.sql: {e}")
-    finally:
-        # Safely release the lock only if we still own it
         try:
-            lua = """
-            if redis.call('GET', KEYS[1]) == ARGV[1] then
-                return redis.call('DEL', KEYS[1])
-            else
-                return 0
-            end
-            """
-            await redis.eval(lua, 1, lock_key, lock_token)
-        except Exception:
-            # If release fails (e.g., TTL expired), it's safe to ignore
-            pass
+            await asyncio.to_thread(_execute_fixed_inner_level_sql)
+            app.logger.info("fixed-inner-level.sql executed successfully at 03:00 by this instance.")
+        except Exception as e:
+            app.logger.exception(f"Error executing fixed-inner-level.sql: {e}")
 
 async def refresh_oauth_jwks():
     """把 IdP 的公钥拉进内存。
