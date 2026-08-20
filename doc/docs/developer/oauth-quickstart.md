@@ -18,14 +18,27 @@ toc_max_heading_level: 4
 https://auth.diving-fish.com/console
 ```
 
-点击「登记新应用」，填写应用名称（不超过 20 字）、应用描述（不超过 100 字）、主页地址（可留空，如填写须可公开访问），选择接入方式与所需权限。
+点击「登记新应用」，填写应用名称（不超过 20 字）、应用描述（不超过 100 字）、主页地址（可留空，如填写须可公开访问），选择接入方式、部署形态与所需权限。
 
 提交后，只读权限的申请将被自动审核，结果立即在控制台显示；包含写入权限的申请将转为人工审核，在审核通过之前，写入权限不会生效。
 
-登记完成后，在控制台生成 `client_secret` 。
+**部署形态**决定了您的应用是机密客户端还是公开客户端，判断标准只有一条：`client_secret` 能不能只留在您手上。
+
+| **部署形态（控制台上的选项）** | **适用于** | **客户端类型** |
+|-----|-----|-----|
+| 「由你自己部署运行」 | 您自己运行的 bot、网站、后端服务 | 机密客户端，使用 `client_secret` |
+| 「分发给用户各自部署」 | 插件、桌面程序、开源后由用户自行搭建的 bot | 公开客户端，**没有** `client_secret` |
+
+跟着安装包分发出去的 `client_secret` 不再是秘密，因此后一类应用不签发该凭据，改由 PKCE 与 refresh token 担保安全。
+
+若您选择的是前者，请在登记完成后于控制台生成 `client_secret` ——**登记应用与生成凭据是两个独立的动作**，只做前者的话应用没有任何可用凭据，所有请求都会得到 401 。
 
 :::danger
 `client_secret` 只在生成的那一刻显示一次，服务端保存的是它的哈希值。请立即将其写入您的服务端配置，切勿写入客户端、前端代码或公开仓库。
+:::
+
+:::warning
+认证方式按登记值严格比对：机密客户端少传 `client_secret` ，或公开客户端多传 `client_secret` ，都会得到 401 `invalid_client` 。
 :::
 
 ## 2. 选择接入方式
@@ -33,9 +46,12 @@ https://auth.diving-fish.com/console
 | **您的应用形态** | **接入方式** | **参见** |
 |-----|-----|-----|
 | 网站、桌面客户端、移动应用，有可登记的回调地址，需要「用水鱼账号登录」 | 授权码 + PKCE | [第 3 节](#3-方式一授权码--pkce) |
-| QQ 机器人、命令行工具、脚本，没有浏览器也开不了公网回调地址 | 设备码绑定 + 换票 | [第 4 节](#4-方式二设备码绑定--换票) |
+| 您自己运行的 QQ 机器人、命令行工具、脚本，没有浏览器也开不了公网回调地址 | 设备码绑定 + 换票 | [第 4 节](#4-方式二设备码绑定--换票) |
+| 分发给用户各自部署、且开不了回调地址的插件与自建 bot | 设备码绑定 + refresh token | [第 5 节](#5-方式三设备码绑定--refresh-token) |
 
-两种方式并不互斥，但一个应用通常只需要其中一种，在控制台登记时选定。
+三种方式并不互斥，但一个应用通常只需要其中一种。
+
+**接入方式与部署形态是两个独立的问题。** 方式一对机密客户端与公开客户端同样适用，分发出去的桌面程序、移动应用只要能登记回调地址（本机地址亦可），就走方式一，仅仅是不携带 `client_secret` 而已。方式二与方式三的差别才是部署形态本身：绑定阶段完全相同，区别只在取得令牌的方式——机密客户端凭 `client_secret` 随时换票，不保存任何用户凭据；公开客户端则为每位用户各自保存一把 refresh token 。
 
 ## 3. 方式一：授权码 + PKCE
 
@@ -102,7 +118,7 @@ def handle_callback(session: dict, code: str, state: str) -> dict:
         "code": code,
         "redirect_uri": REDIRECT_URI,            # 与上一步完全一致
         "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,          # 公开客户端不传此项
+        "client_secret": CLIENT_SECRET,          # 公开客户端删掉此行
         "code_verifier": session["code_verifier"],
     }, timeout=10)
     response.raise_for_status()
@@ -136,7 +152,7 @@ def refresh(refresh_token: str) -> dict:
         "grant_type": "refresh_token",
         "refresh_token": refresh_token,
         "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
+        "client_secret": CLIENT_SECRET,          # 公开客户端删掉此行
     }, timeout=10)
     response.raise_for_status()
     return response.json()
@@ -150,7 +166,9 @@ def refresh(refresh_token: str) -> dict:
 
 ## 4. 方式二：设备码绑定 + 换票
 
-适用于 bot 与命令行工具。这条路径分为两个阶段：
+适用于**由您自己部署运行**的 bot 与命令行工具，即机密客户端。分发给用户各自部署的应用请看 [第 5 节](#5-方式三设备码绑定--refresh-token)。
+
+这条路径分为两个阶段：
 
 1. **绑定**：一次性动作。您的应用向授权服务器申请一个用户码与一条链接，用户在浏览器中打开链接、登录、点击同意，绑定即告完成。
 2. **换票**：日常动作。您的应用凭 `client_secret` 与该用户的标识，换取一张代表该用户的短期令牌，用它请求查分器。
@@ -422,7 +440,173 @@ def on_command(qq: str) -> str:
     return f"{data['nickname']} 的 Rating 为 {data['rating']}"
 ```
 
-## 5. 使用 access token 访问查分器
+## 5. 方式三：设备码绑定 + refresh token
+
+适用于分发给用户各自部署的插件、桌面程序与自建 bot ，即公开客户端。**本节所有请求都不携带 `client_secret`** ——这类应用没有该凭据。
+
+绑定阶段与方式二相同，区别在于：您的应用无法换票，用户令牌只在轮询的响应中出现一次，因此**必须轮询**，并且要为每位用户各自保存取回的 refresh token 。
+
+### 5.1 发起绑定
+
+```python
+import requests
+
+AUTH = "https://auth.diving-fish.com"
+CLIENT_ID = "your_client_id"                     # 公开客户端只有这一项
+
+
+def start_binding() -> dict:
+    response = requests.post(f"{AUTH}/oauth/device_authorization", data={
+        "client_id": CLIENT_ID,
+        "scope": "prober.records.read",
+    }, timeout=10)
+    response.raise_for_status()
+    return response.json()
+```
+
+响应结构与 [4.2 节](#42-发起绑定)相同。请把其中的 `user_code` 与 `verification_uri` **显示在您自己的程序界面里**，由使用者本人打开链接完成授权。
+
+:::danger
+**不要把绑定链接做成「发给需要绑定的人」的形式。**
+
+该端点不校验凭据，任何人都能用您的 `client_id` 生成一条绑定链接。受害者点击同意之后，令牌落到的是发起那次请求的人手上，也就是攻击者——公开客户端在这条路上交出的是长期访问权限，比机密客户端的冒名绑定更直接。
+
+同意页会对公开客户端额外做出提示，但那是最后一道防线。让用户码只出现在用户自己启动的程序中，才是第一道。
+:::
+
+### 5.2 轮询取得令牌
+
+```python
+import time
+
+
+def poll(device_code: str, interval: int = 5, timeout: int = 600) -> dict:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        time.sleep(interval)
+        response = requests.post(f"{AUTH}/oauth/token", data={
+            "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+            "device_code": device_code,
+            "client_id": CLIENT_ID,
+        }, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+
+        error = response.json().get("error")
+        if error == "authorization_pending":
+            continue
+        if error == "slow_down":
+            interval += 5
+            continue
+        raise RuntimeError(f"绑定失败: {error}")     # access_denied / expired_token
+    raise TimeoutError("用户未在有效期内完成绑定")
+```
+
+响应如下，其中 `sub` 是该用户的水鱼用户 ID ，`refresh_token` 就是这条路径的全部成果：
+
+```json
+{
+    "token_type": "Bearer",
+    "access_token": "eyJ0eXAiOiJhdCtqd3QiLCJhbGciOiJSUzI1NiIsImtpZCI6...",
+    "expires_in": 900,
+    "refresh_token": "your_refresh_token",
+    "scope": "prober.records.read",
+    "sub": "12345"
+}
+```
+
+**拿到后请立即持久化 `refresh_token`。** 同一个设备码不能换第二次，这一步失手就只能让用户重新绑定一遍。
+
+### 5.3 续期
+
+access token 有效期 15 分钟，过期后用 refresh token 换新的：
+
+```python
+def refresh(refresh_token: str) -> dict:
+    response = requests.post(f"{AUTH}/oauth/token", data={
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+        "client_id": CLIENT_ID,
+    }, timeout=10)
+    response.raise_for_status()
+    return response.json()
+```
+
+:::danger
+**每次刷新都会签发一把新的 refresh token ，旧的立即作废。** 拿到响应后必须先持久化新的 refresh token ，再继续后续逻辑。
+
+旧的 refresh token 再次出现时，服务器会将其视为凭据泄露，**吊销整条令牌链，包括您刚刚拿到的那把新令牌**，该用户需要重新绑定。因此请注意：不要并发刷新，不要在多处共享同一把 refresh token ，不要等到进程退出时才落盘。
+:::
+
+用户在水鱼账号中撤销授权后，refresh token 立即失效，刷新将返回 `invalid_grant` 。此时应引导用户重新走一次 5.1 的绑定流程，而不是反复重试。
+
+### 5.4 完整示例
+
+```python
+import json
+import os
+import time
+import requests
+
+AUTH = "https://auth.diving-fish.com"
+PROBER = "https://www.diving-fish.com/api/maimaidxprober"
+CLIENT_ID = "your_client_id"
+STORE = os.path.expanduser("~/.config/your-plugin/token.json")
+
+
+def load() -> dict:
+    try:
+        with open(STORE, encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+
+def save(data: dict):
+    """先写临时文件再改名：崩在半途也不会留下一个读不出来的令牌。"""
+    os.makedirs(os.path.dirname(STORE), exist_ok=True)
+    with open(STORE + ".tmp", "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    os.replace(STORE + ".tmp", STORE)
+
+
+def bind() -> dict:
+    """首次绑定。用户码请显示在自己的界面上，不要让用户转发。"""
+    device = start_binding()
+    print(f"请打开 {device['verification_uri']} 并输入绑定码 "
+          f"{device['user_code']} ，10 分钟内有效。")
+    token = poll(device["device_code"], device["interval"])
+    data = {"refresh_token": token["refresh_token"],
+            "access_token": token["access_token"],
+            "expires_at": time.time() + token["expires_in"]}
+    save(data)                                   # 先落盘，再返回
+    return data
+
+
+def access_token() -> str:
+    data = load()
+    if not data:
+        data = bind()
+    if time.time() < data["expires_at"] - 30:     # 留 30 秒余量
+        return data["access_token"]
+
+    token = refresh(data["refresh_token"])
+    data = {"refresh_token": token["refresh_token"],
+            "access_token": token["access_token"],
+            "expires_at": time.time() + token["expires_in"]}
+    save(data)                                   # 用之前先落盘
+    return data["access_token"]
+
+
+def records() -> dict:
+    response = requests.get(f"{PROBER}/player/records", headers={
+        "Authorization": "Bearer " + access_token(),
+    }, timeout=15)
+    response.raise_for_status()
+    return response.json()
+```
+
+## 6. 使用 access token 访问查分器
 
 无论通过哪种方式取得令牌，访问查分器的方式都相同：
 
@@ -437,13 +621,28 @@ Authorization: Bearer eyJ0eXAiOiJhdCtqd3QiLCJhbGciOiJSUzI1NiIsImtpZCI6...
 
 调用配额为每位用户每日 200 次，每个应用合计每日 `1000 + 授权用户数 × 20` 次，超出后返回 429 。详见 [OAuth 接口文档第 10 节](./oauth-api-document.md#10-配额与限流)。
 
-## 6. 接入自检清单
+## 7. 接入自检清单
 
-- [ ] `client_secret` 只存在于服务端配置中，未进入客户端、前端代码或版本库
+通用：
+
 - [ ] access token 在有效期内被复用，而非每次请求都重新换取
-- [ ] 换票收到 `consent_required` 时，向用户给出绑定链接，而非提示「查询失败」
-- [ ] 发起设备码绑定时填写了 `binding_label`
-- [ ] 授权码方式下，回调时先校验 `state` 再换取令牌
-- [ ] 授权码方式下，新的 refresh token 在使用前已完成持久化，且不存在并发刷新
 - [ ] 收到 429 时给用户明确的提示，并在下一个自然日（UTC）之前不再重试
 - [ ] 只申请了实际用到的 scope
+
+机密客户端（由您自己部署运行）：
+
+- [ ] `client_secret` 已在控制台生成，且只存在于服务端配置中，未进入客户端、前端代码或版本库
+- [ ] 换票收到 `consent_required` 时，向用户给出绑定链接，而非提示「查询失败」
+- [ ] 发起设备码绑定时填写了 `binding_label`
+
+公开客户端（分发给用户各自部署）：
+
+- [ ] 所有请求都不携带 `client_secret`
+- [ ] 绑定码显示在自己的程序界面中，未做成「把链接发给他人」的形式
+- [ ] 每位用户的 refresh token 各自保存，未在多处共享
+
+使用 refresh token 的应用（授权码方式与公开客户端）：
+
+- [ ] 授权码方式下，回调时先校验 `state` 再换取令牌
+- [ ] 新的 refresh token 在使用前已完成持久化，且不存在并发刷新
+- [ ] 刷新返回 `invalid_grant` 时引导用户重新授权，而非反复重试

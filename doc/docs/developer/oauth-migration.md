@@ -288,6 +288,6 @@ subject=qq:123456
 
 ## 8. 相关文档
 
-- [快速开始](./oauth-quickstart.md)：两种接入方式的完整示例代码
+- [快速开始](./oauth-quickstart.md)：三种接入方式的完整示例代码
 - [OAuth 接口文档](./oauth-api-document.md)：全部端点、参数与错误码
 - [查分器 API 文档](./zh-api-document.md)：查分器自身的端点说明
