@@ -120,7 +120,7 @@
                 ></v-select>
               </v-col>
             </v-row>
-            <v-checkbox v-model="privacy" label="禁止其他人查询我的成绩" />
+            <v-checkbox v-model="privacy" label="禁止公开接口使用我的成绩（授权不受影响）" />
             <v-checkbox v-model="mask" label="对非网页查询的成绩使用掩码" />
           </v-form>
           <div class="pl-6 mb-4">
