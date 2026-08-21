@@ -291,3 +291,6 @@ subject=qq:123456
 - [快速开始](./oauth-quickstart.md)：三种接入方式的完整示例代码
 - [OAuth 接口文档](./oauth-api-document.md)：全部端点、参数与错误码
 - [查分器 API 文档](./zh-api-document.md)：查分器自身的端点说明
+- [最佳实现/私密客户端](https://github.com/Yuri-YuzuChaN/nonebot-plugin-maimaidx/pull/88)：nonebot-plugin-maimaidx 项目的 OAuth 插件 PR
+- [最佳实现/公开客户端](https://github.com/Diving-Fish/maimaidx-prober/pull/195)：查分器代理软件的 OAuth 验证流程
+- [共享客户端模块](https://github.com/Dale2003/nonebot-divingfish-oauth)：Dale2003 开发的 OAuth 共享模块
