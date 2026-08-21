@@ -53,6 +53,7 @@ func main() {
 	flagSet.Bool("slice", false, "using more parts to import records")
 	flagSet.Int("timeout", 30, "timeout when connect to servers")
 	flagSet.String("mai-diffs", "", "mai diffs to import")
+	doReauth := flagSet.Bool("reauth", false, "discard the saved authorization and sign in to the diving-fish account again")
 	doInstallCert := flagSet.Bool("install-cert", false, "install the local CA into the OS root store and exit")
 	doUninstallCert := flagSet.Bool("uninstall-cert", false, "remove the local CA from the OS root store and exit")
 
@@ -110,9 +111,11 @@ func main() {
 		commandFatal(fmt.Errorf("证书安装失败：%w", err))
 	}
 
-	// Interactively collect & validate the Import-Token if the config does
-	// not already contain a working one.
-	if err := ensureToken(&cfg, *configPath); err != nil {
+	// 拿到这次运行用的认证方式：已保存的水鱼账号授权、config.json 里的旧
+	// Token ，或者当场跑一遍浏览器授权。放在证书安装之后，是因为授权要开
+	// 浏览器，而证书那步可能弹 UAC / 钥匙串——两个系统弹窗别叠在一起。
+	auth, err := ensureAuth(&cfg, *configPath, *doReauth)
+	if err != nil {
 		commandFatal(err)
 	}
 
@@ -130,7 +133,7 @@ func main() {
 		spm = newSystemProxyManager(cfg.Addr)
 	}
 
-	apiClient, err := newProberAPIClient(&cfg, cfg.NetworkTimeout)
+	apiClient, err := newProberAPIClient(&cfg, auth, cfg.NetworkTimeout)
 	if err != nil {
 		commandFatal(err)
 	}

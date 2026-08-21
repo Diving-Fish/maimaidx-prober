@@ -17,7 +17,7 @@ import (
 
 type proberAPIClient struct {
 	cl       http.Client
-	token    string
+	auth     authorizer
 	mode     workingMode
 	maiDiffs []int
 	slice    bool
@@ -50,16 +50,25 @@ func fetchMaimaiProxyMeta(cl *http.Client) (maimaiProxyMeta, error) {
 	return meta, nil
 }
 
-func newProberAPIClient(cfg *config, networkTimeout int) (*proberAPIClient, error) {
+func newProberAPIClient(cfg *config, auth authorizer, networkTimeout int) (*proberAPIClient, error) {
+	// 空数组是这个接口的合法请求，服务端会直接返回成功。拿它当一次连通性
+	// 与权限的探测：认证不对、scope 不够、用户没同意用户协议，都在这里就
+	// 暴露出来，而不是等到用户在微信里点开成绩页之后才失败
 	req, _ := http.NewRequest("POST", "https://www.diving-fish.com/api/maimaidxprober/player/update_records", bytes.NewReader([]byte("[]")))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Add("Import-Token", cfg.Token)
+	if err := auth.apply(req); err != nil {
+		return nil, fmt.Errorf("获取访问凭据失败：%w", err)
+	}
 	resp, err := http.DefaultClient.Do(req)
-	if err != nil || resp.StatusCode != 200 {
-		return nil, fmt.Errorf("成绩导入 Token 无效，请检查 config.json 文件。")
+	if err != nil {
+		return nil, fmt.Errorf("无法连接查分服务器：%w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("查分服务器拒绝了本次认证（HTTP %d），请重新运行本程序并完成授权", resp.StatusCode)
 	}
 
-	Log(LogLevelInfo, "登录成功")
+	Log(LogLevelInfo, "登录成功（%s）", auth.describe())
 
 	meta, err := fetchMaimaiProxyMeta(http.DefaultClient)
 	if err != nil {
@@ -68,7 +77,7 @@ func newProberAPIClient(cfg *config, networkTimeout int) (*proberAPIClient, erro
 
 	return &proberAPIClient{
 		cl:       http.Client{Timeout: time.Duration(networkTimeout) * time.Second},
-		token:    cfg.Token,
+		auth:     auth,
 		mode:     cfg.getWorkingMode(),
 		maiDiffs: cfg.MaiIntDiffs,
 		slice:    cfg.Slice,
@@ -94,7 +103,9 @@ func (c *proberAPIClient) commit(data []byte) (updates int, creates int, err err
 		return
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Import-Token", c.token)
+	if err = c.auth.apply(req); err != nil {
+		return
+	}
 	resp, err := c.cl.Do(req)
 	if err != nil {
 		// 这里有一个已知的后端 bug，可能会导致 status 500，但是数据仍然导入，这里暂时不做处理
@@ -396,7 +407,10 @@ func (c *proberAPIClient) fetchDataChuniPerDiff(headers http.Header, token strin
 			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")
 			return 0, 0, rerr
 		}
-		req2.Header.Add("Import-Token", c.token)
+		if aerr := c.auth.apply(req2); aerr != nil {
+			Log(LogLevelWarning, "获取访问凭据失败，正在重试……")
+			return 0, 0, aerr
+		}
 		resp2, derr := c.cl.Do(req2)
 		if derr != nil {
 			Log(LogLevelWarning, "从 Wahlap 服务器获取数据失败，正在重试……")

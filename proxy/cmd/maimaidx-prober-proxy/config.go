@@ -16,7 +16,12 @@ const (
 )
 
 type config struct {
-	Token             string   `json:"token"`
+	// 旧版的成绩导入 Token 。新装的用户走 OAuth 授权（见 oauth.go），
+	// 这一项只为已经配好的老用户保留：填了就继续用，不会强制重新授权
+	Token string `json:"token,omitempty"`
+	// 只在对着自建 / 本地的账号服务调试时才需要填，留空即用线上默认值
+	OAuthIssuer       string   `json:"oauth_issuer,omitempty"`
+	OAuthClientID     string   `json:"oauth_client_id,omitempty"`
 	Mode              string   `json:"mode,omitempty"`
 	MaiDiffs          []string `json:"mai_diffs,omitempty"`
 	Verbose           bool     `json:"verbose" default:"false"`
@@ -118,8 +123,9 @@ func initConfig(path string) (config, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		// First run: create an empty stub so subsequent runs find it.
-		// The interactive setup wizard in main() will fill in the token.
-		if werr := os.WriteFile(path, []byte("{\"token\": \"\"}"), 0644); werr != nil {
+		// Credentials don't live here -- the OAuth flow in main() writes
+		// them to credentials.json instead.
+		if werr := os.WriteFile(path, []byte("{}\n"), 0644); werr != nil {
 			return obj, fmt.Errorf("初始化配置文件失败：%w", werr)
 		}
 		return obj, nil
