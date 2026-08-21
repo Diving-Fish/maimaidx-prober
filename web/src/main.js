@@ -2,6 +2,7 @@ import Vue from 'vue';
 import { Dialog, Message } from 'element-ui';
 import App from './App.vue';
 import vuetify from './plugins/vuetify';
+import '@mdi/font/css/materialdesignicons.css';
 import * as echarts from 'echarts'
 Vue.prototype.$echarts = echarts;
 
