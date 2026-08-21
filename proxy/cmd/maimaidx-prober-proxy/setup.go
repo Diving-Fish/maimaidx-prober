@@ -1,14 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -38,6 +34,25 @@ func ensureCertInstalled() error {
 	return installCert(cp)
 }
 
+// authorizer 提供访问查分器 API 所需的认证头。两种实现：OAuth 授权
+// （新用户走这条）和旧版的成绩导入 Token（已经配好的老用户继续用）。
+type authorizer interface {
+	apply(req *http.Request) error
+	describe() string
+}
+
+// importTokenAuth 是旧版认证方式：一把长期有效、能代表账号做任何事的
+// 静态凭据。OAuth 那条路给出的令牌只有 15 分钟、只带上传成绩这一项权限，
+// 用户还能随时在水鱼账号里撤销——所以新用户不再走这里。
+type importTokenAuth struct{ token string }
+
+func (a importTokenAuth) apply(req *http.Request) error {
+	req.Header.Set("Import-Token", a.token)
+	return nil
+}
+
+func (a importTokenAuth) describe() string { return "成绩导入 Token（旧版）" }
+
 // validateToken pings /token_available to check whether the given Import
 // Token corresponds to a registered account. We treat HTTP 200 as success
 // and any other status (including network errors) as failure.
@@ -59,88 +74,48 @@ func validateToken(ctx context.Context, token string) (bool, error) {
 	return resp.StatusCode == http.StatusOK, nil
 }
 
-// promptToken interactively asks the user to paste an Import-Token and
-// validates it against the diving-fish API. It loops until the user provides
-// a valid token or aborts (Ctrl-C). The returned string is the verified
-// token.
-func promptToken(reader *bufio.Reader) (string, error) {
-	fmt.Println()
-	fmt.Println("=========================================================")
-	fmt.Println("欢迎使用 maimaidx-prober，请按以下步骤完成首次配置：")
-	fmt.Println("  1. 打开 https://www.diving-fish.com/maimaidx/prober/ 并登录")
-	fmt.Println("  2. 在「编辑个人资料」页面找到「Import-Token」并复制")
-	fmt.Println("  3. 将 Token 粘贴到下方（粘贴后按回车）")
-	fmt.Println("=========================================================")
-	for {
-		fmt.Print("请粘贴 Import-Token: ")
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			return "", fmt.Errorf("读取输入失败: %w", err)
-		}
-		token := strings.TrimSpace(line)
-		if token == "" {
-			Log(LogLevelWarning, "Token 不能为空，请重新粘贴")
-			continue
-		}
-		fmt.Print("正在校验 Token，请稍候……")
-		ok, err := validateToken(context.Background(), token)
-		fmt.Println()
-		if err != nil {
-			Log(LogLevelWarning, "校验失败：%s。请检查网络后重试", err)
-			continue
-		}
-		if !ok {
-			Log(LogLevelWarning, "Token 无效，可能是输入错误或者尚未在 diving-fish 注册账号")
-			continue
-		}
-		Log(LogLevelInfo, "Token 校验通过！")
-		return token, nil
-	}
-}
+// ensureAuth 决定这次运行拿什么去调查分器接口。
+//
+// 顺序即优先级：已经授权过的走 OAuth；没授权但 config.json 里留着一把还
+// 有效的旧 Token 的，继续用它，不打扰升级上来的老用户；两样都没有就跑一遍
+// 授权流程。reauth 为真时无条件重新授权。
+func ensureAuth(cfg *config, configPath string, reauth bool) (authorizer, error) {
+	oc := newOAuthClient(cfg, configPath)
 
-// saveTokenToConfig persists the validated token into config.json, preserving
-// any other fields the user might have set previously.
-func saveTokenToConfig(path, token string) error {
-	var raw map[string]interface{}
-	if b, err := os.ReadFile(path); err == nil {
-		if jerr := json.Unmarshal(b, &raw); jerr != nil || raw == nil {
-			raw = map[string]interface{}{}
+	if reauth {
+		if err := oc.authorize(context.Background()); err != nil {
+			return nil, err
 		}
-	} else {
-		raw = map[string]interface{}{}
+		return oc, nil
 	}
-	raw["token"] = token
-	out, err := json.MarshalIndent(raw, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path, out, 0644)
-}
 
-// ensureToken checks the loaded config for a valid Import-Token. If the
-// token is missing or rejected by the server, the user is prompted to paste
-// one and the result is written back to config.json.
-func ensureToken(cfg *config, configPath string) error {
+	if err := oc.load(); err == nil {
+		// 手上的凭据未必还有效（refresh token 可能已被用户撤销或被判泄露
+		// 吊销）。当场换一张 access token 试试，失败就重新走授权，
+		// 而不是留到第一次上传成绩时才炸
+		if _, err := oc.accessToken(context.Background()); err == nil {
+			Log(LogLevelInfo, "已读取水鱼账号授权凭据")
+			return oc, nil
+		}
+		Log(LogLevelWarning, "原有授权已失效，需要重新授权")
+	} else if !os.IsNotExist(err) {
+		Log(LogLevelWarning, "读取凭据文件失败：%s，需要重新授权", err)
+	}
+
 	if cfg.Token != "" {
 		ok, err := validateToken(context.Background(), cfg.Token)
-		if err == nil && ok {
-			return nil
-		}
 		if err != nil {
 			Log(LogLevelWarning, "校验现有 Token 时出错：%s", err)
+		} else if ok {
+			Log(LogLevelInfo, "正在使用 config.json 中的成绩导入 Token")
+			return importTokenAuth{token: cfg.Token}, nil
 		} else {
-			Log(LogLevelWarning, "现有 Token 已失效，需要重新输入")
+			Log(LogLevelWarning, "config.json 中的 Token 已失效")
 		}
 	}
-	reader := bufio.NewReader(os.Stdin)
-	token, err := promptToken(reader)
-	if err != nil {
-		return err
+
+	if err := oc.authorize(context.Background()); err != nil {
+		return nil, err
 	}
-	if err := saveTokenToConfig(configPath, token); err != nil {
-		return fmt.Errorf("保存 Token 到 %s 失败: %w", configPath, err)
-	}
-	cfg.Token = token
-	Log(LogLevelInfo, "Token 已写入 %s", configPath)
-	return nil
+	return oc, nil
 }

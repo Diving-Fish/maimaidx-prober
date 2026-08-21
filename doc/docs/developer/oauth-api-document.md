@@ -82,12 +82,24 @@ https://auth.diving-fish.com
 |-----|-----|-----|
 | `response_type` | 是 | 固定为 `code` |
 | `client_id` | 是 | 您的应用标识 |
-| `redirect_uri` | 是 | 必须与登记值**完全一致**，尾斜杠、协议、端口都计入比较 |
+| `redirect_uri` | 是 | 必须与登记值**完全一致**，尾斜杠、协议、端口都计入比较。唯一的例外是 `http://127.0.0.1` 与 `http://[::1]` ，这两者的端口不参与比对，详见下方说明 |
 | `scope` | 是 | 空格分隔的 scope 列表 |
 | `state` | 是 | 随机串，回调时原样返回。您必须自行保存并核对 |
 | `nonce` | 否 | 随机串，将写入 `id_token` ，用于防止重放 |
 | `code_challenge` | 是 | `code_verifier` 的 sha256 摘要，经 base64url 编码且去掉填充 |
 | `code_challenge_method` | 是 | 固定为 `S256` |
+
+**本机回调地址。** 桌面程序、代理工具一类在本机监听端口接收授权码的应用，登记
+`http://127.0.0.1/callback` 或 `http://[::1]/callback` 即可，**端口不参与比对**
+（[RFC 8252 §7.3](https://www.rfc-editor.org/rfc/rfc8252#section-7.3)）：运行时
+监听哪个端口都能通过校验，不必写死一个端口，也不必因换了端口回控制台改登记。
+协议、路径与查询串照旧逐字符比对。
+
+:::caution
+放宽的只有 `127.0.0.1` 和 `::1` 这两个 IP 字面量。`http://localhost/callback`
+仍按普通地址逐字符比对（端口计入），因为它要经过 DNS 与 hosts 解析，落点未必在本机。
+本机程序请一律填 IP 字面量。
+:::
 
 :::warning
 **PKCE 为强制要求，机密客户端也不例外。** 缺少 `code_challenge` 的请求直接返回 400 ； `code_challenge_method` 只接受 `S256` ，不接受 `plain` 。
@@ -666,7 +678,7 @@ access token 不查库，**不可即时吊销**，最长存在 15 分钟的窗�
 | **现象** | **原因** |
 |-----|-----|
 | 授权页返回 400 ，提示缺少 `code_challenge` | 未实现 PKCE 。所有客户端均须实现 |
-| 授权页返回 400 ，提示 `redirect_uri` 未登记 | 与登记值不完全一致，尾斜杠、协议、端口都计入比较 |
+| 授权页返回 400 ，提示 `redirect_uri` 未登记 | 与登记值不完全一致，尾斜杠、协议、端口都计入比较（本机回环地址的端口除外）。注意 `localhost` 不等同于 `127.0.0.1` |
 | 令牌端点返回 401 `invalid_client` | 机密客户端未传 `client_secret` 、公开客户端多传了 `client_secret` ，或 `client_secret` 尚未生成，见 [第 4 节](#4-令牌端点) |
 | 令牌端点返回 400 `invalid_grant` | 授权码已过期（超过 60 秒）、已被使用，或 `code_verifier` 不正确 |
 | 刷新后所有令牌突然失效 | 并发刷新，或旧的 refresh token 被重复使用，见 [4.2 节](#42-refresh_token-刷新令牌) |
