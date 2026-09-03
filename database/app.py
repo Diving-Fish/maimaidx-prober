@@ -16,6 +16,8 @@ from urllib.parse import urlparse, unquote
 from access.redis import redis
 import os
 import socket
+import gzip
+import zlib
 from uuid import uuid4
 from contextlib import asynccontextmanager
 
@@ -249,6 +251,33 @@ def cors(environ):
             and request.method != 'OPTIONS'):
         environ.set_cookie('jwt_token', username_encode(g.username), max_age=30 * 86400)
     return environ
+
+
+@app.after_request
+async def compress_response(resp):
+    if resp.headers.get("Content-Encoding"):
+        return resp
+    accept_encoding = request.headers.get("Accept-Encoding", "").lower()
+    if "gzip" in accept_encoding:
+        encoding = "gzip"
+    elif "deflate" in accept_encoding:
+        encoding = "deflate"
+    else:
+        return resp
+    body = await resp.get_data()
+    if body is None or len(body) < 1024:
+        return resp
+    if encoding == "gzip":
+        compressed = gzip.compress(body, compresslevel=6)
+    else:
+        compressed = zlib.compress(body, level=6)
+    if len(compressed) >= len(body):
+        return resp
+    resp.set_data(compressed)
+    resp.headers["Content-Encoding"] = encoding
+    resp.headers.pop("ETag", None)
+    resp.headers["Vary"] = "Accept-Encoding"
+    return resp
 
 
 def login_required(f):
