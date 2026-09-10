@@ -1,5 +1,6 @@
 import asyncio
 import random
+import re
 import string
 import json
 from app import (app, login_required, mail_config, md5, developer_required,
@@ -13,6 +14,17 @@ from tools.mail import *
 advertisements_data = []
 with open('advertisement.json') as ad:
     advertisements_data = json.load(ad)
+
+#: 用户名格式，与 IdP 的 app/validators.py 保持一致（那边是唯一权威，
+#: 改动请两处一起改）。这个端点前端已不用，但第三方 uni-app 客户端还在调，
+#: 而它历来不做任何校验，两条注册路的政策因此长期不一致。
+#:
+#: 特别地：带空白的用户名会绕过下面的重名检查，因为 username 列的
+#: utf8mb4_0900_ai_ci 是 NO PAD 排序规则，'名字 ' 与 '名字' 是两个不同的
+#: 值；注册完之后本人还必须一字不差地连空格一起输入才登得上。库里已经
+#: 这样攒下 1311 个账号，修补在 diving-fish-auth 的 login_candidates。
+USERNAME_RE = re.compile(r"^[A-Za-z0-9_-]{2,24}$")
+USERNAME_RULE = "用户名为 2~24 位，仅可包含字母、数字、下划线和连字符"
 
 
 @app.route("/count_view", methods=['GET'])
@@ -95,17 +107,25 @@ async def login():
 @app.route("/register", methods=['POST'])
 async def register():
     j = await request.get_json()
-    player = await Player.select().where(Player.username == j["username"]).aio_execute()
+    username = j["username"]
+    # isinstance 一并挡住非字符串：这个端点从来不校验入参，
+    # 不加这个判断，传个数字进来会变成 500 而不是 400
+    if not isinstance(username, str) or not USERNAME_RE.match(username):
+        return {
+            "errcode": -2,
+            "message": USERNAME_RULE,
+        }, 400
+    player = await Player.select().where(Player.username == username).aio_execute()
     if len(player) > 0:
         return {
             "errcode": -1,
             "message": "此用户名已存在",
         }, 400
     salt = ''.join(random.sample(string.ascii_letters + string.digits, 16))
-    await Player.aio_create(username=j["username"], salt=salt,
+    await Player.aio_create(username=username, salt=salt,
                   password=md5(j["password"] + salt))
     resp = await make_response({"message": "注册成功"})
-    resp.set_cookie('jwt_token', username_encode(j["username"]))
+    resp.set_cookie('jwt_token', username_encode(username))
     return resp
 
 
