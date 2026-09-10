@@ -183,7 +183,7 @@
               <v-card-subtitle>底分: {{ sdRa }} + {{ dxRa }} = {{ sdRa + dxRa }}
                 <span v-if="isMaiFilterActive" class="ml-3" style="color: #ff9800;">筛选乐曲: {{ calcFilteredRa(sdDisplay, 35) }} + {{ calcFilteredRa(dxDisplay, 15) }} = {{ calcFilteredRa(sdDisplay, 35) + calcFilteredRa(dxDisplay, 15) }}</span>
               </v-card-subtitle>
-              <filter-slider ref="filterSlider"></filter-slider>
+              <filter-slider ref="filterSlider" :max-ds="maiMaxDs"></filter-slider>
               <pro-settings v-show="proSetting" ref="proSettings" :music_data="music_data"
                 :music_data_dict="music_data_dict" @setHeaders="setHeaders"></pro-settings>
               <v-card-text>
@@ -279,7 +279,7 @@
                 <span class="mr-2">Rating: {{ chuniB30Rating.toFixed(4) }} + {{ chuniN20Rating.toFixed(4) }} = {{ (chuniB30Rating + chuniN20Rating).toFixed(4) }}</span>
                 <span v-if="isChuniFilterActive" style="color: #ff9800;">筛选乐曲: {{ (calcFilteredRa(chuniB30RecordDisplay, 30) / 50).toFixed(4) }} + {{ (calcFilteredRa(chuniN20RecordDisplay, 20) / 50).toFixed(4) }} = {{ ((calcFilteredRa(chuniB30RecordDisplay, 30) + calcFilteredRa(chuniN20RecordDisplay, 20)) / 50).toFixed(4) }}</span>
               </v-card-subtitle>
-              <filter-slider ref="filterSliderChuni"></filter-slider>
+              <filter-slider ref="filterSliderChuni" :max-ds="chuniMaxDs"></filter-slider>
               <pro-settings-chuni v-show="proSettingChuni" ref="proSettingsChuni" :music_data="chuni_data"
                             :music_data_dict="chuni_data_dict" @setHeaders="setHeaders"></pro-settings-chuni>
               <v-card-text>
@@ -637,6 +637,14 @@ export default {
       }
       return ret;
     },
+    // 定数上限会随版本上涨（中二节奏已经出现 15+ / 15.7），
+    // 交给筛选滑块动态确定上界，避免最高定数的谱面被默认筛选范围挡掉。
+    maiMaxDs: function () {
+      return this.maxDsOf(this.music_data);
+    },
+    chuniMaxDs: function () {
+      return this.maxDsOf(this.chuni_data);
+    },
     isMaiFilterActive: function () {
       return this.sdDisplay.length !== this.sdData.length || this.dxDisplay.length !== this.dxData.length;
     },
@@ -970,6 +978,16 @@ export default {
       for (let i = 0; i < this.records.length; i++) {
         this.computeRecord(this.records[i]);
       }
+    },
+    maxDsOf: function (music_data) {
+      let max = 0;
+      for (const music of music_data) {
+        for (const ds of music.ds) {
+          if (ds > max) max = ds;
+        }
+      }
+      // 乐曲数据还没加载完时返回 0，让筛选滑块用自己的兜底上界
+      return max;
     },
     is_new: function (record) {
       return this.music_data_dict[record.song_id].basic_info.is_new;
