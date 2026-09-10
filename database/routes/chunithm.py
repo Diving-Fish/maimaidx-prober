@@ -33,7 +33,7 @@ for music in md_cache:
     for i, cid in enumerate(music['cids']):
         chart_id_map[cid] = (i, music)
 
-latest_version = ('CHUNITHM LUMINOUS PLUS', 'CHUNITHM VERSE')
+latest_version = ('CHUNITHM X-VERSE', 'CHUNITHM X-VERSE-X')
 
 @app.route("/chuni/music_data")
 async def get_music_data_chuni():

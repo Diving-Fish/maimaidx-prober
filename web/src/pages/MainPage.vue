@@ -285,7 +285,7 @@
               <v-card-text>
                 <v-tabs v-model="chuniTab">
                   <v-tab key="sd">旧乐谱</v-tab>
-                  <v-tab key="dx">中二节奏 2026</v-tab>
+                  <v-tab key="dx">中二节奏 2027</v-tab>
                 </v-tabs>
                 <v-tabs-items v-model="chuniTab">
                   <v-tab-item key="sd">
