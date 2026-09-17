@@ -104,7 +104,7 @@ const pageToRecordList = function (pageData) {
     return cur;
   };
 
-  const link_dx_score = [372, 522, 942, 924]
+  const link_dx_score = [372, 522, 942, 924, 1425]
   let link = false;
   let records = [];
   let doc = new dom({
