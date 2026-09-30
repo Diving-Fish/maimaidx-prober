@@ -1,0 +1,22 @@
+[package]
+name = "maimaidx-rust-api"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+axum = "0.8"
+mysql_async = { version = "0.37", default-features = false, features = ["minimal-rust"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal"] }
+
+jsonwebtoken = "9.3"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+redis = { version = "1", default-features = false, features = ["tokio-comp", "connection-manager"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+url = "2"
+httpdate = "1"
+
+[profile.release]
+debug = 1

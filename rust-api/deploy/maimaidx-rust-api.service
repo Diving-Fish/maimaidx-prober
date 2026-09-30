@@ -1,0 +1,22 @@
+[Unit]
+Description=Maimai high-frequency query API (Rust)
+After=network-online.target mysql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/maimaidx-prober
+ExecStart=/home/ubuntu/maimaidx-prober/rust-api/bin/maimaidx-rust-api /home/ubuntu/maimaidx-prober/database/config.json
+Environment=RUST_API_BIND=127.0.0.1:8345
+Environment=TZ=Asia/Shanghai
+Restart=always
+RestartSec=3
+TimeoutStopSec=45
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
