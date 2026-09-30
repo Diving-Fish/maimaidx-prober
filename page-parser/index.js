@@ -147,7 +147,7 @@ const pageToRecordList = function (pageData) {
 
     if (title == "Link") {
       if (typeNode) {
-        dxScore = parseInt(dxScoreNode.textContent.split('/')[1])
+        const dxScore = parseInt(dxScoreNode.textContent.split('/')[1].replace(/,/g, ""), 10);
         if (dxScore != link_dx_score[level_index]) {
           title = "Link(CoF)";
         }
