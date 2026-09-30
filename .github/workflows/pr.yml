@@ -1,39 +1,63 @@
-name: Prober CI
-run-name: Prober CI
+name: Web CI
 on:
   push:
-    branches:
-      - "*"
+    branches: ['**']
     paths:
-      - "web/**"
+      - 'web/**'
+      - '.github/workflows/pr.yml'
+      - '.github/workflows/prod.yml'
+      - 'database/routes/ci.py'
+      - 'database/tools/web_release.py'
+      - 'database/tests/test_web_release.py'
+      - 'database/app.py'
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/pr.yml'
+      - '.github/workflows/prod.yml'
+      - 'database/routes/ci.py'
+      - 'database/tools/web_release.py'
+      - 'database/tests/test_web_release.py'
+      - 'database/app.py'
+permissions:
+  contents: read
+concurrency:
+  group: web-ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   webpage:
-    name: Build webpage CI
-    permissions: write-all
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      -
-        name: Login to Docker Hub
-        uses: docker/login-action@v2
+      - uses: actions/checkout@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push
-        uses: docker/build-push-action@v4
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
         with:
-          context: "{{defaultContext}}:web"
-          push: true
-          tags: divingfish/maimaidx-prober:${{ github.sha }}
-      - 
-        name: Create test page
-        run: curl "http://www.diving-fish.com:8333/ci/tag?sha=${{ github.sha }}&token=${{ secrets.CI_TOKEN }}"
-      - 
-        name: Test page notice
-        run: echo "Your test page can be viewed at https://www.diving-fish.com/maimaidx/prober-test/${{ github.sha }}"
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test browser fallback bootstrap
+        run: node --test web/scripts/test-fallback.cjs
+      - name: Test deployment endpoint
+        run: |
+          python -m pip install 'quart==0.20.0'
+          python -B -m unittest discover -s database/tests -p 'test_web_release.py'
+      - name: Test OSS publisher
+        run: python -B -m unittest discover -s web/scripts -p 'test_*.py'
+      - name: Install locked dependencies
+        run: pnpm --dir web install --frozen-lockfile
+      - name: Build static site
+        run: pnpm --dir web build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build-${{ github.sha }}
+          path: web/dist/
+          if-no-files-found: error
+          retention-days: 7

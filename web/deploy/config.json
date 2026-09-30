@@ -1,0 +1,8 @@
+{
+  "cdnBase": "https://aliyun-static.diving-fish.com/",
+  "objectPrefix": "maimaidx-prober/releases/",
+  "ossEndpoint": "https://oss-cn-shanghai.aliyuncs.com",
+  "ossBucket": "aliyun-static-diving-fish",
+  "localAssetPrefix": "/web-assets/",
+  "webRoot": "/var/www/maimaidx/web"
+}

@@ -1,3 +1,4 @@
+import './asset-path';
 import Vue from 'vue';
 import { Dialog, Message } from 'element-ui';
 import App from './App.vue';

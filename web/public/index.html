@@ -6,6 +6,42 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="/favicon.ico">
     <title>舞萌 DX | 中二节奏查分器</title>
+    <script>
+      // Run before injected scripts/styles so their network errors can be caught.
+      (function () {
+        var base = <%= JSON.stringify(BASE_URL) %>;
+        var localPrefix = <%= JSON.stringify(htmlWebpackPlugin.options.localAssetPrefix) %>;
+        var local = base.indexOf(localPrefix) === 0;
+        if (!local && !/^https:\/\//.test(base)) return;
+        var release = base.replace(/\/$/, '').split('/').pop();
+        if (!/^[0-9a-f]{40}-[0-9]+-[0-9]+$/.test(release)) return;
+        window.__PROBER_ASSET_BASE__ = base;
+        if (local) {
+          var target = new URLSearchParams(location.search).get('__prober_return');
+          var restored = new URL(target || '/', location.origin);
+          if (restored.origin === location.origin) history.replaceState(null, '', restored.href);
+          return;
+        }
+        var switching = false;
+        function fallback() {
+          if (switching) return;
+          switching = true;
+          var localBase = localPrefix + release + '/';
+          location.replace(localBase + 'index.local.html?__prober_return=' +
+            encodeURIComponent(location.pathname + location.search + location.hash));
+        }
+        window.addEventListener('error', function (event) {
+          var node = event.target;
+          var url = node && (node.src || node.href);
+          if (url && url.indexOf(base) === 0) fallback();
+        }, true);
+        if (document.fonts) document.fonts.addEventListener('loadingerror', fallback);
+        window.addEventListener('unhandledrejection', function (event) {
+          var error = event.reason;
+          if (error && error.name === 'ChunkLoadError') fallback();
+        });
+      })();
+    </script>
   </head>
   <body>
     <noscript>

@@ -1,17 +1,129 @@
-name: Build Production
-run-name: Build Production
+name: Publish Web to OSS
 on:
+  push:
+    tags: ['web-deploy-*']
   workflow_dispatch:
     inputs:
       sha256:
+        description: 'Full Git commit SHA on main to publish (40 hexadecimal characters)'
         required: true
+permissions:
+  contents: read
+concurrency:
+  group: web-production
+  cancel-in-progress: false
 jobs:
   webpage:
-    name: Build webpage CI
-    permissions: write-all
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/web-deploy-'))
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      -
-        name: Create prod page
-        run: curl "http://www.diving-fish.com:8333/ci/production?sha=${{ github.event.inputs.sha256 }}&token=${{ secrets.CI_TOKEN }}"
-  
+      - name: Validate selected commit
+        env:
+          RELEASE_SHA: ${{ inputs.sha256 || github.sha }}
+        run: '[[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]'
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify commit belongs to main and set release path
+        id: release
+        env:
+          RELEASE_SHA: ${{ inputs.sha256 || github.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$RELEASE_SHA^{commit}"
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+          release="${RELEASE_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "id=$release" >> "$GITHUB_OUTPUT"
+          base=$(python3 web/scripts/upload_oss.py --release "$release" --print-base)
+          echo "VUE_APP_ASSET_BASE=$base" >> "$GITHUB_ENV"
+      # Keep the current publisher scripts, but build the explicitly selected web revision.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha256 || github.sha }}
+          path: source
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: source/web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: source/web/pnpm-lock.yaml
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test browser fallback bootstrap
+        run: node --test web/scripts/test-fallback.cjs
+      - name: Test deployment endpoint
+        run: |
+          python -m pip install 'quart==0.20.0'
+          python -B -m unittest discover -s database/tests -p 'test_web_release.py'
+      - name: Test OSS publisher
+        run: python -B -m unittest discover -s web/scripts -p 'test_*.py'
+      - name: Build selected revision
+        run: |
+          pnpm --dir source/web install --frozen-lockfile
+          pnpm --dir source/web build
+      - name: Validate CDN references before uploading
+        env:
+          RELEASE_ID: ${{ steps.release.outputs.id }}
+        run: python web/scripts/upload_oss.py source/web/dist --release "$RELEASE_ID" --dry-run
+      - name: Install OSS SDK
+        run: python -m pip install -r web/scripts/requirements-upload.txt
+      - name: Upload versioned assets and HTML snapshot
+        env:
+          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+          RELEASE_ID: ${{ steps.release.outputs.id }}
+        run: python web/scripts/upload_oss.py source/web/dist --release "$RELEASE_ID"
+      - name: Verify CDN files and font CORS before deployment
+        env:
+          RELEASE_ID: ${{ steps.release.outputs.id }}
+        run: python web/scripts/verify_cdn.py source/web/dist --release "$RELEASE_ID"
+      - name: Prepare origin deployment package
+        env:
+          RELEASE_ID: ${{ steps.release.outputs.id }}
+          RELEASE_SHA: ${{ inputs.sha256 || github.sha }}
+        run: |
+          mkdir origin
+          cp source/web/dist/index.html source/web/dist/favicon.ico origin/
+          python -c 'import json, os; from pathlib import Path; Path("origin/release.json").write_text(json.dumps({"commit": os.environ["RELEASE_SHA"], "release": os.environ["RELEASE_ID"], "assetBase": os.environ["VUE_APP_ASSET_BASE"]}, indent=2) + "\n")'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-origin-${{ steps.release.outputs.id }}
+          path: origin/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Deploy HTML through existing CI endpoint
+        env:
+          CI_TOKEN: ${{ secrets.CI_TOKEN }}
+          RELEASE_ID: ${{ steps.release.outputs.id }}
+        run: |
+          test -n "$CI_TOKEN"
+          curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time 360 \
+            --request POST \
+            --header "Authorization: Bearer $CI_TOKEN" \
+            --header 'Content-Type: text/html; charset=utf-8' \
+            --data-binary @origin/index.html \
+            "https://maimai.diving-fish.com/api/maimaidxprober/ci/production?release=$RELEASE_ID"
+      - name: Verify live HTML matches this release
+        env:
+          RELEASE_ID: ${{ steps.release.outputs.id }}
+        run: |
+          curl --fail --silent --show-error --connect-timeout 15 --max-time 60 \
+            --header 'Cache-Control: no-cache' \
+            "https://maimai.diving-fish.com/?release=$RELEASE_ID" --output live-index.html
+          cmp origin/index.html live-index.html
+      - name: Deployment summary
+        env:
+          RELEASE_ID: ${{ steps.release.outputs.id }}
+        run: |
+          {
+            echo "### Web published"
+            echo "Release: $RELEASE_ID"
+            echo "Asset base: $VUE_APP_ASSET_BASE"
+            echo 'HTML deployed through /ci/production; old releases are retained for rollback.'
+          } >> "$GITHUB_STEP_SUMMARY"

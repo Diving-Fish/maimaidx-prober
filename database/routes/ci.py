@@ -7,7 +7,9 @@ import time
 import re
 from models.base import *
 import string
+from urllib.error import URLError
 from tools.mail import send_mail
+from tools.web_release import install as install_web_release, MAX_HTML_BYTES, ROOT as WEB_ROOT
 
 IMAGE_NAME = "divingfish/maimaidx-prober"
 ci_status = ...
@@ -87,28 +89,34 @@ def get_available_port():
 @ci_access_required
 async def status():
     reload_status()
-    return await make_response(ci_status, 200)
+    result = dict(ci_status)
+    metadata = WEB_ROOT / "current" / "release.json"
+    if metadata.is_file():
+        result["production"] = {"mode": "static", **json.loads(metadata.read_text())}
+    return await make_response(result, 200)
 
 
-@app.route("/ci/production", methods=['GET'])
+@app.route("/ci/production", methods=['POST'])
 @ci_access_required
 async def prod():
-    reload_status()
-    sha = request.args.get("sha", type=str, default="")
-    s = ci_status["production"]
-    if "ps" in s and s["ps"] != "":
-        # stop older version
-        await run_command(f"docker stop {s['ps']}")
-    image_tag = f"{IMAGE_NAME}:{sha}"
-    port = 8080
-    ot, err = await run_command(f"docker run -d --rm -p {port}:8080 {image_tag}")
-    ci_status["production"] = {
-        "port": port,
-        "image": image_tag,
-        "ps": ot.strip()
-    }
-    save_status()
-    return await make_response("OK", 200)
+    if request.mimetype != 'text/html':
+        return {"error": "Expected Content-Type: text/html"}, 415
+    if request.content_length is not None and request.content_length > MAX_HTML_BYTES:
+        return {"error": "HTML is too large"}, 413
+    # Bound chunked requests too, before buffering an arbitrarily large body.
+    html = bytearray()
+    async for chunk in request.body:
+        html.extend(chunk)
+        if len(html) > MAX_HTML_BYTES:
+            return {"error": "HTML is too large"}, 413
+    release = request.args.get("release", "")
+    try:
+        metadata = await asyncio.to_thread(install_web_release, release, bytes(html))
+    except ValueError as error:
+        return {"error": str(error)}, 400
+    except (URLError, TimeoutError):
+        return {"error": "CDN download failed; previous release remains active"}, 502
+    return metadata, 200
 
 
 @app.route("/ci/restart_nginx", methods=['POST'])

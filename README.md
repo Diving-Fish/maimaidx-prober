@@ -2,6 +2,10 @@
 
 本查分器仅用于推分指导用途，不保证歌曲定数、DX Rating、难度 100% 准确。
 
+## Web 发布
+
+静态资源通过 GitHub Actions 上传 OSS/CDN，HTML 通过现有 `/ci/production` 接口发布。配置、迁移与回滚见 [Web 静态发布说明](web/deploy/README.md)。
+
 ## 使用指南
 
 [新版文档](https://maimai.diving-fish.com/manual/)

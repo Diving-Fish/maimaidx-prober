@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from email.utils import formatdate
 from functools import wraps
 import hashlib
+import hmac
 from quart import *
 from models.maimai import *
 from tools._jwt import username_encode, decode, ts
@@ -536,8 +537,9 @@ def developer_required(f):
 def ci_access_required(f):
     @wraps(f)
     async def func(*args, **kwargs):
-        token = request.args.get("token", type=str, default="")
-        if token != ci_token:
+        authorization = request.headers.get("Authorization", "")
+        token = authorization[7:] if authorization.startswith("Bearer ") else request.args.get("token", type=str, default="")
+        if not token or not hmac.compare_digest(token.encode("utf-8"), ci_token.encode("utf-8")):
             return "ERROR", 403
         return await f(*args, **kwargs)
 
