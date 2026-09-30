@@ -92,6 +92,22 @@ class Player(BaseModel):
     chuni_access_time = BigIntegerField()
     import_token = CharField()
 
+    async def update_rating(self, **values):
+        """只写变化的 rating 字段；无变化时，访问时间最多每五分钟落库一次。"""
+        updates = {}
+        for name, value in values.items():
+            # 按数据库存储类型比较（例如中二的新曲 rating 存在 IntegerField）。
+            stored_value = self._meta.fields[name].db_value(value)
+            if getattr(self, name) != stored_value:
+                updates[name] = stored_value
+            setattr(self, name, value)
+        now = int(time.time())
+        if updates or now - (self.access_time or 0) >= 300:
+            updates['access_time'] = now
+            self.access_time = now
+        if updates:
+            await Player.update(**updates).where(Player.id == self.id).aio_execute()
+
     def user_json(self):
         try:
             j = json.loads(self.user_general_data)

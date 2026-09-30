@@ -317,10 +317,12 @@ def record_json(record: ChuniRecord):
     }
 
 
-async def get_b50(player: Player):
+async def get_b50(player: Player, records=None):
     old30 = []
     new20 = []
-    rs = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id).aio_execute()
+    rs = records
+    if rs is None:
+        rs = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id).aio_execute()
     for r in rs:
         setattr(r, 'ra', single_ra(r))
         if chart_id_map[r.chart_id][1]['basic_info']['from'] in latest_version:
@@ -332,18 +334,17 @@ async def get_b50(player: Player):
     return old30[:30], new20[:20]
 
 
-async def compute_ra(player: Player):
-    old30, new20 = await get_b50(player)
+async def compute_ra(player: Player, old30=None, new20=None, records=None):
+    if old30 is None or new20 is None:
+        old30, new20 = await get_b50(player, records=records)
     total = 0.0
     for record in new20:
         total += single_ra(record)
-    player.chuni_new_rating = total / 50
+    new_rating = total / 50
     for record in old30:
         total += single_ra(record)
     rating = total / 50
-    player.chuni_rating = rating
-    player.access_time = time.time()
-    await player.aio_save()
+    await player.update_rating(chuni_new_rating=new_rating, chuni_rating=rating)
     return rating
 
 
@@ -422,7 +423,7 @@ async def player_records_chuni():
         return {"message": str(e)}, 400
 
     rs = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', g.user.id).aio_execute()
-    await compute_ra(g.user)
+    await compute_ra(g.user, records=rs)
     best = []
     for c in rs:
         elem = record_json(c)
@@ -495,7 +496,7 @@ async def query_player_chuni():
             if token['username'] != obj["username"]:
                 return {"status": "error", "message": "已设置隐私"}, 403
     old30, new20 = await get_b50(p)
-    asyncio.create_task(compute_ra(p))
+    await compute_ra(p, old30=old30, new20=new20)
     nickname = p.nickname
     if nickname == "":
         nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
@@ -533,7 +534,7 @@ async def dev_get_records_chuni():
     if player.privacy or not player.accept_agreement:
         return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
     rs = await ChuniRecord.raw('select * from chunirecord where player_id = %s and recent = 0', player.id).aio_execute()
-    await compute_ra(player)
+    await compute_ra(player, records=rs)
     return {
         "records": {
             "best": [record_json(c) for c in rs],

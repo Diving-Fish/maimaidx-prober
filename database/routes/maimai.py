@@ -323,7 +323,7 @@ async def get_records():
     except record_filter.FilterError as e:
         return {"message": str(e)}, 400
     r = await records_of(g.user)
-    await compute_ra(g.user)
+    await compute_ra(g.user, records=r)
     masked = masked_for(g.user)
     records = []
     for record in r:
@@ -388,7 +388,7 @@ async def get_plate():
 async def get_records_test():
     r = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', '636').aio_execute()
     user = await Player.aio_get(Player.id == 636)
-    await compute_ra(user)
+    await compute_ra(user, records=r)
     records = []
     for record in r:
         elem = record_json(record, False)
@@ -425,7 +425,7 @@ async def dev_get_records():
     if player.privacy or not player.accept_agreement:
         return {"status": "error", "message": "已设置隐私或未同意用户协议"}, 403
     r = await records_of(player)
-    await compute_ra(player)
+    await compute_ra(player, records=r)
     records = []
     for record in r:
         elem = record_json(record, player.mask)
@@ -469,8 +469,10 @@ async def dev_get_record():
     return records
 
 
-async def get_dx_and_sd(player):
-    l = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id).aio_execute()
+async def get_dx_and_sd(player, records=None):
+    l = records
+    if l is None:
+        l = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id', player.id).aio_execute()
     l1 = []
     l2 = []
     for r in l:
@@ -484,11 +486,15 @@ async def get_dx_and_sd(player):
     return l1[:25], l2[:15]
 
 
-async def get_dx_and_sd_for50(player):
-    l = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id and chart.music_id < 100000', player.id).aio_execute()
+async def get_dx_and_sd_for50(player, records=None):
+    l = records
+    if l is None:
+        l = await NewRecord.raw('select newrecord.achievements, newrecord.fc, newrecord.fs, newrecord.dxScore, chart.ds as ds, chart.level as level, chart.difficulty as diff, music.type as `type`, music.id as `id`, music.is_new as is_new, music.title as title from newrecord, chart, music where player_id = %s and chart_id = chart.id and chart.music_id = music.id and chart.music_id < 100000', player.id).aio_execute()
     l1 = []
     l2 = []
     for r in l:
+        if int(r.id) >= 100000:
+            continue
         setattr(r, 'ra', ScoreCoefficient(r.achievements).ra(r.ds))
         if r.is_new:
             l2.append(r)
@@ -542,8 +548,9 @@ async def query_player():
         sd, dx = await get_dx_and_sd_for50(p)
         await compute_ra(p, sd, dx)
     else:
-        sd, dx = await get_dx_and_sd(p)
-        await compute_ra(p)
+        records = await records_of(p)
+        sd, dx = await get_dx_and_sd(p, records=records)
+        await compute_ra(p, records=records)
     nickname = p.nickname
     if nickname == "":
         nickname = p.username if len(p.username) <= 8 else p.username[:8] + '…'
@@ -603,20 +610,17 @@ async def query_plate():
     }
 
 
-async def compute_ra(player: Player, sd=None, dx=None):
+async def compute_ra(player: Player, sd=None, dx=None, records=None):
     if sd is None or dx is None:
-        sd, dx = await get_dx_and_sd_for50(player)
-    rating = 0
-    for t in dx:
-        rating += int(t.ra)
-    player.maimai_new_rating = rating
-    for t in sd:
-        rating += int(t.ra)
-    player.rating = rating
-    player.maimai_legacy_count = len(sd)
-    player.maimai_new_count = len(dx)
-    player.access_time = time.time()
-    await player.aio_save()
+        sd, dx = await get_dx_and_sd_for50(player, records=records)
+    new_rating = sum(int(t.ra) for t in dx)
+    rating = new_rating + sum(int(t.ra) for t in sd)
+    await player.update_rating(
+        maimai_new_rating=new_rating,
+        rating=rating,
+        maimai_legacy_count=len(sd),
+        maimai_new_count=len(dx),
+    )
     return rating
 
 
