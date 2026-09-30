@@ -4,3 +4,7 @@ venv/
 datestamp
 ci_status.json
 *.txt
+
+# Local datasets loaded by the running API; provision separately, do not delete.
+/maidle/
+/music_data_2024_last.json

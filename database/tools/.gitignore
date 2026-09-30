@@ -1,0 +1,8 @@
+# Per-run operational exports and rollback data can contain user identifiers.
+**/revoked-*.csv
+**/deleted-*.csv
+**/rollback-*.sql
+
+# Local incident/migration records, not reusable application code.
+/merge-milkawa-clients/
+/strip-scanner-consents/
