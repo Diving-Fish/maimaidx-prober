@@ -1,6 +1,6 @@
 # developer token 日落
 
-`Developer-Token` 与「新版」开发者 token 于 **2026-10-01 00:00 (UTC+8)** 全部停止服务，
+`Developer-Token` 与「新版」开发者 token 于 **2027-01-01 00:00 (UTC+8)** 全部停止服务，
 第三方改走水鱼账号 OAuth（`https://auth.diving-fish.com`）。
 
 停的是凭据，不是数据：受影响的端点是 `developer_required` 保护的那五个
@@ -28,15 +28,15 @@ mysql -u <user> -p maimaidxprober < migrate.sql
 已经改完的人白改。
 
 ```sql
--- 给某个 token 续到 2026-10-08 00:00 (UTC+8)
-UPDATE `newdeveloper` SET `sunset_ts` = UNIX_TIMESTAMP('2026-10-08 00:00:00') WHERE `token` = '<token>';
+-- 给某个 token 续到 2027-01-08 00:00 (UTC+8)
+UPDATE `newdeveloper` SET `sunset_ts` = UNIX_TIMESTAMP('2027-01-08 00:00:00') WHERE `token` = '<token>';
 -- 收回续期，改回按全局日期
 UPDATE `newdeveloper` SET `sunset_ts` = 0 WHERE `token` = '<token>';
 ```
 
 （`UNIX_TIMESTAMP()` 按 MySQL 会话时区解释字面量，这台机器是 CST，与公告口径一致；
-不确定时用 `SELECT UNIX_TIMESTAMP('2026-10-08 00:00:00');` 核一下，
-2026-10-01 00:00 UTC+8 应当是 `1790784000`。）
+不确定时用 `SELECT UNIX_TIMESTAMP('2027-01-01 00:00:00');` 核一下，
+2027-01-01 00:00 UTC+8 应当是 `1798732800`。）
 
 `available = 0` 不能替代它：置 false 是「这个 token 出事了，现在就断」，
 日落是「到那天为止都正常」，二者在到期之前对调用方的表现完全不同。

@@ -376,7 +376,7 @@ subject=sub:12345
 
 ### 6.3 qq：QQ 号
 
-**过渡方案，仅对从 `Developer-Token` 迁移过来的应用开放，且将于 2026 年 10 月 1 日 00:00（UTC+8）停止工作**，与 `Developer-Token` 同时。
+**过渡方案，仅对从 `Developer-Token` 迁移过来的应用开放，且将于 2027 年 1 月 1 日 00:00（UTC+8）停止工作**，与 `Developer-Token` 同时。
 
 ```plaintext
 subject=qq:123456

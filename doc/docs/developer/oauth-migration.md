@@ -7,7 +7,7 @@ toc_max_heading_level: 4
 # 从 Developer-Token 迁移到水鱼账号 OAuth
 
 :::warning
-`Developer-Token` 已停止签发，其对应的 `/dev/player/records` 、 `/dev/player/record` 、 `/query/plate` 、 `/channel_to_qq` 端点已进入废弃状态，并将于 **2026 年 10 月 1 日 00:00（UTC+8）** 停止服务，届时一律返回 `410 Gone` 。请在该日期之前完成本文所述的迁移。
+`Developer-Token` 已停止签发，其对应的 `/dev/player/records` 、 `/dev/player/record` 、 `/query/plate` 、 `/channel_to_qq` 端点已进入废弃状态，并将于 **2027 年 1 月 1 日 00:00（UTC+8）** 停止服务，届时一律返回 `410 Gone` 。请在该日期之前完成本文所述的迁移。
 :::
 
 ## 1. 变更概述
@@ -170,7 +170,7 @@ Authorization: Bearer eyJ0eXAiOiJhdCtqd3QiLCJhbGciOiJSUzI1NiIsImtpZCI6...
 | `ref:<摘要>` | 您自己生成，用户授权时建立 | 长期，推荐 |
 | `username:<用户名>` | 查分器预留 | 长期 |
 | `sub:<用户 ID>` | 查分器预留 | 长期 |
-| `qq:<QQ 号>` | 查分器预留 | **2026 年 10 月 1 日 00:00（UTC+8）停止工作** |
+| `qq:<QQ 号>` | 查分器预留 | **2027 年 1 月 1 日 00:00（UTC+8）停止工作** |
 
 ### 5.1 ref：您自己生成的映射
 
@@ -235,7 +235,7 @@ subject=sub:12345
 
 设备码绑定完成后，若您通过轮询取回了令牌，响应中会额外包含一个 `sub` 字段，即该用户的水鱼用户 ID 。愿意自行保存这份对应关系的应用可以用它换票。
 
-### 5.4 qq：过渡期写法，10 月 1 日停止工作
+### 5.4 qq：过渡期写法，2027 年 1 月 1 日停止工作
 
 ```plaintext
 subject=qq:123456
@@ -244,7 +244,7 @@ subject=qq:123456
 仅对迁移过来的应用开放，新登记的应用无法使用。取值同时匹配用户绑定的 QQ 号与频道 ID ，与 `Developer-Token` 时代 `qq` 参数的行为一致。
 
 :::warning
-该写法**将于 2026 年 10 月 1 日 00:00（UTC+8）停止工作**，与 `Developer-Token` 同时。届时服务器将返回：
+该写法**将于 2027 年 1 月 1 日 00:00（UTC+8）停止工作**，与 `Developer-Token` 同时。届时服务器将返回：
 
 ```json
 {"error": "invalid_request", "error_description": "'subject=qq:' is retired for this client; use ref: or sub:"}

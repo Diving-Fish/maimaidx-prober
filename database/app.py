@@ -54,14 +54,14 @@ oauth_rs.init(
     _idp_conf.get("resource") or "https://www.diving-fish.com/api/maimaidxprober",
 )
 
-#: 开发者 token 的全局日落时刻：2026-10-01 00:00 (UTC+8)。到这一刻为止
+#: 开发者 token 的全局日落时刻：2027-01-01 00:00 (UTC+8)。到这一刻为止
 #: developer_required 的接口照常工作，之后一律 410。
 #:
-#: 写成带时区的字面量而不是 datetime(2026, 10, 1)：对外公告的是北京时间的
-#: 10 月 1 日零点，这台机器现在恰好是 CST，但服务器时区是运维配置，不该由它
+#: 写成带时区的字面量而不是 datetime(2027, 1, 1)：对外公告的是北京时间的
+#: 2027 年 1 月 1 日零点，这台机器现在恰好是 CST，但服务器时区是运维配置，不该由它
 #: 决定几百个第三方服务在哪一秒停摆。
 DEVELOPER_TOKEN_SUNSET_TS = int(
-    datetime(2026, 10, 1, tzinfo=timezone(timedelta(hours=8))).timestamp())
+    datetime(2027, 1, 1, tzinfo=timezone(timedelta(hours=8))).timestamp())
 
 #: 新的开发者接入入口。申请的不再是「一个能查全库的 token」，而是一个应用：
 #: 填名称、描述、需要的权限，用户逐个授权，可随时撤销。

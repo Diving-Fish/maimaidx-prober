@@ -4,7 +4,7 @@
 -- 声明的每一列，列不存在时所有 /dev/* 请求会直接 500，而不是优雅降级。
 --
 -- 0 表示「按全局日落时间算」（app.DEVELOPER_TOKEN_SUNSET_TS，
--- 2026-10-01 00:00 UTC+8）。存量行全部保持 0：日期只写在代码里一处，
+-- 2027-01-01 00:00 UTC+8）。存量行全部保持 0：日期只写在代码里一处，
 -- 不往几百行数据里复制一遍，否则改期就要再跑一次 UPDATE。
 ALTER TABLE `developer`    ADD COLUMN `sunset_ts` BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE `newdeveloper` ADD COLUMN `sunset_ts` BIGINT NOT NULL DEFAULT 0;
