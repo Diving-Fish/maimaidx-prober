@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "*"
+      - "!web-deploy-*"
   pull_request:
     types: [labeled]
   workflow_dispatch:
