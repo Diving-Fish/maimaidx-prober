@@ -7,7 +7,6 @@ https://www.diving-fish.com/api/chunithmprober/*
 """
 import asyncio
 import time
-from audioop import reverse
 from collections import defaultdict
 from math import floor
 from app import app, developer_required, login_required, login_or_token_required, oauth_or_login_required, oauth_optional_required, md5
